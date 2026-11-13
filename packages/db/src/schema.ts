@@ -1,0 +1,154 @@
+import { sql } from 'drizzle-orm';
+import {
+  check,
+  foreignKey,
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
+
+const id = () => uuid('id').primaryKey().defaultRandom();
+const tz = (name: string) => timestamp(name, { withTimezone: true });
+const createdAt = () => tz('created_at').notNull().defaultNow();
+
+export const workspaceType = pgEnum('workspace_type', ['center', 'independent']);
+export const memberRole = pgEnum('member_role', ['owner', 'teacher', 'assistant']);
+export const locale = pgEnum('locale', ['ar', 'en']);
+
+// Identity: global, not per workspace.
+
+export const users = pgTable(
+  'users',
+  {
+    id: id(),
+    name: text('name').notNull(),
+    phone: text('phone').unique(),
+    email: text('email'),
+    // Null for students, who sign in with a one-time code.
+    passwordHash: text('password_hash'),
+    locale: locale('locale').notNull().default('ar'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('users_email_lower_key').on(sql`lower(${t.email})`),
+    check('users_phone_or_email', sql`${t.phone} is not null or ${t.email} is not null`),
+  ],
+);
+
+export const refreshTokens = pgTable(
+  'refresh_tokens',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    familyId: uuid('family_id').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: tz('expires_at').notNull(),
+    revokedAt: tz('revoked_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('refresh_tokens_family_idx').on(t.familyId),
+    index('refresh_tokens_user_idx').on(t.userId),
+  ],
+);
+
+// Tenancy.
+
+export const workspaces = pgTable('workspaces', {
+  id: id(),
+  type: workspaceType('type').notNull(),
+  nameAr: text('name_ar').notNull(),
+  nameEn: text('name_en'),
+  timezone: text('timezone').notNull().default('Africa/Cairo'),
+  settings: jsonb('settings').notNull().default({}),
+  createdAt: createdAt(),
+});
+
+export const memberships = pgTable(
+  'memberships',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    role: memberRole('role').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('memberships_workspace_user_key').on(t.workspaceId, t.userId),
+    // Target for composite foreign keys, so child rows cannot point into another workspace.
+    unique('memberships_workspace_id_key').on(t.workspaceId, t.id),
+    index('memberships_user_idx').on(t.userId),
+  ],
+);
+
+export const assistantScopes = pgTable(
+  'assistant_scopes',
+  {
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    membershipId: uuid('membership_id').notNull(),
+    teacherMembershipId: uuid('teacher_membership_id').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.workspaceId, t.membershipId, t.teacherMembershipId] }),
+    foreignKey({
+      name: 'assistant_scopes_membership_fk',
+      columns: [t.workspaceId, t.membershipId],
+      foreignColumns: [memberships.workspaceId, memberships.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'assistant_scopes_teacher_fk',
+      columns: [t.workspaceId, t.teacherMembershipId],
+      foreignColumns: [memberships.workspaceId, memberships.id],
+    }).onDelete('cascade'),
+  ],
+);
+
+export const invites = pgTable(
+  'invites',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    role: memberRole('role').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: tz('expires_at').notNull(),
+    usedAt: tz('used_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('invites_workspace_idx').on(t.workspaceId, t.createdAt)],
+);
+
+// Audit: every write. workspace_id is null for actions outside a workspace (register, login).
+
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id').references(() => workspaces.id),
+    actorId: uuid('actor_id').references(() => users.id),
+    action: text('action').notNull(),
+    entity: text('entity').notNull(),
+    entityId: text('entity_id'),
+    before: jsonb('before'),
+    after: jsonb('after'),
+    at: tz('at').notNull().defaultNow(),
+  },
+  (t) => [index('audit_log_workspace_at_idx').on(t.workspaceId, t.at)],
+);

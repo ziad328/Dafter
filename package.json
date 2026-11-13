@@ -13,6 +13,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm lint && pnpm format:check && turbo run typecheck test",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d --wait",
+    "db:generate": "pnpm --filter @dafter/db generate",
+    "db:migrate": "pnpm --filter @dafter/db migrate",
+    "db:seed": "pnpm --filter @dafter/db seed",
+    "db:reset": "pnpm db:up && pnpm --filter @dafter/db reset",
     "prepare": "lefthook install"
   },
   "devDependencies": {

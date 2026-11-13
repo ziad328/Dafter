@@ -2,5 +2,11 @@ packages:
   - apps/*
   - packages/*
 allowBuilds:
+  # esbuild verifies its platform binary; needed by tsx, vite and drizzle-kit
+  esbuild: true
   # hooks are installed by the root "prepare" script instead
   lefthook: false
+  # optional native/SSH extras pulled in by testcontainers; not needed for local Docker
+  cpu-features: false
+  ssh2: false
+  protobufjs: false
