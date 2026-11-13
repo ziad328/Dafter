@@ -34,7 +34,7 @@ services:
       # Neon: the pooled URL (host has -pooler) for the API, the direct one for migrations and pg-boss.
       - key: DATABASE_URL
         sync: false
-      - key: DIRECT_DATABASE_URL
+      - key: DATABASE_URL_UNPOOLED
         sync: false
       - key: BREVO_API_KEY
         sync: false

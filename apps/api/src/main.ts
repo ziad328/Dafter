@@ -11,7 +11,7 @@ const envFile = '../../.env';
 if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 async function bootstrap() {
-  const directUrl = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL!;
+  const directUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL!;
   // Deploys (Render) migrate on every start; already-applied migrations are skipped.
   if (process.env.MIGRATE_ON_START === '1') {
     await runMigrations(directUrl);

@@ -8,7 +8,7 @@ if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 /** Scripts (migrate, seed) use Neon's direct connection when set: DDL and long jobs skip the pooler. */
 export function databaseUrl(): string {
-  const url = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL;
+  const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set (copy .env.example to .env)');
   return url;
 }

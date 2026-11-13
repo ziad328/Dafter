@@ -8,7 +8,6 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| Neon not checked for `CREATEROLE`/`SET ROLE` to `dafter_app`, the owner connection (workspace list, invite lookup), or `pg_trgm` | RLS role switching or Arabic search could fail on deploy; `pnpm demo:seed:neon` is the first check | D17b |
 | CI has never run green on GitHub (remote has up to Day 9; nothing since is pushed); `oasdiff` contract check not set up | Workflow errors are unknown until the first push | D17b (push) |
 | Rate limits are in process memory | They reset on restart and count per instance | later (Redis at the VPS stage) |
 | The live SSE bus is in process | Check-ins only reach screens on the same API process | later (LISTEN/NOTIFY with more than one process) |
