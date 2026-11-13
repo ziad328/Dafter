@@ -49,6 +49,7 @@ export class GroupsService {
       subjectId: body.subjectId,
       gradeLevelId: body.gradeLevelId,
       capacity: body.capacity ?? null,
+      monthlyFeePiastres: body.monthlyFeePiastres ?? null,
     };
     await this.checkReferences(ctx, values);
     const id = await this.repo.create(ctx.workspaceId, values, body.slots, this.clock.now());

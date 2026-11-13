@@ -11,6 +11,9 @@ api.enhanceEndpoints({
     closeSession: { invalidatesTags: ['sessions'] },
     // A scan changes the student's own history on /s.
     checkIn: { invalidatesTags: ['student'] },
+    // Enrolling bills the month; leaving changes what the fees card offers.
+    createEnrollment: { invalidatesTags: ['students', 'money'] },
+    leaveEnrollment: { invalidatesTags: ['students', 'money'] },
   },
 });
 

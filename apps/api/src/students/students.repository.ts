@@ -30,6 +30,7 @@ import {
   type Tx,
   users,
 } from '@dafter/db';
+import { chargeMonth } from '../money/charges.js';
 import { TenantRepository } from '../tenant.repository.js';
 
 type StudentValues = Omit<typeof students.$inferInsert, 'workspaceId'>;
@@ -203,14 +204,16 @@ export class StudentsRepository extends TenantRepository {
     workspaceId: string,
     values: { studentId: string; groupId: string; discountPct: number; joinedAt: Date },
   ) {
-    const [row] = await this.inTenant(workspaceId, (tx) =>
-      tx
+    return this.inTenant(workspaceId, async (tx) => {
+      const [row] = await tx
         .insert(enrollments)
         .values({ workspaceId, ...values })
         .onConflictDoNothing()
-        .returning({ id: enrollments.id }),
-    );
-    return row?.id;
+        .returning({ id: enrollments.id });
+      // Bill the joining month right away; the daily job covers the months after.
+      if (row) await chargeMonth(tx, workspaceId, values.joinedAt, row.id);
+      return row?.id;
+    });
   }
 
   async leave(workspaceId: string, studentId: string, enrollmentId: string, now: Date) {

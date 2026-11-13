@@ -16,6 +16,7 @@ import { Field, FormError, SelectField, Skeleton } from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName, WEEK, weekdayName } from '@/lib/groups';
+import { egpText, toPiastres } from '@/lib/money';
 import { errorKey } from '@/lib/session';
 
 const toForm = (g: Group): CreateGroupRequest => ({
@@ -133,6 +134,17 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
             dir="ltr"
             error={errors.capacity && t('form.invalid.capacity')}
             {...register('capacity', { setValueAs: (v: string) => (v === '' ? null : Number(v)) })}
+          />
+          <Field
+            label={`${t('groups.monthlyFee')} ${t('form.optional')}`}
+            inputMode="decimal"
+            dir="ltr"
+            defaultValue={group?.monthlyFeePiastres ? egpText(group.monthlyFeePiastres) : ''}
+            error={errors.monthlyFeePiastres && t('form.invalid.amount')}
+            // EGP typed, piastres sent; -1 fails validation for text that is not an amount.
+            {...register('monthlyFeePiastres', {
+              setValueAs: (v: string) => (v === '' ? null : (toPiastres(v) ?? -1)),
+            })}
           />
 
           <fieldset className="grid gap-3">

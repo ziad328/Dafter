@@ -17,7 +17,7 @@ import { TenantRepository } from '../tenant.repository.js';
 type Role = Workspace['role'];
 export type GroupValues = Pick<
   typeof groups.$inferInsert,
-  'teacherMembershipId' | 'subjectId' | 'gradeLevelId' | 'capacity'
+  'teacherMembershipId' | 'subjectId' | 'gradeLevelId' | 'capacity' | 'monthlyFeePiastres'
 >;
 
 const subject = aliasedTable(subjects, 's');
@@ -158,6 +158,7 @@ export class GroupsRepository extends TenantRepository {
         subject: item(subject),
         gradeLevel: item(grade),
         capacity: groups.capacity,
+        monthlyFeePiastres: groups.monthlyFeePiastres,
         status: groups.status,
       })
       .from(groups)

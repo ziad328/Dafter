@@ -9,6 +9,7 @@ export const addTagTypes = [
   'groups',
   'sessions',
   'attendance',
+  'money',
   'students',
   'student-auth',
 ] as const;
@@ -175,6 +176,35 @@ const injectedRtkApi = api
       liveAttendance: build.query<LiveAttendanceApiResponse, LiveAttendanceApiArg>({
         query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/live` }),
         providesTags: ['attendance'],
+      }),
+      getStudentLedger: build.query<GetStudentLedgerApiResponse, GetStudentLedgerApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/students/${queryArg.id}/ledger` }),
+        providesTags: ['money'],
+      }),
+      createPayment: build.mutation<CreatePaymentApiResponse, CreatePaymentApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/payments`,
+          method: 'POST',
+          body: queryArg.createPaymentRequest,
+          headers: {
+            'idempotency-key': queryArg['idempotency-key'],
+          },
+        }),
+        invalidatesTags: ['money'],
+      }),
+      reverseEntry: build.mutation<ReverseEntryApiResponse, ReverseEntryApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/ledger/${queryArg.id}/reverse`,
+          method: 'POST',
+          headers: {
+            'idempotency-key': queryArg['idempotency-key'],
+          },
+        }),
+        invalidatesTags: ['money'],
+      }),
+      getReceipt: build.query<GetReceiptApiResponse, GetReceiptApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/ledger/${queryArg.id}/receipt` }),
+        providesTags: ['money'],
       }),
       checkIn: build.mutation<CheckInApiResponse, CheckInApiArg>({
         query: (queryArg) => ({
@@ -373,6 +403,24 @@ export type LiveAttendanceApiResponse = /** status 200 text/event-stream */ Atte
 export type LiveAttendanceApiArg = {
   id: string;
 };
+export type GetStudentLedgerApiResponse = /** status 200 Ledger */ StudentLedger;
+export type GetStudentLedgerApiArg = {
+  id: string;
+};
+export type CreatePaymentApiResponse = /** status 201 Recorded */ LedgerEntry;
+export type CreatePaymentApiArg = {
+  'idempotency-key': string;
+  createPaymentRequest: CreatePaymentRequest;
+};
+export type ReverseEntryApiResponse = /** status 201 The reversal */ LedgerEntry;
+export type ReverseEntryApiArg = {
+  id: string;
+  'idempotency-key': string;
+};
+export type GetReceiptApiResponse = /** status 200 Receipt data */ Receipt;
+export type GetReceiptApiArg = {
+  id: string;
+};
 export type CheckInApiResponse = /** status 200 Checked in */ CheckIn;
 export type CheckInApiArg = {
   checkInRequest: CheckInRequest;
@@ -466,6 +514,11 @@ export type ErrorCode =
   | 'CHECKIN_CODE_EXPIRED'
   | 'DEVICE_NOT_BOUND'
   | 'DEVICE_SIGNATURE_INVALID'
+  | 'IDEMPOTENCY_KEY_REQUIRED'
+  | 'IDEMPOTENCY_KEY_REUSED'
+  | 'ENTRY_NOT_FOUND'
+  | 'ENTRY_ALREADY_REVERSED'
+  | 'ENTRY_NOT_REVERSIBLE'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -575,6 +628,7 @@ export type Group = {
   subject: CurriculumItem;
   gradeLevel: CurriculumItem;
   capacity: number | null;
+  monthlyFeePiastres: number | null;
   status: 'active' | 'archived';
   slots: GroupSlotOutput[];
 };
@@ -589,6 +643,7 @@ export type CreateGroupRequest = {
   subjectId: string;
   gradeLevelId: string;
   capacity?: number | null;
+  monthlyFeePiastres?: number | null;
   slots: GroupSlot[];
 };
 export type UpdateGroupRequest = {
@@ -596,6 +651,7 @@ export type UpdateGroupRequest = {
   subjectId?: string;
   gradeLevelId?: string;
   capacity?: number | null;
+  monthlyFeePiastres?: number | null;
   status?: 'active' | 'archived';
   slots?: GroupSlot[];
 };
@@ -635,6 +691,41 @@ export type AttendanceRecord = {
 export type AttendanceList = AttendanceRecord[];
 export type MarkAttendanceRequest = {
   status: 'present' | 'late' | 'absent' | 'excused' | 'makeup';
+};
+export type LedgerEntry = {
+  id: string;
+  type: 'charge' | 'payment' | 'reversal';
+  amountPiastres: number;
+  method: ('cash' | 'vodafone_cash' | 'instapay') | null;
+  receiptNo: number | null;
+  period: string | null;
+  groupId: string;
+  subject: CurriculumItem;
+  reversesEntryId: string | null;
+  reversedById: string | null;
+  note: string | null;
+  createdByName: string | null;
+  createdAt: string;
+};
+export type StudentLedger = {
+  balancePiastres: number;
+  entries: LedgerEntry[];
+};
+export type CreatePaymentRequest = {
+  studentId: string;
+  groupId: string;
+  amountPiastres: number;
+  method: 'cash' | 'vodafone_cash' | 'instapay';
+  note?: string;
+};
+export type Receipt = {
+  entry: LedgerEntry;
+  studentName: string;
+  center: {
+    nameAr: string;
+    nameEn: string | null;
+  };
+  timezone: string;
 };
 export type CheckIn = {
   id: string;
@@ -759,6 +850,10 @@ export const {
   useMarkAttendanceMutation,
   useCloseSessionMutation,
   useLiveAttendanceQuery,
+  useGetStudentLedgerQuery,
+  useCreatePaymentMutation,
+  useReverseEntryMutation,
+  useGetReceiptQuery,
   useCheckInMutation,
   useListStudentsQuery,
   useCreateStudentMutation,

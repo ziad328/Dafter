@@ -35,6 +35,8 @@ const slotList = z
   });
 
 const capacity = z.int().min(1).max(1000).nullable();
+// Integer piastres (150.50 EGP = 15050); null = no monthly charge.
+const monthlyFee = z.int().min(1).max(10_000_000).nullable();
 
 export const createGroupRequest = z
   .object({
@@ -43,6 +45,7 @@ export const createGroupRequest = z
     subjectId: z.uuid(),
     gradeLevelId: z.uuid(),
     capacity: capacity.optional(),
+    monthlyFeePiastres: monthlyFee.optional(),
     slots: slotList,
   })
   .meta({ id: 'CreateGroupRequest' });
@@ -53,6 +56,7 @@ export const updateGroupRequest = z
     subjectId: z.uuid(),
     gradeLevelId: z.uuid(),
     capacity,
+    monthlyFeePiastres: monthlyFee,
     status: z.enum(['active', 'archived']),
     // Replaces every slot of the group.
     slots: slotList,
@@ -68,6 +72,7 @@ export const group = z
     subject: curriculumItem,
     gradeLevel: curriculumItem,
     capacity: z.int().nullable(),
+    monthlyFeePiastres: z.int().nullable(),
     status: z.enum(['active', 'archived']),
     slots: z.array(groupSlot),
   })

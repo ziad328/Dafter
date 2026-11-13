@@ -18,6 +18,7 @@ import {
 } from '@/api/generated';
 import { Field, FormError, SelectField, Skeleton } from '@/components/Field';
 import { AppAccess, Enrollments } from '@/components/StudentAccount';
+import { StudentFees } from '@/components/StudentFees';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
@@ -68,6 +69,7 @@ export default function StudentForm() {
       {id && existing.data && (
         <>
           <Enrollments studentId={id} />
+          <StudentFees studentId={id} />
           <AppAccess student={existing.data} />
         </>
       )}

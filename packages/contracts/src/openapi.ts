@@ -19,6 +19,7 @@ import {
 } from './attendance.js';
 import { createEnrollmentRequest, enrollment, enrollmentList } from './enrollments.js';
 import { healthResponse } from './health.js';
+import { createPaymentRequest, ledgerEntry, receipt, studentLedger } from './money.js';
 import { myAttendance, mySchedule } from './me.js';
 import {
   bindDeviceRequest,
@@ -357,6 +358,54 @@ export function buildOpenApi() {
             },
             ...errors,
           },
+        },
+      },
+      '/api/v1/students/{id}/ledger': {
+        get: {
+          operationId: 'getStudentLedger',
+          tags: ['money'],
+          description: 'Entries of the groups the caller can see, newest first, and their sum.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 200: { description: 'Ledger', content: json(studentLedger) }, ...errors },
+        },
+      },
+      '/api/v1/payments': {
+        post: {
+          operationId: 'createPayment',
+          tags: ['money'],
+          description:
+            'Needs an Idempotency-Key header: a retry with the same key returns the first entry.',
+          security: [{ bearer: [] }],
+          requestParams: { header: z.object({ 'idempotency-key': z.string().min(8).max(100) }) },
+          requestBody: { required: true, content: json(createPaymentRequest) },
+          responses: { 201: { description: 'Recorded', content: json(ledgerEntry) }, ...errors },
+        },
+      },
+      '/api/v1/ledger/{id}/reverse': {
+        post: {
+          operationId: 'reverseEntry',
+          tags: ['money'],
+          description:
+            'Owner, or whoever recorded the entry. Needs an Idempotency-Key header. The entry stays; a new one cancels it.',
+          security: [{ bearer: [] }],
+          requestParams: {
+            path: z.object({ id: z.uuid() }),
+            header: z.object({ 'idempotency-key': z.string().min(8).max(100) }),
+          },
+          responses: {
+            201: { description: 'The reversal', content: json(ledgerEntry) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/ledger/{id}/receipt': {
+        get: {
+          operationId: 'getReceipt',
+          tags: ['money'],
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 200: { description: 'Receipt data', content: json(receipt) }, ...errors },
         },
       },
       '/api/v1/check-ins': {

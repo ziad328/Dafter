@@ -20,6 +20,7 @@ const StudentLogin = lazy(() => import('./screens/StudentLogin'));
 const StudentHome = lazy(() => import('./screens/StudentHome'));
 const StudentScan = lazy(() => import('./screens/StudentScan'));
 const SessionLive = lazy(() => import('./screens/SessionLive'));
+const Receipt = lazy(() => import('./screens/Receipt'));
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -36,7 +37,7 @@ function Layout() {
 
   return (
     <div className="min-h-dvh bg-muted/40 font-sans text-foreground">
-      <header className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3">
+      <header className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 print:hidden">
         <span className="text-xl font-bold">{t('app.name')}</span>
         <div className="flex gap-2">
           <Button
@@ -58,7 +59,7 @@ function Layout() {
         <Suspense fallback={<Skeleton />}>
           <Outlet />
         </Suspense>
-        <p role="status" className="text-center text-xs text-muted-foreground">
+        <p role="status" className="text-center text-xs text-muted-foreground print:hidden">
           {apiStatus}
         </p>
       </main>
@@ -106,6 +107,7 @@ const router = createBrowserRouter([
           { path: '/groups/:id', element: <GroupForm /> },
           { path: '/timetable', element: <Timetable /> },
           { path: '/sessions/:id/live', element: <SessionLive /> },
+          { path: '/receipts/:id', element: <Receipt /> },
           { path: '/students', element: <Students /> },
           { path: '/students/new', element: <StudentForm /> },
           { path: '/students/:id', element: <StudentForm /> },

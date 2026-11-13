@@ -15,6 +15,8 @@ import {
   enrollments,
   studentInvites,
   attendanceRecords,
+  ledgerEntries,
+  receiptCounters,
   memberships,
   subjects,
 } from './schema.js';
@@ -117,6 +119,14 @@ beforeAll(async () => {
     method: 'manual',
     recordedAt: new Date(),
   });
+  await db.insert(ledgerEntries).values({
+    workspaceId: a,
+    studentId: student!.id,
+    groupId: group!.id,
+    type: 'charge',
+    amountPiastres: 50000,
+  });
+  await db.insert(receiptCounters).values({ workspaceId: a });
   tables = await tenantTables();
 });
 
@@ -146,6 +156,8 @@ describe('RLS on every tenant table', () => {
         'enrollments',
         'student_invites',
         'attendance_records',
+        'ledger_entries',
+        'receipt_counters',
       ]),
     );
   });

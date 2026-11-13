@@ -31,7 +31,8 @@
       "date": "Enter a valid date.",
       "mobile": "Enter an 11-digit Egyptian mobile number starting with 01.",
       "code": "Enter the 6-digit code.",
-      "discount": "Enter a number from 0 to 100."
+      "discount": "Enter a number from 0 to 100.",
+      "amount": "Enter an amount in pounds, like 150 or 150.50."
     },
     "choose": "Choose…"
   },
@@ -92,7 +93,8 @@
     "removeSlot": "Remove this time",
     "create": "Create group",
     "save": "Save",
-    "archived": "Archived"
+    "archived": "Archived",
+    "monthlyFee": "Monthly fee (EGP)"
   },
   "roles": {
     "owner": "Owner",
@@ -138,7 +140,12 @@
     "CHECKIN_CODE_INVALID": "This is not a valid session code.",
     "CHECKIN_CODE_EXPIRED": "The code changed. Scan the screen again.",
     "DEVICE_NOT_BOUND": "This phone is not linked to your account yet.",
-    "DEVICE_SIGNATURE_INVALID": "Check in from the phone linked to your account."
+    "DEVICE_SIGNATURE_INVALID": "Check in from the phone linked to your account.",
+    "IDEMPOTENCY_KEY_REQUIRED": "Something went wrong sending this. Try again.",
+    "IDEMPOTENCY_KEY_REUSED": "This was already sent with different details. Reload and try again.",
+    "ENTRY_NOT_FOUND": "Entry not found.",
+    "ENTRY_ALREADY_REVERSED": "This entry was already reversed.",
+    "ENTRY_NOT_REVERSIBLE": "A reversal cannot be reversed. Record a new entry instead."
   },
   "timetable": {
     "title": "Timetable",
@@ -283,5 +290,36 @@
     "paste": "First time? Paste your invite link",
     "pasteInvalid": "This is not a Dafter invite link.",
     "activate": "Activate"
+  },
+  "fees": {
+    "title": "Fees",
+    "owes": "Owes",
+    "credit": "In credit",
+    "settled": "Fully paid",
+    "record": "Record a payment",
+    "amount": "Amount (EGP)",
+    "method": "Method",
+    "methods": {
+      "cash": "Cash",
+      "vodafone_cash": "Vodafone Cash",
+      "instapay": "InstaPay"
+    },
+    "save": "Record payment",
+    "saving": "Saving…",
+    "charge": "Fee {period}",
+    "payment": "Payment, {method}",
+    "reversal": "Reversal",
+    "receipt": "Receipt #",
+    "reversed": "Reversed",
+    "reverse": "Reverse",
+    "confirmReverse": "Tap again to reverse"
+  },
+  "receipt": {
+    "title": "Receipt #{no}",
+    "student": "Student",
+    "date": "Date",
+    "amount": "Amount",
+    "receivedBy": "Received by",
+    "print": "Print or save as PDF"
   }
 }

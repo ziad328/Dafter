@@ -180,6 +180,8 @@ export const groups = pgTable(
     subjectId: uuid('subject_id').notNull(),
     gradeLevelId: uuid('grade_level_id').notNull(),
     capacity: integer('capacity'),
+    // Integer piastres; null = no monthly charge (fees stretch, Day 14).
+    monthlyFeePiastres: integer('monthly_fee_piastres'),
     status: groupStatus('status').notNull().default('active'),
     createdAt: createdAt(),
   },
@@ -520,3 +522,84 @@ export const attendanceRecords = pgTable(
     }),
   ],
 );
+
+// Money (fees stretch). Append-only and signed: charge > 0, payment < 0, a reversal is minus the
+// entry it reverses, so a balance is sum(amount_piastres). dafter_app may not UPDATE or DELETE.
+
+export const ledgerEntryType = pgEnum('ledger_entry_type', ['charge', 'payment', 'reversal']);
+export const paymentMethod = pgEnum('payment_method', ['cash', 'vodafone_cash', 'instapay']);
+
+export const ledgerEntries = pgTable(
+  'ledger_entries',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    studentId: uuid('student_id').notNull(),
+    groupId: uuid('group_id').notNull(),
+    type: ledgerEntryType('type').notNull(),
+    amountPiastres: bigint('amount_piastres', { mode: 'number' }).notNull(),
+    method: paymentMethod('method'),
+    receiptNo: integer('receipt_no'),
+    // Monthly charges: the month ("YYYY-MM") billed, one per student and group, so leaving and
+    // rejoining in the same month is not billed twice.
+    enrollmentId: uuid('enrollment_id'),
+    period: text('period'),
+    reversesEntryId: uuid('reverses_entry_id'),
+    note: text('note'),
+    // Retried writes: the same key returns this entry; request_hash catches a key reused for a
+    // different request.
+    idempotencyKey: text('idempotency_key'),
+    requestHash: text('request_hash'),
+    // Null for charges made by the monthly job.
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('ledger_entries_workspace_id_key').on(t.workspaceId, t.id),
+    unique('ledger_entries_idempotency_key').on(t.workspaceId, t.idempotencyKey),
+    unique('ledger_entries_reverses_key').on(t.workspaceId, t.reversesEntryId),
+    unique('ledger_entries_receipt_key').on(t.workspaceId, t.receiptNo),
+    uniqueIndex('ledger_entries_monthly_charge_key')
+      .on(t.workspaceId, t.studentId, t.groupId, t.period)
+      .where(sql`${t.type} = 'charge' and ${t.period} is not null`),
+    index('ledger_entries_student_idx').on(t.workspaceId, t.studentId, t.createdAt),
+    check(
+      'ledger_entries_sign',
+      sql`(${t.type} = 'charge' and ${t.amountPiastres} > 0) or (${t.type} = 'payment' and ${t.amountPiastres} < 0) or (${t.type} = 'reversal' and ${t.reversesEntryId} is not null)`,
+    ),
+    check(
+      'ledger_entries_payment_fields',
+      sql`${t.type} <> 'payment' or (${t.method} is not null and ${t.receiptNo} is not null)`,
+    ),
+    foreignKey({
+      name: 'ledger_entries_student_fk',
+      columns: [t.workspaceId, t.studentId],
+      foreignColumns: [students.workspaceId, students.id],
+    }),
+    foreignKey({
+      name: 'ledger_entries_group_fk',
+      columns: [t.workspaceId, t.groupId],
+      foreignColumns: [groups.workspaceId, groups.id],
+    }),
+    foreignKey({
+      name: 'ledger_entries_enrollment_fk',
+      columns: [t.workspaceId, t.enrollmentId],
+      foreignColumns: [enrollments.workspaceId, enrollments.id],
+    }),
+    foreignKey({
+      name: 'ledger_entries_reverses_fk',
+      columns: [t.workspaceId, t.reversesEntryId],
+      foreignColumns: [t.workspaceId, t.id],
+    }),
+  ],
+);
+
+/** Gapless receipt numbers per workspace: UPDATE ... RETURNING inside the payment transaction. */
+export const receiptCounters = pgTable('receipt_counters', {
+  workspaceId: uuid('workspace_id')
+    .primaryKey()
+    .references(() => workspaces.id),
+  last: integer('last').notNull().default(0),
+});

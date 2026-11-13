@@ -8,6 +8,7 @@ export type Call = (
   method: Method,
   url: string,
   payload?: object,
+  headers?: Record<string, string>,
 ) => ReturnType<NestFastifyApplication['inject']>;
 
 const must = (ok: boolean, what: string) => {
@@ -44,12 +45,12 @@ export function fixtures(app: () => NestFastifyApplication, db: () => Db, mailer
     ).json().id as string;
     const as =
       (token: string): Call =>
-      (method, url, payload) =>
+      (method, url, payload, headers) =>
         app().inject({
           method,
           url: `/api/v1/${url}`,
           payload,
-          headers: { ...bearer(token), 'x-workspace-id': ws },
+          headers: { ...bearer(token), 'x-workspace-id': ws, ...headers },
         });
     const member = async (role: 'teacher' | 'assistant') => {
       const u = await register();

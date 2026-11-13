@@ -67,3 +67,14 @@ The code holds a 10-second window number, and the server accepts only the curren
 
 **3. How are repeated scans idempotent without an `Idempotency-Key` table?**
 The unique key (workspace, session, student) is the natural idempotency key. The insert is `ON CONFLICT DO NOTHING`, then the existing row is read back, so a retry returns the first record with the same status and time. A generic key table pays off for payments, where two separate requests could each be a real charge.
+
+## Fees stretch · Ledger, payments and idempotency
+
+**1. Why a signed, append-only ledger instead of a `balance` column, and how is "append-only" enforced?**
+A balance column can drift: a lost update or a bug changes it with no history. With signed entries (charge +, payment −, reversal = −original) the balance is `sum(amount_piastres)`, and every change is a row you can audit. Append-only is enforced by the database: `REVOKE UPDATE, DELETE` from the app role, so even buggy code gets `42501`. A mistake is fixed with a reversal entry.
+
+**2. A phone retries a payment while the first request is still running. Walk through why the student is charged once and the receipt numbers have no gap.**
+Each payment first bumps the workspace's receipt counter row (`INSERT … ON CONFLICT DO UPDATE … RETURNING`), which also locks it, so payments in a workspace run one at a time. The retry waits for that lock, then looks up its `Idempotency-Key`, now committed by the original. It throws to roll back its own counter bump (no gap) and returns the original entry. A key reused with a different body fails the stored request-hash check with 409.
+
+**3. Why are money amounts integers in piastres, and how does the form avoid floats?**
+Binary floats can't represent 0.1 exactly, so sums drift by fractions of a piastre. Integers are exact. The web parses "150.50" as text (pounds × 100 + the two decimal digits) and never computes with a float. Division by 100 happens only when formatting for display.

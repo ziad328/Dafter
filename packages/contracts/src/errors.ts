@@ -53,6 +53,14 @@ export const ERROR_STATUS = {
   CHECKIN_CODE_EXPIRED: 410,
   DEVICE_NOT_BOUND: 403,
   DEVICE_SIGNATURE_INVALID: 403,
+  // Payments and reversals must carry an Idempotency-Key header (a phone may retry them).
+  IDEMPOTENCY_KEY_REQUIRED: 400,
+  // The key was already used for a different request.
+  IDEMPOTENCY_KEY_REUSED: 409,
+  ENTRY_NOT_FOUND: 404,
+  ENTRY_ALREADY_REVERSED: 409,
+  // Reversals are not reversed; record a new entry instead.
+  ENTRY_NOT_REVERSIBLE: 409,
   INTERNAL: 500,
 } as const;
 
