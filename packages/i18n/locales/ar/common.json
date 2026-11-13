@@ -133,7 +133,12 @@
     "DEVICE_ALREADY_BOUND": "هذا الحساب أو الهاتف مربوط بالفعل.",
     "DEVICE_KEY_INVALID": "تعذّر ربط هذا الهاتف.",
     "ENROLLMENT_EXISTS": "الطالب مسجّل في هذه المجموعة بالفعل.",
-    "ENROLLMENT_NOT_FOUND": "التسجيل غير موجود."
+    "ENROLLMENT_NOT_FOUND": "التسجيل غير موجود.",
+    "SESSION_NOT_OPEN": "الحصة غير مفتوحة.",
+    "CHECKIN_CODE_INVALID": "هذا ليس رمز حصة صحيحًا.",
+    "CHECKIN_CODE_EXPIRED": "تغيّر الرمز. امسح الشاشة مرة أخرى.",
+    "DEVICE_NOT_BOUND": "هذا الهاتف غير مربوط بحسابك بعد.",
+    "DEVICE_SIGNATURE_INVALID": "سجّل حضورك من الهاتف المربوط بحسابك."
   },
   "timetable": {
     "title": "الجدول",

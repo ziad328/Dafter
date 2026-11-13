@@ -4,6 +4,7 @@ import { APP_INTERCEPTOR, NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { HealthResponse } from '@dafter/contracts';
 import { createDb, type Db } from '@dafter/db';
+import { AttendanceModule } from './attendance/attendance.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { GroupsModule } from './groups/groups.module.js';
 import { MembersModule } from './members/members.module.js';
@@ -35,6 +36,7 @@ class HealthController {
     SessionsModule,
     StudentsModule,
     StudentAuthModule,
+    AttendanceModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],

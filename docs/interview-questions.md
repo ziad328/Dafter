@@ -56,3 +56,14 @@ Without an invite it always answers 204, whether or not it sent a code, and veri
 
 **3. Why is the phone key made with `extractable: false`, and why does binding need no challenge signature?**
 A non-extractable private key can sign but can never be exported, so it cannot be copied off the phone; IndexedDB stores the `CryptoKey` object itself. Binding only stores the public key. A student who binds a key they don't hold gains nothing, because every check-in (Day 12) must be signed by the bound key, which is the proof of possession. Partial unique indexes keep one active key per account and one account per key.
+
+## Day 12 · Rotating-QR check-in
+
+**1. Why is the per-session QR key derived with HMAC(QR_SECRET, session id) instead of stored?**
+A random key would have to be stored encrypted, with an encryption key to manage and decrypt code. A derived key is just as unguessable without the server secret, and costs no column, no key rotation and no decrypt step. A database leak reveals nothing. Rotating `QR_SECRET` invalidates only the QR screens that are open at that moment.
+
+**2. Walk through what stops a student checking in from home with a forwarded photo, and what does not.**
+The code holds a 10-second window number, and the server accepts only the current or previous window, so a photo is useless after about 20 seconds. The request must also be signed over the exact code by the account's bound, non-extractable phone key, so a friend's phone can't use it for you. What still works: a student on a live video call who scans within those 20 seconds on their own phone. Location checks are the later fix.
+
+**3. How are repeated scans idempotent without an `Idempotency-Key` table?**
+The unique key (workspace, session, student) is the natural idempotency key. The insert is `ON CONFLICT DO NOTHING`, then the existing row is read back, so a retry returns the first record with the same status and time. A generic key table pays off for payments, where two separate requests could each be a real charge.

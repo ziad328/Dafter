@@ -45,6 +45,14 @@ export const ERROR_STATUS = {
   DEVICE_KEY_INVALID: 400,
   ENROLLMENT_EXISTS: 409,
   ENROLLMENT_NOT_FOUND: 404,
+  // Check-in or manual mark on a session that is not open (manual also allows closed).
+  SESSION_NOT_OPEN: 409,
+  // Not a Dafter QR, a forged MAC, or a window too far in the future.
+  CHECKIN_CODE_INVALID: 400,
+  // A real code older than the previous 10-second window: scan the screen again.
+  CHECKIN_CODE_EXPIRED: 410,
+  DEVICE_NOT_BOUND: 403,
+  DEVICE_SIGNATURE_INVALID: 403,
   INTERNAL: 500,
 } as const;
 

@@ -9,6 +9,14 @@ import {
   groupList,
   updateGroupRequest,
 } from './groups.js';
+import {
+  attendanceList,
+  attendanceRecord,
+  checkIn,
+  checkInRequest,
+  markAttendanceRequest,
+  openSession,
+} from './attendance.js';
 import { createEnrollmentRequest, enrollment, enrollmentList } from './enrollments.js';
 import { healthResponse } from './health.js';
 import {
@@ -255,6 +263,57 @@ export function buildOpenApi() {
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           responses: { 200: { description: 'Cancelled', content: json(session) }, ...errors },
+        },
+      },
+      '/api/v1/sessions/{id}/open': {
+        post: {
+          operationId: 'openSession',
+          tags: ['attendance'],
+          description:
+            'Owner, the group teacher, or an assigned assistant. Opening an open session again returns the same key.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            200: { description: 'Open; draw the QR', content: json(openSession) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/sessions/{id}/attendance': {
+        get: {
+          operationId: 'listAttendance',
+          tags: ['attendance'],
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            200: { description: 'Records so far', content: json(attendanceList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/sessions/{id}/attendance/{studentId}': {
+        put: {
+          operationId: 'markAttendance',
+          tags: ['attendance'],
+          description: 'Manual mark by staff; replaces any scan. Open or closed sessions only.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid(), studentId: z.uuid() }) },
+          requestBody: { required: true, content: json(markAttendanceRequest) },
+          responses: {
+            200: { description: 'Recorded', content: json(attendanceRecord) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/check-ins': {
+        post: {
+          operationId: 'checkIn',
+          tags: ['attendance'],
+          description:
+            'Student scan. A repeat for the same session returns the first record (the session and student are the idempotency key).',
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(checkInRequest) },
+          responses: { 200: { description: 'Checked in', content: json(checkIn) }, ...errors },
         },
       },
       '/api/v1/students': {

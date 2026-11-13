@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
   check,
   foreignKey,
@@ -248,6 +249,7 @@ export const sessions = pgTable(
     startsAt: tz('starts_at').notNull(),
     endsAt: tz('ends_at').notNull(),
     status: sessionStatus('status').notNull().default('scheduled'),
+    openedAt: tz('opened_at'),
     createdAt: createdAt(),
   },
   (t) => [
@@ -465,6 +467,55 @@ export const enrollments = pgTable(
       name: 'enrollments_group_fk',
       columns: [t.workspaceId, t.groupId],
       foreignColumns: [groups.workspaceId, groups.id],
+    }),
+  ],
+);
+
+// Attendance (Day 12): one row per session and student; a repeat scan is a no-op.
+
+export const attendanceStatus = pgEnum('attendance_status', [
+  'present',
+  'late',
+  'absent',
+  'excused',
+  'makeup',
+]);
+export const attendanceMethod = pgEnum('attendance_method', [
+  'student_scan',
+  'manual',
+  'auto_close',
+]);
+
+export const attendanceRecords = pgTable(
+  'attendance_records',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    sessionId: uuid('session_id').notNull(),
+    studentId: uuid('student_id').notNull(),
+    status: attendanceStatus('status').notNull(),
+    method: attendanceMethod('method').notNull(),
+    // Staff user for manual marks; null for scans and auto-close.
+    recordedBy: uuid('recorded_by').references(() => users.id),
+    recordedAt: tz('recorded_at').notNull(),
+    // How a scan was proven: the device key and the QR window it signed.
+    deviceId: uuid('device_id').references(() => studentDevices.id),
+    qrWindow: bigint('qr_window', { mode: 'number' }),
+  },
+  (t) => [
+    unique('attendance_records_session_student_key').on(t.workspaceId, t.sessionId, t.studentId),
+    index('attendance_records_student_idx').on(t.workspaceId, t.studentId),
+    foreignKey({
+      name: 'attendance_records_session_fk',
+      columns: [t.workspaceId, t.sessionId],
+      foreignColumns: [sessions.workspaceId, sessions.id],
+    }),
+    foreignKey({
+      name: 'attendance_records_student_fk',
+      columns: [t.workspaceId, t.studentId],
+      foreignColumns: [students.workspaceId, students.id],
     }),
   ],
 );

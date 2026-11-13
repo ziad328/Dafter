@@ -38,7 +38,8 @@ export class SessionsService {
     return this.get(ctx, id);
   }
 
-  private async get(ctx: Ctx, id: string) {
+  /** The session if the caller can see it (same view as groups), else SESSION_NOT_FOUND. */
+  async get(ctx: Ctx, id: string) {
     const session = await this.repo.find(ctx.workspaceId, id);
     const teachers = await this.groups.visibleTeachers(ctx);
     if (!session || (teachers && !teachers.includes(session.teacherMembershipId)))

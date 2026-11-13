@@ -2,9 +2,10 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { auditLog } from '@dafter/db';
-import { makeMembership, useTestDb } from '@dafter/db/testing';
+import { useTestDb } from '@dafter/db/testing';
 import { createApp } from '../app.js';
 import { FakeClock } from '../clock.js';
+import { fixtures } from '../testing/fixtures.js';
 import { ConsoleMailer } from './mailer.js';
 
 const testDb = useTestDb();
@@ -19,101 +20,11 @@ beforeAll(async () => {
 });
 afterAll(() => app.close());
 
-type Method = 'GET' | 'POST' | 'DELETE';
-type Call = (method: Method, url: string, payload?: object) => ReturnType<typeof app.inject>;
-let n = 0;
-
-const post = (url: string, payload: object, headers: Record<string, string> = {}) =>
-  app.inject({ method: 'POST', url: `/api/v1/${url}`, payload, headers });
-const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
-
-async function register(email?: string) {
-  const phone = `0173000${String(++n).padStart(4, '0')}`;
-  const res = await post('auth/register', {
-    name: `مدرس ${n}`,
-    phone,
-    email,
-    password: 'correct horse',
-  });
-  return { token: res.json().accessToken as string, userId: res.json().user.id as string };
-}
-
-/** A center with an owner, a teacher (with one group) and an unscoped assistant. */
-async function center() {
-  const owner = await register();
-  const ws = (
-    await post('workspaces', { type: 'center', nameAr: 'سنتر' }, bearer(owner.token))
-  ).json().id as string;
-  const as =
-    (token: string): Call =>
-    (method, url, payload) =>
-      app.inject({
-        method,
-        url: `/api/v1/${url}`,
-        payload,
-        headers: { ...bearer(token), 'x-workspace-id': ws },
-      });
-  const member = async (role: 'teacher' | 'assistant') => {
-    const u = await register();
-    await makeMembership(testDb().db, { workspaceId: ws, userId: u.userId, role });
-    return as(u.token);
-  };
-  const ownerCall = as(owner.token);
-  const teacher = await member('teacher');
-  const gradeId = (await ownerCall('GET', 'grade-levels')).json()[0].id as string;
-  const subjectId = (await ownerCall('GET', 'subjects')).json()[0].id as string;
-  const group = (
-    await teacher('POST', 'groups', {
-      subjectId,
-      gradeLevelId: gradeId,
-      slots: [{ weekday: 6, startTime: '16:00', endTime: '17:30' }],
-    })
-  ).json();
-  const newStudent = async () =>
-    (
-      await ownerCall('POST', 'students', {
-        nameAr: `طالب ${++n}`,
-        gradeLevelId: gradeId,
-        guardian: {
-          phone: `0128000${String(n).padStart(4, '0')}`,
-          relation: 'mother',
-          preferredLocale: 'ar',
-          whatsappOptIn: false,
-        },
-      })
-    ).json().id as string;
-  return {
-    owner: ownerCall,
-    teacher,
-    assistant: await member('assistant'),
-    groupId: group.id as string,
-    newStudent,
-  };
-}
-
-const codeFor = (email: string) => mailer.last(email)!.text.match(/\d{6}/)![0];
-
-async function newKey() {
-  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, [
-    'sign',
-    'verify',
-  ]);
-  return Buffer.from(await crypto.subtle.exportKey('spki', pair.publicKey)).toString('base64url');
-}
-
-/** Invite + OTP activation; returns the student's access token and refresh cookie. */
-async function activate(call: Call, studentId: string, email: string) {
-  const inviteToken = (await call('POST', `students/${studentId}/invite`)).json().token as string;
-  expect((await post('auth/otp/request', { email, inviteToken })).statusCode).toBe(204);
-  const res = await post('auth/otp/verify', { email, code: codeFor(email), inviteToken });
-  expect(res.statusCode).toBe(200);
-  return {
-    token: res.json().accessToken as string,
-    userId: res.json().user.id as string,
-    rt: res.cookies.find((ck) => ck.name === 'rt')!.value,
-    inviteToken,
-  };
-}
+const { bearer, post, register, center, codeFor, newKey, activate } = fixtures(
+  () => app,
+  () => testDb().db,
+  mailer,
+);
 
 let c: Awaited<ReturnType<typeof center>>;
 beforeAll(async () => {

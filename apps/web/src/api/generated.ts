@@ -7,6 +7,7 @@ export const addTagTypes = [
   'curriculum',
   'groups',
   'sessions',
+  'attendance',
   'students',
   'student-auth',
 ] as const;
@@ -141,6 +142,30 @@ const injectedRtkApi = api
       cancelSession: build.mutation<CancelSessionApiResponse, CancelSessionApiArg>({
         query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/cancel`, method: 'POST' }),
         invalidatesTags: ['sessions'],
+      }),
+      openSession: build.mutation<OpenSessionApiResponse, OpenSessionApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/open`, method: 'POST' }),
+        invalidatesTags: ['attendance'],
+      }),
+      listAttendance: build.query<ListAttendanceApiResponse, ListAttendanceApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/attendance` }),
+        providesTags: ['attendance'],
+      }),
+      markAttendance: build.mutation<MarkAttendanceApiResponse, MarkAttendanceApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/sessions/${queryArg.id}/attendance/${queryArg.studentId}`,
+          method: 'PUT',
+          body: queryArg.markAttendanceRequest,
+        }),
+        invalidatesTags: ['attendance'],
+      }),
+      checkIn: build.mutation<CheckInApiResponse, CheckInApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/check-ins`,
+          method: 'POST',
+          body: queryArg.checkInRequest,
+        }),
+        invalidatesTags: ['attendance'],
       }),
       listStudents: build.query<ListStudentsApiResponse, ListStudentsApiArg>({
         query: (queryArg) => ({
@@ -305,6 +330,24 @@ export type CancelSessionApiResponse = /** status 200 Cancelled */ Session;
 export type CancelSessionApiArg = {
   id: string;
 };
+export type OpenSessionApiResponse = /** status 200 Open; draw the QR */ OpenSession;
+export type OpenSessionApiArg = {
+  id: string;
+};
+export type ListAttendanceApiResponse = /** status 200 Records so far */ AttendanceList;
+export type ListAttendanceApiArg = {
+  id: string;
+};
+export type MarkAttendanceApiResponse = /** status 200 Recorded */ AttendanceRecord;
+export type MarkAttendanceApiArg = {
+  id: string;
+  studentId: string;
+  markAttendanceRequest: MarkAttendanceRequest;
+};
+export type CheckInApiResponse = /** status 200 Checked in */ CheckIn;
+export type CheckInApiArg = {
+  checkInRequest: CheckInRequest;
+};
 export type ListStudentsApiResponse = /** status 200 Students */ StudentList;
 export type ListStudentsApiArg = {
   q?: string;
@@ -389,6 +432,11 @@ export type ErrorCode =
   | 'DEVICE_KEY_INVALID'
   | 'ENROLLMENT_EXISTS'
   | 'ENROLLMENT_NOT_FOUND'
+  | 'SESSION_NOT_OPEN'
+  | 'CHECKIN_CODE_INVALID'
+  | 'CHECKIN_CODE_EXPIRED'
+  | 'DEVICE_NOT_BOUND'
+  | 'DEVICE_SIGNATURE_INVALID'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -513,6 +561,35 @@ export type MoveSessionRequest = {
   startTime: string;
   endTime: string;
 };
+export type OpenSession = {
+  sessionId: string;
+  qrKey: string;
+  serverTime: string;
+  windowMs: number;
+};
+export type AttendanceRecord = {
+  id: string;
+  studentId: string;
+  nameAr: string;
+  nameEn: string | null;
+  status: 'present' | 'late' | 'absent' | 'excused' | 'makeup';
+  method: 'student_scan' | 'manual' | 'auto_close';
+  recordedAt: string;
+};
+export type AttendanceList = AttendanceRecord[];
+export type MarkAttendanceRequest = {
+  status: 'present' | 'late' | 'absent' | 'excused' | 'makeup';
+};
+export type CheckIn = {
+  id: string;
+  sessionId: string;
+  status: 'present' | 'late' | 'absent' | 'excused' | 'makeup';
+  recordedAt: string;
+};
+export type CheckInRequest = {
+  code: string;
+  signature: string;
+};
 export type Guardian = {
   id: string;
   name: string | null;
@@ -619,6 +696,10 @@ export const {
   useListSessionsQuery,
   useMoveSessionMutation,
   useCancelSessionMutation,
+  useOpenSessionMutation,
+  useListAttendanceQuery,
+  useMarkAttendanceMutation,
+  useCheckInMutation,
   useListStudentsQuery,
   useCreateStudentMutation,
   useGetStudentQuery,

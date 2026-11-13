@@ -8,3 +8,4 @@ export * from './normalize.js';
 export * from './students.js';
 export * from './enrollments.js';
 export * from './student-auth.js';
+export * from './attendance.js';

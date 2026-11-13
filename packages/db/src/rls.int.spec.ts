@@ -14,6 +14,7 @@ import {
   students,
   enrollments,
   studentInvites,
+  attendanceRecords,
   memberships,
   subjects,
 } from './schema.js';
@@ -78,13 +79,16 @@ beforeAll(async () => {
     startTime: '16:00',
     endTime: '17:30',
   });
-  await db.insert(sessions).values({
-    workspaceId: a,
-    groupId: group!.id,
-    slotStartsAt: new Date('2026-11-21T14:00:00Z'),
-    startsAt: new Date('2026-11-21T14:00:00Z'),
-    endsAt: new Date('2026-11-21T15:30:00Z'),
-  });
+  const [session] = await db
+    .insert(sessions)
+    .values({
+      workspaceId: a,
+      groupId: group!.id,
+      slotStartsAt: new Date('2026-11-21T14:00:00Z'),
+      startsAt: new Date('2026-11-21T14:00:00Z'),
+      endsAt: new Date('2026-11-21T15:30:00Z'),
+    })
+    .returning();
   const [student] = await db
     .insert(students)
     .values({ workspaceId: a, nameAr: 'أحمد', nameSearch: 'احمد', gradeLevelId: grade!.id })
@@ -105,6 +109,14 @@ beforeAll(async () => {
   await db
     .insert(studentInvites)
     .values({ workspaceId: a, studentId: student!.id, tokenHash: 'h', expiresAt: new Date() });
+  await db.insert(attendanceRecords).values({
+    workspaceId: a,
+    sessionId: session!.id,
+    studentId: student!.id,
+    status: 'present',
+    method: 'manual',
+    recordedAt: new Date(),
+  });
   tables = await tenantTables();
 });
 
@@ -133,6 +145,7 @@ describe('RLS on every tenant table', () => {
         'student_guardians',
         'enrollments',
         'student_invites',
+        'attendance_records',
       ]),
     );
   });

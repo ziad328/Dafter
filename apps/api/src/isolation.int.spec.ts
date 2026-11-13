@@ -27,6 +27,8 @@ const NON_TENANT_ROUTES = new Set([
   'POST /api/v1/auth/otp/request',
   'POST /api/v1/auth/otp/verify',
   'POST /api/v1/devices/bind',
+  // The MAC-checked code names the session; the student's record in its workspace is required.
+  'POST /api/v1/check-ins',
   // Development only (DEV_MAIL_INBOX=1).
   'GET /api/v1/dev/mail',
 ]);

@@ -13,7 +13,7 @@ export default defineConfig({
   },
   test: {
     globalSetup: [dbSrc('testing/global-setup.ts')],
-    env: { JWT_SECRET: 'test-secret' },
+    env: { JWT_SECRET: 'test-secret', QR_SECRET: 'test-qr-secret' },
     hookTimeout: 180_000,
     testTimeout: 30_000,
   },

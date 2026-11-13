@@ -133,7 +133,12 @@
     "DEVICE_ALREADY_BOUND": "This account or phone is already linked.",
     "DEVICE_KEY_INVALID": "This phone could not be linked.",
     "ENROLLMENT_EXISTS": "The student is already in this group.",
-    "ENROLLMENT_NOT_FOUND": "Enrollment not found."
+    "ENROLLMENT_NOT_FOUND": "Enrollment not found.",
+    "SESSION_NOT_OPEN": "This session is not open.",
+    "CHECKIN_CODE_INVALID": "This is not a valid session code.",
+    "CHECKIN_CODE_EXPIRED": "The code changed. Scan the screen again.",
+    "DEVICE_NOT_BOUND": "This phone is not linked to your account yet.",
+    "DEVICE_SIGNATURE_INVALID": "Check in from the phone linked to your account."
   },
   "timetable": {
     "title": "Timetable",
