@@ -13,6 +13,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm lint && pnpm format:check && turbo run typecheck test",
+    "contracts:gen": "pnpm --filter @dafter/contracts gen && pnpm --filter @dafter/web codegen && prettier --write packages/contracts/openapi.json apps/web/src/api/generated.ts",
+    "i18n:check": "pnpm --filter @dafter/i18n test",
     "db:up": "docker compose -f infra/docker-compose.yml up -d --wait",
     "db:generate": "pnpm --filter @dafter/db generate",
     "db:migrate": "pnpm --filter @dafter/db migrate",

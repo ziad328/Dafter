@@ -1,0 +1,8 @@
+@import 'tailwindcss';
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/700.css';
+
+/* One family with both scripts, so mixed Arabic/English lines align. */
+@theme {
+  --font-sans: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;
+}

@@ -1,0 +1,23 @@
+{
+  "app": {
+    "name": "Dafter",
+    "tagline": "Attendance, fees and parents, in one place."
+  },
+  "shell": {
+    "switchLanguage": "العربية",
+    "api": {
+      "checking": "Connecting to the server…",
+      "ok": "Server connected",
+      "down": "Server unavailable right now"
+    }
+  },
+  "errors": {
+    "VALIDATION_FAILED": "Some details are not valid. Check them and try again.",
+    "UNAUTHENTICATED": "Sign in to continue.",
+    "FORBIDDEN": "You don't have permission to do this.",
+    "NOT_FOUND": "Not found.",
+    "CONFLICT": "This already exists.",
+    "RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+    "INTERNAL": "Something went wrong. Try again."
+  }
+}

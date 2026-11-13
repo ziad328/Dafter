@@ -26,6 +26,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Committed openapi.json and the generated client must match the Zod contracts.
+      - name: Contract check
+        run: |
+          pnpm contracts:gen
+          git diff --exit-code -- packages/contracts/openapi.json apps/web/src/api/generated.ts
+
       - name: Lint
         run: pnpm lint
 

@@ -18,7 +18,8 @@ it('GET /health returns ok without the api prefix', async () => {
   expect(res.json()).toEqual({ status: 'ok' });
 });
 
-it('unknown api routes return 404', async () => {
+it('unknown api routes return 404 with an error code, not a sentence', async () => {
   const res = await app.inject({ method: 'GET', url: '/api/v1/nope' });
   expect(res.statusCode).toBe(404);
+  expect(res.json()).toEqual({ code: 'NOT_FOUND' });
 });

@@ -1,0 +1,32 @@
+import * as z from 'zod';
+
+/**
+ * Every error the API can return. The web app translates each code (errors.<CODE> in packages/i18n),
+ * so the API never sends sentences. Feature codes such as ATTENDANCE_ALREADY_RECORDED are added
+ * here with their feature.
+ */
+export const ERROR_STATUS = {
+  VALIDATION_FAILED: 400,
+  UNAUTHENTICATED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  RATE_LIMITED: 429,
+  INTERNAL: 500,
+} as const;
+
+export type ErrorCode = keyof typeof ERROR_STATUS;
+export const ERROR_CODES = Object.keys(ERROR_STATUS) as ErrorCode[];
+
+export const errorCode = z
+  .enum(ERROR_CODES as [ErrorCode, ...ErrorCode[]])
+  .meta({ id: 'ErrorCode' });
+
+export const errorResponse = z
+  .object({
+    code: errorCode,
+    details: z.record(z.string(), z.unknown()).optional(),
+  })
+  .meta({ id: 'ErrorResponse' });
+
+export type ErrorResponse = z.infer<typeof errorResponse>;
