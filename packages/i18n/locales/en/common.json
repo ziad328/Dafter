@@ -21,8 +21,15 @@
       "email": "This email is not valid.",
       "password": "Password must be at least 8 characters.",
       "login": "Enter your phone or email.",
-      "nameAr": "Enter a name of at least 2 letters."
-    }
+      "nameAr": "Enter a name of at least 2 letters.",
+      "subject": "Choose a subject.",
+      "gradeLevel": "Choose a grade level.",
+      "capacity": "Enter a number from 1 to 1000.",
+      "slot": "Enter the day, start and end time.",
+      "slotOrder": "The end time must be after the start.",
+      "slotOverlap": "This slot overlaps another one on the same day."
+    },
+    "choose": "Choose…"
   },
   "auth": {
     "login": {
@@ -63,13 +70,34 @@
       "submit": "Create"
     }
   },
+  "groups": {
+    "title": "Groups",
+    "new": "New group",
+    "edit": "Edit group",
+    "empty": "No groups yet.",
+    "subject": "Subject",
+    "gradeLevel": "Grade level",
+    "teacher": "Teacher",
+    "me": "Me",
+    "capacity": "Capacity",
+    "slots": "Weekly times",
+    "day": "Day",
+    "start": "From",
+    "end": "To",
+    "addSlot": "Add a time",
+    "removeSlot": "Remove this time",
+    "create": "Create group",
+    "save": "Save",
+    "archived": "Archived"
+  },
   "roles": {
     "owner": "Owner",
     "teacher": "Teacher",
     "assistant": "Assistant"
   },
   "home": {
-    "switch": "Switch workspace"
+    "switch": "Switch workspace",
+    "groups": "Groups"
   },
   "errors": {
     "VALIDATION_FAILED": "Some details are not valid. Check them and try again.",
@@ -78,6 +106,8 @@
     "NOT_FOUND": "Not found.",
     "CONFLICT": "This already exists.",
     "RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+    "GROUP_NOT_FOUND": "This group doesn't exist or isn't yours to see.",
+    "GROUP_REFERENCE_INVALID": "That subject, grade level or teacher isn't in this workspace.",
     "INTERNAL": "Something went wrong. Try again.",
     "INVALID_CREDENTIALS": "Wrong phone, email or password.",
     "PHONE_TAKEN": "This phone number is already registered.",

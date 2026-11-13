@@ -1,4 +1,5 @@
 import { createDb } from './client.js';
+import { insertCurriculum } from './curriculum.js';
 import { assistantScopes, memberships, users, workspaces } from './schema.js';
 
 // Demo center for local work and the live demo. Run on an empty database (pnpm db:reset).
@@ -17,6 +18,8 @@ export async function seed(connectionString: string) {
           { type: 'independent', nameAr: 'دروس منى حسن', nameEn: 'Mona Hassan Lessons' },
         ])
         .returning();
+      await insertCurriculum(tx, center!.id);
+      await insertCurriculum(tx, privateLessons!.id);
 
       const [owner, teacher, assistant] = await tx
         .insert(users)

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { and, asc, eq } from 'drizzle-orm';
 import type { CreateWorkspaceRequest, Workspace } from '@dafter/contracts';
-import { memberships, workspaces } from '@dafter/db';
+import { insertCurriculum, memberships, workspaces } from '@dafter/db';
 import { TenantRepository } from '../tenant.repository.js';
 
 type Role = Workspace['role'];
@@ -16,7 +16,7 @@ const columns = {
 
 @Injectable()
 export class WorkspacesRepository extends TenantRepository {
-  /** The new workspace and its owner membership, written under RLS for the new id. */
+  /** The new workspace, its owner membership and its curriculum, written under RLS for the new id. */
   create(id: string, userId: string, body: CreateWorkspaceRequest): Promise<Workspace> {
     return this.inTenant(id, async (tx) => {
       const [row] = await tx
@@ -24,18 +24,22 @@ export class WorkspacesRepository extends TenantRepository {
         .values({ id, type: body.type, nameAr: body.nameAr, nameEn: body.nameEn })
         .returning(columns);
       await tx.insert(memberships).values({ workspaceId: id, userId, role: 'owner' });
+      await insertCurriculum(tx, id);
       return { ...row!, role: 'owner' };
     });
   }
 
-  async findRole(workspaceId: string, userId: string): Promise<Role | undefined> {
+  async findMembership(
+    workspaceId: string,
+    userId: string,
+  ): Promise<{ id: string; role: Role } | undefined> {
     const [row] = await this.inTenant(workspaceId, (tx) =>
       tx
-        .select({ role: memberships.role })
+        .select({ id: memberships.id, role: memberships.role })
         .from(memberships)
         .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.userId, userId))),
     );
-    return row?.role;
+    return row;
   }
 
   async find(workspaceId: string) {

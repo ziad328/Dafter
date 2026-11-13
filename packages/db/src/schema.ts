@@ -3,11 +3,14 @@ import {
   check,
   foreignKey,
   index,
+  integer,
   jsonb,
+  smallint,
   pgEnum,
   pgTable,
   primaryKey,
   text,
+  time,
   timestamp,
   unique,
   uniqueIndex,
@@ -21,6 +24,7 @@ const createdAt = () => tz('created_at').notNull().defaultNow();
 export const workspaceType = pgEnum('workspace_type', ['center', 'independent']);
 export const memberRole = pgEnum('member_role', ['owner', 'teacher', 'assistant']);
 export const locale = pgEnum('locale', ['ar', 'en']);
+export const groupStatus = pgEnum('group_status', ['active', 'archived']);
 
 // Identity: global, not per workspace.
 
@@ -133,6 +137,94 @@ export const invites = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('invites_workspace_idx').on(t.workspaceId, t.createdAt)],
+);
+
+// Teaching. Each workspace gets its own copy of the curriculum (see curriculum.ts), so it can edit it.
+
+const curriculumTable = (name: string) =>
+  pgTable(
+    name,
+    {
+      id: id(),
+      workspaceId: uuid('workspace_id')
+        .notNull()
+        .references(() => workspaces.id),
+      nameAr: text('name_ar').notNull(),
+      nameEn: text('name_en').notNull(),
+      sortOrder: smallint('sort_order').notNull(),
+      createdAt: createdAt(),
+    },
+    (t) => [
+      unique(`${name}_workspace_id_key`).on(t.workspaceId, t.id),
+      index(`${name}_workspace_sort_idx`).on(t.workspaceId, t.sortOrder),
+    ],
+  );
+
+export const subjects = curriculumTable('subjects');
+export const gradeLevels = curriculumTable('grade_levels');
+
+export const groups = pgTable(
+  'groups',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    // An owner or teacher membership: independent teachers own their workspace and teach in it.
+    teacherMembershipId: uuid('teacher_membership_id').notNull(),
+    subjectId: uuid('subject_id').notNull(),
+    gradeLevelId: uuid('grade_level_id').notNull(),
+    capacity: integer('capacity'),
+    status: groupStatus('status').notNull().default('active'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('groups_workspace_id_key').on(t.workspaceId, t.id),
+    index('groups_workspace_teacher_idx').on(t.workspaceId, t.teacherMembershipId),
+    // Composite keys: a group cannot point at another workspace's teacher, subject or grade.
+    foreignKey({
+      name: 'groups_teacher_fk',
+      columns: [t.workspaceId, t.teacherMembershipId],
+      foreignColumns: [memberships.workspaceId, memberships.id],
+    }),
+    foreignKey({
+      name: 'groups_subject_fk',
+      columns: [t.workspaceId, t.subjectId],
+      foreignColumns: [subjects.workspaceId, subjects.id],
+    }),
+    foreignKey({
+      name: 'groups_grade_level_fk',
+      columns: [t.workspaceId, t.gradeLevelId],
+      foreignColumns: [gradeLevels.workspaceId, gradeLevels.id],
+    }),
+    check('groups_capacity_check', sql`${t.capacity} is null or ${t.capacity} > 0`),
+  ],
+);
+
+/** Weekly slots, the source for session generation. Times are local to the workspace timezone. */
+export const groupSlots = pgTable(
+  'group_slots',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    groupId: uuid('group_id').notNull(),
+    // 0 = Sunday ... 6 = Saturday, as in JavaScript's getDay().
+    weekday: smallint('weekday').notNull(),
+    startTime: time('start_time').notNull(),
+    endTime: time('end_time').notNull(),
+  },
+  (t) => [
+    index('group_slots_workspace_group_idx').on(t.workspaceId, t.groupId),
+    foreignKey({
+      name: 'group_slots_group_fk',
+      columns: [t.workspaceId, t.groupId],
+      foreignColumns: [groups.workspaceId, groups.id],
+    }).onDelete('cascade'),
+    check('group_slots_weekday_check', sql`${t.weekday} between 0 and 6`),
+    check('group_slots_time_check', sql`${t.endTime} > ${t.startTime}`),
+  ],
 );
 
 // Audit: every write. workspace_id is null for actions outside a workspace (register, login).

@@ -2,6 +2,13 @@ import * as z from 'zod';
 import { createDocument } from 'zod-openapi';
 import { authResponse, loginRequest, me, registerRequest } from './auth.js';
 import { errorResponse } from './errors.js';
+import {
+  createGroupRequest,
+  curriculumList,
+  group,
+  groupList,
+  updateGroupRequest,
+} from './groups.js';
 import { healthResponse } from './health.js';
 import {
   createInviteRequest,
@@ -27,6 +34,15 @@ const authPost = (operationId: string, body?: unknown, status = 200) => ({
       [status]: { description: 'Signed in; sets the refresh cookie', content: json(authResponse) },
       ...errors,
     },
+  },
+});
+
+const curriculumGet = (operationId: string, description: string) => ({
+  get: {
+    operationId,
+    tags: ['curriculum'],
+    security: [{ bearer: [] }],
+    responses: { 200: { description, content: json(curriculumList) }, ...errors },
   },
 });
 
@@ -146,6 +162,49 @@ export function buildOpenApi() {
           requestParams: { path: z.object({ id: z.uuid() }) },
           requestBody: { required: true, content: json(setScopesRequest) },
           responses: { 204: { description: 'Scopes replaced' }, ...errors },
+        },
+      },
+      '/api/v1/subjects': curriculumGet('listSubjects', 'Subjects of the active workspace'),
+      '/api/v1/grade-levels': curriculumGet(
+        'listGradeLevels',
+        'Grade levels of the active workspace',
+      ),
+      '/api/v1/groups': {
+        get: {
+          operationId: 'listGroups',
+          tags: ['groups'],
+          description: 'Owner: all groups. Teacher: own groups. Assistant: assigned teachers.',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'Groups the caller can see', content: json(groupList) },
+            ...errors,
+          },
+        },
+        post: {
+          operationId: 'createGroup',
+          tags: ['groups'],
+          description: 'Owner or teacher. A teacher always creates their own group.',
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(createGroupRequest) },
+          responses: { 201: { description: 'Created', content: json(group) }, ...errors },
+        },
+      },
+      '/api/v1/groups/{id}': {
+        get: {
+          operationId: 'getGroup',
+          tags: ['groups'],
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 200: { description: 'The group', content: json(group) }, ...errors },
+        },
+        patch: {
+          operationId: 'updateGroup',
+          tags: ['groups'],
+          description: 'Owner, or the teacher of the group. Only the owner reassigns the teacher.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(updateGroupRequest) },
+          responses: { 200: { description: 'Updated', content: json(group) }, ...errors },
         },
       },
     },

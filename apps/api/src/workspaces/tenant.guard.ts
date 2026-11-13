@@ -5,13 +5,17 @@ import type { AuthedRequest } from '../auth/auth.guard.js';
 import { AppError } from '../errors.js';
 import { WorkspacesRepository } from './workspaces.repository.js';
 
-export type TenantedRequest = AuthedRequest & { workspaceId: string; role: Workspace['role'] };
+export type TenantedRequest = AuthedRequest & {
+  workspaceId: string;
+  role: Workspace['role'];
+  membershipId: string;
+};
 
 const uuid = z.uuid();
 
 /**
  * Runs after AuthGuard. Reads X-Workspace-Id, checks the user is a member, and puts the
- * workspace id and role on the request. Unknown id and "not a member" are the same 404.
+ * workspace id, role and membership id on the request. Unknown id and "not a member" are the same 404.
  */
 @Injectable()
 export class TenantGuard implements CanActivate {
@@ -22,10 +26,11 @@ export class TenantGuard implements CanActivate {
     const header = req.headers[WORKSPACE_HEADER];
     if (typeof header !== 'string' || !header) throw new AppError('VALIDATION_FAILED');
     if (!uuid.safeParse(header).success) throw new AppError('WORKSPACE_NOT_FOUND');
-    const role = await this.repo.findRole(header, req.userId);
-    if (!role) throw new AppError('WORKSPACE_NOT_FOUND');
+    const membership = await this.repo.findMembership(header, req.userId);
+    if (!membership) throw new AppError('WORKSPACE_NOT_FOUND');
     req.workspaceId = header;
-    req.role = role;
+    req.role = membership.role;
+    req.membershipId = membership.id;
     return true;
   }
 }

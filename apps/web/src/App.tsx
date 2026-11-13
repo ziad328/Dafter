@@ -11,6 +11,8 @@ const Register = lazy(() => import('./screens/Register'));
 const AcceptInvite = lazy(() => import('./screens/AcceptInvite'));
 const Workspaces = lazy(() => import('./screens/Workspaces'));
 const Home = lazy(() => import('./screens/Home'));
+const Groups = lazy(() => import('./screens/Groups'));
+const GroupForm = lazy(() => import('./screens/GroupForm'));
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -82,6 +84,9 @@ const router = createBrowserRouter([
         children: [
           { path: '/', element: <Home /> },
           { path: '/workspaces', element: <Workspaces /> },
+          { path: '/groups', element: <Groups /> },
+          { path: '/groups/new', element: <GroupForm /> },
+          { path: '/groups/:id', element: <GroupForm /> },
         ],
       },
       { path: '*', element: <Navigate to="/" replace /> },

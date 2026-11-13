@@ -1,6 +1,16 @@
 import { sql } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { assistantScopes, auditLog, invites, memberships } from './schema.js';
+import { insertCurriculum } from './curriculum.js';
+import {
+  assistantScopes,
+  auditLog,
+  gradeLevels,
+  groupSlots,
+  groups,
+  invites,
+  memberships,
+  subjects,
+} from './schema.js';
 import { type Tx, withTenant } from './tenant.js';
 import { makeMembership, makeUser, makeWorkspace, useTestDb } from './testing/index.js';
 
@@ -43,6 +53,25 @@ beforeAll(async () => {
     .insert(invites)
     .values({ workspaceId: a, role: 'teacher', tokenHash: 'h', expiresAt: new Date() });
   await db.insert(auditLog).values({ workspaceId: a, action: 'create', entity: 'test' });
+  await db.transaction((tx) => insertCurriculum(tx, a));
+  const [subject] = await db.select().from(subjects).limit(1);
+  const [grade] = await db.select().from(gradeLevels).limit(1);
+  const [group] = await db
+    .insert(groups)
+    .values({
+      workspaceId: a,
+      teacherMembershipId: owner.id,
+      subjectId: subject!.id,
+      gradeLevelId: grade!.id,
+    })
+    .returning();
+  await db.insert(groupSlots).values({
+    workspaceId: a,
+    groupId: group!.id,
+    weekday: 6,
+    startTime: '16:00',
+    endTime: '17:30',
+  });
   tables = await tenantTables();
 });
 
@@ -56,7 +85,16 @@ const count = async (tx: Tx, table: string) => {
 describe('RLS on every tenant table', () => {
   it('finds the tenant tables', () => {
     expect(tables).toEqual(
-      expect.arrayContaining(['workspaces', 'memberships', 'assistant_scopes', 'invites']),
+      expect.arrayContaining([
+        'workspaces',
+        'memberships',
+        'assistant_scopes',
+        'invites',
+        'subjects',
+        'grade_levels',
+        'groups',
+        'group_slots',
+      ]),
     );
   });
 
@@ -90,6 +128,21 @@ describe('RLS on every tenant table', () => {
       });
       expect(n, table).toBe(0);
     }
+  });
+
+  it("rejects a group that points at another workspace's subject", async () => {
+    const { db } = t();
+    await db.transaction((tx) => insertCurriculum(tx, b));
+    const [foreign] = await withTenant(db, b, (tx) => tx.select().from(subjects).limit(1));
+    const [mine] = await withTenant(db, a, (tx) => tx.select().from(gradeLevels).limit(1));
+    const [teacher] = await withTenant(db, a, (tx) => tx.select().from(memberships).limit(1));
+    const write = db.insert(groups).values({
+      workspaceId: a,
+      teacherMembershipId: teacher!.id,
+      subjectId: foreign!.id,
+      gradeLevelId: mine!.id,
+    });
+    await expect(write).rejects.toMatchObject({ cause: { code: '23503' } });
   });
 
   it('rejects writing a row into another workspace', async () => {

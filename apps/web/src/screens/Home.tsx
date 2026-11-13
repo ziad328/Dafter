@@ -28,6 +28,9 @@ export default function Home() {
       </CardHeader>
       <CardContent className="grid gap-4">
         <FormError message={current.error && t(errorKey(current.error))} />
+        <Button asChild>
+          <Link to="/groups">{t('home.groups')}</Link>
+        </Button>
         <Button asChild variant="outline">
           <Link to="/workspaces">{t('home.switch')}</Link>
         </Button>

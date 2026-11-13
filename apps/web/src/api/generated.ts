@@ -1,5 +1,12 @@
 import { baseApi as api } from './base';
-export const addTagTypes = ['system', 'auth', 'workspaces', 'members'] as const;
+export const addTagTypes = [
+  'system',
+  'auth',
+  'workspaces',
+  'members',
+  'curriculum',
+  'groups',
+] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
     addTagTypes,
@@ -78,6 +85,38 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ['members'],
       }),
+      listSubjects: build.query<ListSubjectsApiResponse, ListSubjectsApiArg>({
+        query: () => ({ url: `/api/v1/subjects` }),
+        providesTags: ['curriculum'],
+      }),
+      listGradeLevels: build.query<ListGradeLevelsApiResponse, ListGradeLevelsApiArg>({
+        query: () => ({ url: `/api/v1/grade-levels` }),
+        providesTags: ['curriculum'],
+      }),
+      listGroups: build.query<ListGroupsApiResponse, ListGroupsApiArg>({
+        query: () => ({ url: `/api/v1/groups` }),
+        providesTags: ['groups'],
+      }),
+      createGroup: build.mutation<CreateGroupApiResponse, CreateGroupApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/groups`,
+          method: 'POST',
+          body: queryArg.createGroupRequest,
+        }),
+        invalidatesTags: ['groups'],
+      }),
+      getGroup: build.query<GetGroupApiResponse, GetGroupApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/groups/${queryArg.id}` }),
+        providesTags: ['groups'],
+      }),
+      updateGroup: build.mutation<UpdateGroupApiResponse, UpdateGroupApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/groups/${queryArg.id}`,
+          method: 'PATCH',
+          body: queryArg.updateGroupRequest,
+        }),
+        invalidatesTags: ['groups'],
+      }),
     }),
     overrideExisting: false,
   });
@@ -123,6 +162,27 @@ export type SetAssistantScopesApiArg = {
   id: string;
   setScopesRequest: SetScopesRequest;
 };
+export type ListSubjectsApiResponse =
+  /** status 200 Subjects of the active workspace */ CurriculumList;
+export type ListSubjectsApiArg = void;
+export type ListGradeLevelsApiResponse =
+  /** status 200 Grade levels of the active workspace */ CurriculumList;
+export type ListGradeLevelsApiArg = void;
+export type ListGroupsApiResponse = /** status 200 Groups the caller can see */ GroupList;
+export type ListGroupsApiArg = void;
+export type CreateGroupApiResponse = /** status 201 Created */ Group;
+export type CreateGroupApiArg = {
+  createGroupRequest: CreateGroupRequest;
+};
+export type GetGroupApiResponse = /** status 200 The group */ Group;
+export type GetGroupApiArg = {
+  id: string;
+};
+export type UpdateGroupApiResponse = /** status 200 Updated */ Group;
+export type UpdateGroupApiArg = {
+  id: string;
+  updateGroupRequest: UpdateGroupRequest;
+};
 export type HealthResponse = {
   status: 'ok';
 };
@@ -141,6 +201,8 @@ export type ErrorCode =
   | 'ALREADY_MEMBER'
   | 'MEMBER_NOT_ASSISTANT'
   | 'SCOPE_TEACHER_INVALID'
+  | 'GROUP_NOT_FOUND'
+  | 'GROUP_REFERENCE_INVALID'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -205,6 +267,48 @@ export type MemberList = Member[];
 export type SetScopesRequest = {
   teacherMembershipIds: string[];
 };
+export type CurriculumItem = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+};
+export type CurriculumList = CurriculumItem[];
+export type GroupSlotOutput = {
+  weekday: number;
+  startTime: string;
+  endTime: string;
+};
+export type Group = {
+  id: string;
+  teacherMembershipId: string;
+  teacherName: string;
+  subject: CurriculumItem;
+  gradeLevel: CurriculumItem;
+  capacity: number | null;
+  status: 'active' | 'archived';
+  slots: GroupSlotOutput[];
+};
+export type GroupList = Group[];
+export type GroupSlot = {
+  weekday: number;
+  startTime: string;
+  endTime: string;
+};
+export type CreateGroupRequest = {
+  teacherMembershipId?: string;
+  subjectId: string;
+  gradeLevelId: string;
+  capacity?: number | null;
+  slots: GroupSlot[];
+};
+export type UpdateGroupRequest = {
+  teacherMembershipId?: string;
+  subjectId?: string;
+  gradeLevelId?: string;
+  capacity?: number | null;
+  status?: 'active' | 'archived';
+  slots?: GroupSlot[];
+};
 export const {
   useGetHealthQuery,
   useRegisterMutation,
@@ -219,4 +323,10 @@ export const {
   useAcceptInviteMutation,
   useListMembersQuery,
   useSetAssistantScopesMutation,
+  useListSubjectsQuery,
+  useListGradeLevelsQuery,
+  useListGroupsQuery,
+  useCreateGroupMutation,
+  useGetGroupQuery,
+  useUpdateGroupMutation,
 } = injectedRtkApi;

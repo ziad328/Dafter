@@ -23,6 +23,10 @@ export const ERROR_STATUS = {
   MEMBER_NOT_ASSISTANT: 409,
   // A scope target is missing from the workspace or is not a teacher.
   SCOPE_TEACHER_INVALID: 400,
+  // Unknown id, another workspace's group, or outside the caller's scope: never 403.
+  GROUP_NOT_FOUND: 404,
+  // A subject, grade level or teacher that is not in this workspace (details.field names it).
+  GROUP_REFERENCE_INVALID: 400,
   INTERNAL: 500,
 } as const;
 

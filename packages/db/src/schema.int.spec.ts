@@ -17,15 +17,18 @@ describe('first migration', () => {
     const { rows } = await t().db.execute<{ table_name: string }>(
       sql`select table_name from information_schema.tables where table_schema = 'public'`,
     );
-    expect(rows.map((r) => r.table_name).sort()).toEqual([
-      'assistant_scopes',
-      'audit_log',
-      'invites',
-      'memberships',
-      'refresh_tokens',
-      'users',
-      'workspaces',
-    ]);
+    // Contains, not equals: later migrations add tables.
+    expect(rows.map((r) => r.table_name)).toEqual(
+      expect.arrayContaining([
+        'assistant_scopes',
+        'audit_log',
+        'invites',
+        'memberships',
+        'refresh_tokens',
+        'users',
+        'workspaces',
+      ]),
+    );
   });
 });
 
