@@ -34,3 +34,14 @@ One owner-connection read filtered only by `sha256(token)`, which returns the wo
 
 **3. Why return the same error for unknown, used and expired tokens, and store only a hash?**
 Different errors would let someone probe which tokens exist. Storing the hash means a database leak does not hand out working invite links.
+
+## Day 6b · Access token and refresh in the web app
+
+**1. Why keep the access token in memory and not in localStorage?**
+Any script that runs on the page (an XSS bug, a bad dependency) can read localStorage and send the token away. A module variable dies with the tab. The long-lived credential is the refresh token in an httpOnly cookie, which scripts cannot read; after a reload the app calls `/auth/refresh` once to get a new access token.
+
+**2. Two requests get a 401 at the same moment. What goes wrong without single-flight, and how does the fix work?**
+Each would call `/auth/refresh` with the same cookie. The first rotates it; the second presents a used token, which the server treats as theft and revokes the whole family, so the user is signed out. The fix stores the in-flight refresh promise in one variable (`refreshing ??= ...`), so every caller awaits the same rotation and then retries with the new token. A request that sent the old token after the refresh already finished just retries without refreshing again.
+
+**3. Why must login's 401 never trigger a refresh, and how does `?next=` avoid an open redirect?**
+`INVALID_CREDENTIALS` is an answer, not an expired token; refreshing would hide the error and could loop. Only same-app paths (start with `/`, not `//`) are accepted for `next`, so a crafted link cannot send a user to another site after they sign in.

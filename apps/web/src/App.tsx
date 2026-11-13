@@ -1,9 +1,22 @@
+import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useGetHealthQuery } from './api/generated';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router';
+import { useGetHealthQuery, useGetMeQuery } from './api/generated';
+import { FormError, Skeleton } from './components/Field';
+import { Button } from './components/ui/button';
+import { errorKey, useSignOut } from './lib/session';
 
-export function App() {
+const Login = lazy(() => import('./screens/Login'));
+const Register = lazy(() => import('./screens/Register'));
+const AcceptInvite = lazy(() => import('./screens/AcceptInvite'));
+const Workspaces = lazy(() => import('./screens/Workspaces'));
+const Home = lazy(() => import('./screens/Home'));
+
+function Layout() {
   const { t, i18n } = useTranslation();
   const health = useGetHealthQuery();
+  const me = useGetMeQuery();
+  const signOut = useSignOut();
   const other = i18n.language === 'ar' ? 'en' : 'ar';
 
   const apiStatus = health.isLoading
@@ -13,24 +26,69 @@ export function App() {
       : t('shell.api.down');
 
   return (
-    <div className="min-h-dvh bg-stone-50 font-sans text-stone-900">
-      <header className="flex items-center justify-between gap-4 border-b border-stone-200 px-4 py-3">
+    <div className="min-h-dvh bg-muted/40 font-sans text-foreground">
+      <header className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3">
         <span className="text-xl font-bold">{t('app.name')}</span>
-        <button
-          type="button"
-          lang={other}
-          onClick={() => void i18n.changeLanguage(other)}
-          className="rounded-md border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-100"
-        >
-          {t('shell.switchLanguage')}
-        </button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            lang={other}
+            onClick={() => void i18n.changeLanguage(other)}
+          >
+            {t('shell.switchLanguage')}
+          </Button>
+          {me.data && (
+            <Button variant="ghost" size="sm" onClick={() => void signOut()}>
+              {t('shell.logout')}
+            </Button>
+          )}
+        </div>
       </header>
-      <main className="mx-auto max-w-xl px-4 py-8">
-        <p className="text-lg">{t('app.tagline')}</p>
-        <p role="status" className="mt-4 text-sm text-stone-600">
+      <main className="mx-auto grid max-w-sm gap-4 px-4 py-8">
+        <Suspense fallback={<Skeleton />}>
+          <Outlet />
+        </Suspense>
+        <p role="status" className="text-center text-xs text-muted-foreground">
           {apiStatus}
         </p>
       </main>
     </div>
   );
+}
+
+function RequireAuth() {
+  const { t } = useTranslation();
+  const me = useGetMeQuery();
+  const { pathname } = useLocation();
+
+  if (me.isLoading) return <Skeleton />;
+  if (me.error && 'status' in me.error && me.error.status === 401) {
+    return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />;
+  }
+  if (me.error) return <FormError message={t(errorKey(me.error))} />;
+  return <Outlet />;
+}
+
+const router = createBrowserRouter([
+  {
+    element: <Layout />,
+    children: [
+      { path: '/login', element: <Login /> },
+      { path: '/register', element: <Register /> },
+      { path: '/invite/:token', element: <AcceptInvite /> },
+      {
+        element: <RequireAuth />,
+        children: [
+          { path: '/', element: <Home /> },
+          { path: '/workspaces', element: <Workspaces /> },
+        ],
+      },
+      { path: '*', element: <Navigate to="/" replace /> },
+    ],
+  },
+]);
+
+export function App() {
+  return <RouterProvider router={router} />;
 }

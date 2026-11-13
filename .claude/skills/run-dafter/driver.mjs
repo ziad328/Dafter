@@ -72,7 +72,11 @@ async function openPage(browser, { locale, width = 375 }) {
   page.on('console', (m) => {
     if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(m.text());
   });
-  page.on('response', (r) => r.status() >= 400 && errors.push(`${r.status()} ${r.url()}`));
+  // Signed out, the app's refresh attempt answers 401 by design; anything else is a failure.
+  page.on('response', (r) => {
+    if (r.status() === 401 && r.url().endsWith('/api/v1/auth/refresh')) return;
+    if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`);
+  });
   page.on('pageerror', (e) => errors.push(e.message));
   return { page, errors };
 }

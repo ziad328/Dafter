@@ -9,7 +9,66 @@
       "checking": "Connecting to the server…",
       "ok": "Server connected",
       "down": "Server unavailable right now"
+    },
+    "logout": "Sign out",
+    "loading": "Loading…"
+  },
+  "form": {
+    "optional": "(optional)",
+    "invalid": {
+      "name": "Enter a name of at least 2 letters.",
+      "phone": "Enter an 11-digit Egyptian mobile starting with 01, or an email.",
+      "email": "This email is not valid.",
+      "password": "Password must be at least 8 characters.",
+      "login": "Enter your phone or email.",
+      "nameAr": "Enter a name of at least 2 letters."
     }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "login": "Phone or email",
+      "password": "Password",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "register": "Create one"
+    },
+    "register": {
+      "title": "Create account",
+      "name": "Name",
+      "phone": "Mobile number",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "login": "Sign in"
+    }
+  },
+  "invite": {
+    "title": "Invitation",
+    "body": "You've been invited to join a workspace on Dafter.",
+    "join": "Join now",
+    "signInFirst": "Sign in or create an account to accept the invite."
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "empty": "You don't have a workspace yet. Create one to get started.",
+    "create": {
+      "title": "New workspace",
+      "nameAr": "Name",
+      "type": "Type",
+      "center": "Tutoring center",
+      "independent": "Independent teacher",
+      "submit": "Create"
+    }
+  },
+  "roles": {
+    "owner": "Owner",
+    "teacher": "Teacher",
+    "assistant": "Assistant"
+  },
+  "home": {
+    "switch": "Switch workspace"
   },
   "errors": {
     "VALIDATION_FAILED": "Some details are not valid. Check them and try again.",
