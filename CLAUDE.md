@@ -20,7 +20,7 @@ Dafter (دفتر) is a bilingual (Arabic-first, English) multi-tenant SaaS for E
 - For any feature bigger than one file, give a short plan first (files, steps, risks) and wait for an OK before coding.
 - Keep diffs small and focused on the task. Do not refactor unrelated code.
 - You write the code; Ziad learns while building. For the hard parts (auth and refresh rotation, student login and phone binding, rotating-QR check-in, RLS and tenant isolation, outbox, idempotency, ledger), explain the approach in a few lines before coding and why it beats the alternatives. After coding, add 2 to 3 short interview-style questions with short answers to `docs/interview-questions.md` (do not ask them in the session; Ziad reviews them later).
-- When a task is done, say so in one line, then start a new session for the next task yourself (do not tell Ziad to run `/clear`). If a session gets long, suggest `/compact`.
+- When a task is done, say so in one line, then check how full the context window is. At about 50% or more, start a new session for the next task yourself (do not tell Ziad to run `/clear`); below that, continue the next task in this session. If a session gets long, suggest `/compact`.
 
 ## Start-of-session protocol
 
@@ -29,7 +29,7 @@ Dafter (دفتر) is a bilingual (Arabic-first, English) multi-tenant SaaS for E
 3. Give the plan (and, for a hard part, the short explanation). Wait for OK.
 4. Build it, run the narrowest tests that prove it, then `pnpm test` once.
 5. Tick the task in `docs/progress.md` with a one-line note (what was done, anything left), and propose a Conventional Commit message.
-6. Stop, then start a new session for the next task. Never start the next task in the same session.
+6. Check context-window usage: at about 50% or more, stop and start a new session for the next task; below that, continue with the next task here (back to step 2).
 
 **First session only:** before any Day 1 task, set up the skills from the Skills section at the end of this file, then continue with Day 1.
 

@@ -5,3 +5,5 @@ coverage
 .claude
 *.md
 packages/db/migrations
+playwright-report
+test-results

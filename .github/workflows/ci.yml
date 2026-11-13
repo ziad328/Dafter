@@ -44,3 +44,28 @@ jobs:
       # Unit and integration tests; Testcontainers uses the runner's Docker.
       - name: Test
         run: pnpm turbo run test
+
+  # Playwright smoke set on the full local stack (Docker Compose PostgreSQL, API, worker, web).
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cp .env.example .env
+      - run: pnpm db:reset
+      # Uses the runner's preinstalled Chrome; Playwright starts `pnpm dev` itself.
+      - run: pnpm e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7

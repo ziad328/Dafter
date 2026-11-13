@@ -9,9 +9,13 @@ export async function seed(connectionString: string) {
   const { db, pool } = createDb(connectionString);
   try {
     await db.transaction(async (tx) => {
-      const [center] = await tx
+      const [center, privateLessons] = await tx
         .insert(workspaces)
-        .values({ type: 'center', nameAr: 'سنتر النور', nameEn: 'Al-Nour Center' })
+        .values([
+          { type: 'center', nameAr: 'سنتر النور', nameEn: 'Al-Nour Center' },
+          // The teacher also tutors on her own, so she has a second workspace to switch to.
+          { type: 'independent', nameAr: 'دروس منى حسن', nameEn: 'Mona Hassan Lessons' },
+        ])
         .returning();
 
       const [owner, teacher, assistant] = await tx
@@ -44,6 +48,7 @@ export async function seed(connectionString: string) {
           { workspaceId: center!.id, userId: owner!.id, role: 'owner' },
           { workspaceId: center!.id, userId: teacher!.id, role: 'teacher' },
           { workspaceId: center!.id, userId: assistant!.id, role: 'assistant' },
+          { workspaceId: privateLessons!.id, userId: teacher!.id, role: 'owner' },
         ])
         .returning();
 

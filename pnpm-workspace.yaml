@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - e2e
 allowBuilds:
   # esbuild verifies its platform binary; needed by tsx, vite and drizzle-kit
   esbuild: true

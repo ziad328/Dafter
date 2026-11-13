@@ -77,6 +77,13 @@ function CreateWorkspace({ onCreated }: { onCreated: (id: string) => void }) {
             error={formState.errors.nameAr && t('form.invalid.nameAr')}
             {...register('nameAr')}
           />
+          <Field
+            label={`${t('workspaces.create.nameEn')} ${t('form.optional')}`}
+            dir="ltr"
+            error={formState.errors.nameEn && t('form.invalid.nameAr')}
+            // Empty must be undefined, or the min-length rule rejects "".
+            {...register('nameEn', { setValueAs: (v: string) => v.trim() || undefined })}
+          />
           <fieldset className="grid gap-2">
             <legend className="mb-2 text-sm font-medium">{t('workspaces.create.type')}</legend>
             {(['center', 'independent'] as const).map((type) => (
