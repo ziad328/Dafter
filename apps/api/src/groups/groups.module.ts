@@ -9,5 +9,6 @@ import { GroupsService } from './groups.service.js';
   imports: [AuthModule, WorkspacesModule],
   controllers: [CurriculumController, GroupsController],
   providers: [GroupsService, GroupsRepository],
+  exports: [GroupsService],
 })
 export class GroupsModule {}

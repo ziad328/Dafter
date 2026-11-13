@@ -7,6 +7,7 @@ import { createDb, type Db } from '@dafter/db';
 import { AuthModule } from './auth/auth.module.js';
 import { GroupsModule } from './groups/groups.module.js';
 import { MembersModule } from './members/members.module.js';
+import { SessionsModule } from './sessions/sessions.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { AuditInterceptor } from './audit.interceptor.js';
 import { Clock } from './clock.js';
@@ -23,7 +24,7 @@ class HealthController {
 }
 
 @Module({
-  imports: [AuthModule, WorkspacesModule, MembersModule, GroupsModule],
+  imports: [AuthModule, WorkspacesModule, MembersModule, GroupsModule, SessionsModule],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
 })

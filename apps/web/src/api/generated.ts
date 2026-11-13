@@ -6,6 +6,7 @@ export const addTagTypes = [
   'members',
   'curriculum',
   'groups',
+  'sessions',
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -117,6 +118,28 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ['groups'],
       }),
+      listSessions: build.query<ListSessionsApiResponse, ListSessionsApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/sessions`,
+          params: {
+            from: queryArg['from'],
+            to: queryArg.to,
+          },
+        }),
+        providesTags: ['sessions'],
+      }),
+      moveSession: build.mutation<MoveSessionApiResponse, MoveSessionApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/sessions/${queryArg.id}`,
+          method: 'PATCH',
+          body: queryArg.moveSessionRequest,
+        }),
+        invalidatesTags: ['sessions'],
+      }),
+      cancelSession: build.mutation<CancelSessionApiResponse, CancelSessionApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/cancel`, method: 'POST' }),
+        invalidatesTags: ['sessions'],
+      }),
     }),
     overrideExisting: false,
   });
@@ -183,6 +206,20 @@ export type UpdateGroupApiArg = {
   id: string;
   updateGroupRequest: UpdateGroupRequest;
 };
+export type ListSessionsApiResponse = /** status 200 Sessions the caller can see */ SessionList;
+export type ListSessionsApiArg = {
+  from: string;
+  to: string;
+};
+export type MoveSessionApiResponse = /** status 200 Moved */ Session;
+export type MoveSessionApiArg = {
+  id: string;
+  moveSessionRequest: MoveSessionRequest;
+};
+export type CancelSessionApiResponse = /** status 200 Cancelled */ Session;
+export type CancelSessionApiArg = {
+  id: string;
+};
 export type HealthResponse = {
   status: 'ok';
 };
@@ -203,6 +240,9 @@ export type ErrorCode =
   | 'SCOPE_TEACHER_INVALID'
   | 'GROUP_NOT_FOUND'
   | 'GROUP_REFERENCE_INVALID'
+  | 'SESSION_NOT_FOUND'
+  | 'SESSION_NOT_SCHEDULED'
+  | 'SESSION_TIME_INVALID'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -309,6 +349,24 @@ export type UpdateGroupRequest = {
   status?: 'active' | 'archived';
   slots?: GroupSlot[];
 };
+export type Session = {
+  id: string;
+  groupId: string;
+  startsAt: string;
+  endsAt: string;
+  status: 'scheduled' | 'open' | 'closed' | 'cancelled';
+  moved: boolean;
+  teacherMembershipId: string;
+  teacherName: string;
+  subject: CurriculumItem;
+  gradeLevel: CurriculumItem;
+};
+export type SessionList = Session[];
+export type MoveSessionRequest = {
+  date: string;
+  startTime: string;
+  endTime: string;
+};
 export const {
   useGetHealthQuery,
   useRegisterMutation,
@@ -329,4 +387,7 @@ export const {
   useCreateGroupMutation,
   useGetGroupQuery,
   useUpdateGroupMutation,
+  useListSessionsQuery,
+  useMoveSessionMutation,
+  useCancelSessionMutation,
 } = injectedRtkApi;

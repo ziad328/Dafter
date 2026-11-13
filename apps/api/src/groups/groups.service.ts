@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { CreateGroupRequest, Group, UpdateGroupRequest } from '@dafter/contracts';
 import { gradeLevels, subjects } from '@dafter/db';
+import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';
 import type { TenantedRequest } from '../workspaces/tenant.guard.js';
 import { type GroupValues, GroupsRepository } from './groups.repository.js';
@@ -13,7 +14,10 @@ type Ctx = Pick<TenantedRequest, 'workspaceId' | 'role' | 'membershipId'>;
  */
 @Injectable()
 export class GroupsService {
-  constructor(@Inject(GroupsRepository) private readonly repo: GroupsRepository) {}
+  constructor(
+    @Inject(GroupsRepository) private readonly repo: GroupsRepository,
+    @Inject(Clock) private readonly clock: Clock,
+  ) {}
 
   subjects(ctx: Ctx) {
     return this.repo.curriculum(ctx.workspaceId, subjects);
@@ -47,7 +51,7 @@ export class GroupsService {
       capacity: body.capacity ?? null,
     };
     await this.checkReferences(ctx, values);
-    const id = await this.repo.create(ctx.workspaceId, values, body.slots);
+    const id = await this.repo.create(ctx.workspaceId, values, body.slots, this.clock.now());
     return this.get(ctx, id);
   }
 
@@ -64,12 +68,12 @@ export class GroupsService {
     )
       throw new AppError('FORBIDDEN');
     await this.checkReferences(ctx, patch);
-    await this.repo.update(ctx.workspaceId, id, patch, slots);
+    await this.repo.update(ctx.workspaceId, id, patch, slots, this.clock.now());
     return this.get(ctx, id);
   }
 
-  /** undefined = every teacher (owner). */
-  private async visibleTeachers(ctx: Ctx): Promise<string[] | undefined> {
+  /** undefined = every teacher (owner). Sessions use the same view. */
+  async visibleTeachers(ctx: Ctx): Promise<string[] | undefined> {
     if (ctx.role === 'owner') return undefined;
     if (ctx.role === 'teacher') return [ctx.membershipId];
     return this.repo.scopedTeachers(ctx.workspaceId, ctx.membershipId);

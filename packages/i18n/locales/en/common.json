@@ -27,7 +27,8 @@
       "capacity": "Enter a number from 1 to 1000.",
       "slot": "Enter the day, start and end time.",
       "slotOrder": "The end time must be after the start.",
-      "slotOverlap": "This slot overlaps another one on the same day."
+      "slotOverlap": "This slot overlaps another one on the same day.",
+      "date": "Enter a valid date."
     },
     "choose": "Choose…"
   },
@@ -97,7 +98,8 @@
   },
   "home": {
     "switch": "Switch workspace",
-    "groups": "Groups"
+    "groups": "Groups",
+    "timetable": "Timetable"
   },
   "errors": {
     "VALIDATION_FAILED": "Some details are not valid. Check them and try again.",
@@ -116,6 +118,32 @@
     "INVITE_INVALID": "This invite link is invalid, expired or already used.",
     "ALREADY_MEMBER": "You're already a member of this workspace.",
     "MEMBER_NOT_ASSISTANT": "This member isn't an assistant.",
-    "SCOPE_TEACHER_INVALID": "One of the selected teachers isn't in this workspace."
+    "SCOPE_TEACHER_INVALID": "One of the selected teachers isn't in this workspace.",
+    "SESSION_NOT_FOUND": "This session doesn't exist or isn't in your scope.",
+    "SESSION_NOT_SCHEDULED": "This session can't be changed: it has started, ended or been cancelled.",
+    "SESSION_TIME_INVALID": "Pick a time that hasn't passed yet."
+  },
+  "timetable": {
+    "title": "Timetable",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "thisWeek": "This week",
+    "empty": "No sessions this week.",
+    "cancel": "Cancel session",
+    "confirmCancel": "Confirm cancel",
+    "keep": "Keep",
+    "move": "Move",
+    "date": "Date",
+    "start": "From",
+    "end": "To",
+    "save": "Save time",
+    "close": "Close",
+    "status": {
+      "scheduled": "Scheduled",
+      "open": "In progress",
+      "closed": "Ended",
+      "cancelled": "Cancelled"
+    },
+    "moved": "Rescheduled"
   }
 }

@@ -1,0 +1,209 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
+import { type MoveSessionRequest, moveSessionRequest, type Session } from '@dafter/contracts';
+import {
+  useCancelSessionMutation,
+  useGetCurrentWorkspaceQuery,
+  useListSessionsQuery,
+  useMoveSessionMutation,
+} from '@/api/generated';
+import { Field, FormError, Skeleton } from '@/components/Field';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { itemName } from '@/lib/groups';
+import { errorKey } from '@/lib/session';
+import { addDays, dayLabel, localDate, localTime, weekStart } from '@/lib/time';
+
+/** One week (Saturday first) of the workspace's sessions, in the workspace timezone. */
+export default function Timetable() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const workspace = useGetCurrentWorkspaceQuery();
+  const tz = workspace.data?.timezone ?? 'Africa/Cairo';
+  const canWrite = workspace.data?.role === 'owner' || workspace.data?.role === 'teacher';
+  const [params, setParams] = useSearchParams();
+  const thisWeek = weekStart(localDate(new Date(), tz));
+  const from = params.get('week') ?? thisWeek;
+  const to = addDays(from, 6);
+  const list = useListSessionsQuery({ from, to }, { skip: !workspace.data });
+  const goTo = (week: string) => setParams(week === thisWeek ? {} : { week }, { replace: true });
+
+  // Sessions come sorted by start, so days come out in order. (Map.groupBy needs iOS 17.4.)
+  const days = new Map<string, Session[]>();
+  for (const s of list.data ?? []) {
+    const date = localDate(s.startsAt, tz);
+    days.set(date, [...(days.get(date) ?? []), s]);
+  }
+
+  return (
+    <div className="grid gap-4">
+      <h1 className="text-xl font-bold">{t('timetable.title')}</h1>
+      <nav className="flex items-center justify-between gap-2" aria-label={t('timetable.title')}>
+        <Button variant="outline" size="sm" onClick={() => goTo(addDays(from, -7))}>
+          {t('timetable.prevWeek')}
+        </Button>
+        {from !== thisWeek && (
+          <Button variant="ghost" size="sm" onClick={() => goTo(thisWeek)}>
+            {t('timetable.thisWeek')}
+          </Button>
+        )}
+        <Button variant="outline" size="sm" onClick={() => goTo(addDays(from, 7))}>
+          {t('timetable.nextWeek')}
+        </Button>
+      </nav>
+      <FormError message={list.error && t(errorKey(list.error))} />
+      {list.isLoading || !workspace.data ? (
+        <Skeleton />
+      ) : days.size === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('timetable.empty')}</p>
+      ) : (
+        [...days].map(([date, sessions]) => (
+          <section key={date} className="grid gap-2">
+            <h2 className="text-sm font-semibold text-muted-foreground">{dayLabel(date, lang)}</h2>
+            {sessions.map((s) => (
+              <SessionCard key={s.id} session={s} tz={tz} canWrite={canWrite} />
+            ))}
+          </section>
+        ))
+      )}
+    </div>
+  );
+}
+
+function SessionCard({
+  session: s,
+  tz,
+  canWrite,
+}: {
+  session: Session;
+  tz: string;
+  canWrite: boolean;
+}) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const [mode, setMode] = useState<'view' | 'confirm' | 'move'>('view');
+  const [cancel, cancelled] = useCancelSessionMutation();
+  const editable = canWrite && s.status === 'scheduled';
+
+  return (
+    <Card className="gap-3 py-4">
+      <CardHeader className="px-4">
+        <CardTitle className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3>{`${itemName(s.subject, lang)} · ${itemName(s.gradeLevel, lang)}`}</h3>
+          <bdi dir="ltr" className="text-sm font-normal">
+            {`${localTime(s.startsAt, tz)}–${localTime(s.endsAt, tz)}`}
+          </bdi>
+        </CardTitle>
+        <CardDescription>
+          {s.teacherName}
+          {s.status !== 'scheduled' && ` · ${t(`timetable.status.${s.status}`)}`}
+          {s.moved && ` · ${t('timetable.moved')}`}
+        </CardDescription>
+      </CardHeader>
+      {editable && (
+        <CardContent className="grid gap-3 px-4">
+          <FormError message={cancelled.error && t(errorKey(cancelled.error))} />
+          {mode === 'view' && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setMode('move')}>
+                {t('timetable.move')}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setMode('confirm')}>
+                {t('timetable.cancel')}
+              </Button>
+            </div>
+          )}
+          {mode === 'confirm' && (
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={cancelled.isLoading}
+                onClick={() => void cancel({ id: s.id })}
+              >
+                {t('timetable.confirmCancel')}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setMode('view')}>
+                {t('timetable.keep')}
+              </Button>
+            </div>
+          )}
+          {mode === 'move' && <MoveForm session={s} tz={tz} onDone={() => setMode('view')} />}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+function MoveForm({
+  session: s,
+  tz,
+  onDone,
+}: {
+  session: Session;
+  tz: string;
+  onDone: () => void;
+}) {
+  const { t } = useTranslation();
+  const [move, moved] = useMoveSessionMutation();
+  const { register, handleSubmit, formState } = useForm<MoveSessionRequest>({
+    resolver: zodResolver(moveSessionRequest),
+    defaultValues: {
+      date: localDate(s.startsAt, tz),
+      startTime: localTime(s.startsAt, tz),
+      endTime: localTime(s.endsAt, tz),
+    },
+  });
+  const { errors } = formState;
+  const onSubmit = handleSubmit(async (body) => {
+    const res = await move({ id: s.id, moveSessionRequest: body });
+    if (res.data) onDone();
+  });
+
+  return (
+    <form onSubmit={onSubmit} noValidate className="grid gap-3">
+      <Field
+        label={t('timetable.date')}
+        type="date"
+        dir="ltr"
+        error={errors.date && t('form.invalid.date')}
+        {...register('date')}
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <Field
+          label={t('timetable.start')}
+          type="time"
+          dir="ltr"
+          error={errors.startTime && t('form.invalid.slot')}
+          {...register('startTime')}
+        />
+        <Field
+          label={t('timetable.end')}
+          type="time"
+          dir="ltr"
+          error={
+            errors.endTime &&
+            t(
+              errors.endTime.message === 'SLOT_ENDS_BEFORE_START'
+                ? 'form.invalid.slotOrder'
+                : 'form.invalid.slot',
+            )
+          }
+          {...register('endTime')}
+        />
+      </div>
+      <FormError message={moved.error && t(errorKey(moved.error))} />
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={moved.isLoading}>
+          {t('timetable.save')}
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={onDone}>
+          {t('timetable.close')}
+        </Button>
+      </div>
+    </form>
+  );
+}

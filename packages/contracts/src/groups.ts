@@ -7,7 +7,7 @@ export const curriculumItem = z
 export const curriculumList = z.array(curriculumItem).meta({ id: 'CurriculumList' });
 
 /** Local wall-clock time in the workspace timezone, "HH:MM". */
-const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+export const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 export const groupSlot = z
   .object({

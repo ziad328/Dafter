@@ -25,6 +25,7 @@ export const workspaceType = pgEnum('workspace_type', ['center', 'independent'])
 export const memberRole = pgEnum('member_role', ['owner', 'teacher', 'assistant']);
 export const locale = pgEnum('locale', ['ar', 'en']);
 export const groupStatus = pgEnum('group_status', ['active', 'archived']);
+export const sessionStatus = pgEnum('session_status', ['scheduled', 'open', 'closed', 'cancelled']);
 
 // Identity: global, not per workspace.
 
@@ -224,6 +225,38 @@ export const groupSlots = pgTable(
     }).onDelete('cascade'),
     check('group_slots_weekday_check', sql`${t.weekday} between 0 and 6`),
     check('group_slots_time_check', sql`${t.endTime} > ${t.startTime}`),
+  ],
+);
+
+/**
+ * One meeting of a group, generated from its slots 4 weeks ahead. `slot_starts_at` is the time
+ * the slot produced and never changes: a move edits only `starts_at`/`ends_at`, so re-running
+ * generation does not bring back a moved or cancelled session.
+ */
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    groupId: uuid('group_id').notNull(),
+    slotStartsAt: tz('slot_starts_at').notNull(),
+    startsAt: tz('starts_at').notNull(),
+    endsAt: tz('ends_at').notNull(),
+    status: sessionStatus('status').notNull().default('scheduled'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('sessions_workspace_id_key').on(t.workspaceId, t.id),
+    unique('sessions_group_slot_key').on(t.workspaceId, t.groupId, t.slotStartsAt),
+    index('sessions_workspace_starts_idx').on(t.workspaceId, t.startsAt),
+    foreignKey({
+      name: 'sessions_group_fk',
+      columns: [t.workspaceId, t.groupId],
+      foreignColumns: [groups.workspaceId, groups.id],
+    }),
+    check('sessions_time_check', sql`${t.endsAt} > ${t.startsAt}`),
   ],
 );
 

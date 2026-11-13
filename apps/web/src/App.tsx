@@ -13,6 +13,7 @@ const Workspaces = lazy(() => import('./screens/Workspaces'));
 const Home = lazy(() => import('./screens/Home'));
 const Groups = lazy(() => import('./screens/Groups'));
 const GroupForm = lazy(() => import('./screens/GroupForm'));
+const Timetable = lazy(() => import('./screens/Timetable'));
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -87,6 +88,7 @@ const router = createBrowserRouter([
           { path: '/groups', element: <Groups /> },
           { path: '/groups/new', element: <GroupForm /> },
           { path: '/groups/:id', element: <GroupForm /> },
+          { path: '/timetable', element: <Timetable /> },
         ],
       },
       { path: '*', element: <Navigate to="/" replace /> },

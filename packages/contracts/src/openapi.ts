@@ -10,6 +10,7 @@ import {
   updateGroupRequest,
 } from './groups.js';
 import { healthResponse } from './health.js';
+import { listSessionsQuery, moveSessionRequest, session, sessionList } from './sessions.js';
 import {
   createInviteRequest,
   createWorkspaceRequest,
@@ -205,6 +206,40 @@ export function buildOpenApi() {
           requestParams: { path: z.object({ id: z.uuid() }) },
           requestBody: { required: true, content: json(updateGroupRequest) },
           responses: { 200: { description: 'Updated', content: json(group) }, ...errors },
+        },
+      },
+      '/api/v1/sessions': {
+        get: {
+          operationId: 'listSessions',
+          tags: ['sessions'],
+          description: 'Sessions between two local dates (inclusive), same visibility as groups.',
+          security: [{ bearer: [] }],
+          requestParams: { query: listSessionsQuery },
+          responses: {
+            200: { description: 'Sessions the caller can see', content: json(sessionList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/sessions/{id}': {
+        patch: {
+          operationId: 'moveSession',
+          tags: ['sessions'],
+          description: 'Owner, or the teacher of the group. Only a scheduled session moves.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(moveSessionRequest) },
+          responses: { 200: { description: 'Moved', content: json(session) }, ...errors },
+        },
+      },
+      '/api/v1/sessions/{id}/cancel': {
+        post: {
+          operationId: 'cancelSession',
+          tags: ['sessions'],
+          description: 'Owner, or the teacher of the group. Only a scheduled session is cancelled.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 200: { description: 'Cancelled', content: json(session) }, ...errors },
         },
       },
     },

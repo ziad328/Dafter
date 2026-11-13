@@ -11,6 +11,7 @@ import {
   type Tx,
   users,
 } from '@dafter/db';
+import { dropGeneratedSessions, generateSessions } from '../sessions/generate.js';
 import { TenantRepository } from '../tenant.repository.js';
 
 type Role = Workspace['role'];
@@ -101,23 +102,28 @@ export class GroupsRepository extends TenantRepository {
     });
   }
 
-  create(workspaceId: string, values: GroupValues, slots: GroupSlot[]) {
+  create(workspaceId: string, values: GroupValues, slots: GroupSlot[], now: Date) {
     return this.inTenant(workspaceId, async (tx) => {
       const [row] = await tx
         .insert(groups)
         .values({ workspaceId, ...values })
         .returning({ id: groups.id });
       await this.insertSlots(tx, workspaceId, row!.id, slots);
+      await generateSessions(tx, workspaceId, now, row!.id);
       return row!.id;
     });
   }
 
-  /** Updates the group; `slots`, when given, replace all of its slots in the same transaction. */
+  /**
+   * Updates the group; `slots`, when given, replace all of its slots in the same transaction.
+   * New slots or a status change regenerate the group's untouched future sessions.
+   */
   update(
     workspaceId: string,
     id: string,
     patch: Omit<UpdateGroupRequest, 'slots'>,
-    slots?: GroupSlot[],
+    slots: GroupSlot[] | undefined,
+    now: Date,
   ) {
     return this.inTenant(workspaceId, async (tx) => {
       if (Object.keys(patch).length)
@@ -130,6 +136,10 @@ export class GroupsRepository extends TenantRepository {
           .delete(groupSlots)
           .where(and(eq(groupSlots.workspaceId, workspaceId), eq(groupSlots.groupId, id)));
         await this.insertSlots(tx, workspaceId, id, slots);
+      }
+      if (slots || patch.status) {
+        await dropGeneratedSessions(tx, workspaceId, id, now);
+        await generateSessions(tx, workspaceId, now, id);
       }
     });
   }

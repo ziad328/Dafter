@@ -7,6 +7,7 @@ import {
   gradeLevels,
   groupSlots,
   groups,
+  sessions,
   invites,
   memberships,
   subjects,
@@ -72,6 +73,13 @@ beforeAll(async () => {
     startTime: '16:00',
     endTime: '17:30',
   });
+  await db.insert(sessions).values({
+    workspaceId: a,
+    groupId: group!.id,
+    slotStartsAt: new Date('2026-11-21T14:00:00Z'),
+    startsAt: new Date('2026-11-21T14:00:00Z'),
+    endsAt: new Date('2026-11-21T15:30:00Z'),
+  });
   tables = await tenantTables();
 });
 
@@ -94,6 +102,7 @@ describe('RLS on every tenant table', () => {
         'grade_levels',
         'groups',
         'group_slots',
+        'sessions',
       ]),
     );
   });

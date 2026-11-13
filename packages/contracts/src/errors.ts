@@ -27,6 +27,12 @@ export const ERROR_STATUS = {
   GROUP_NOT_FOUND: 404,
   // A subject, grade level or teacher that is not in this workspace (details.field names it).
   GROUP_REFERENCE_INVALID: 400,
+  // Unknown id, another workspace's session, or outside the caller's scope: never 403.
+  SESSION_NOT_FOUND: 404,
+  // Cancel or move of a session that is already open, closed or cancelled.
+  SESSION_NOT_SCHEDULED: 409,
+  // A move to a time that has already passed.
+  SESSION_TIME_INVALID: 400,
   INTERNAL: 500,
 } as const;
 
