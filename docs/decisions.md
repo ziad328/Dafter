@@ -13,3 +13,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** the API connects as the table owner; every tenant query goes through `withTenant`, which starts a transaction with `SET LOCAL ROLE dafter_app` (NOLOGIN, NOBYPASSRLS) and `set_config('app.workspace_id', id, true)`. Policies compare `workspace_id` with that setting; unset means no rows.
 - **Alternatives:** `FORCE ROW LEVEL SECURITY` on the owner (superusers skip RLS anyway, so it would silently do nothing in local dev and tests); a separate login role with its own `DATABASE_URL` (same guarantee, two secrets on every host).
 - **Why:** one connection string, LOCAL settings reset at commit so pooled connections never leak a workspace, and generated suites fail when a new route lacks `TenantGuard` or a new tenant table lacks RLS. Cost: a query outside `withTenant` runs without RLS, so only `listForUser` does that, by design.
+
+## 2026-11-13 · Invite accept: one owner-connection lookup by token hash, then a conditional UPDATE under RLS
+
+- **Decision:** `POST /invites/:token/accept` finds the workspace by `token_hash` without RLS (the second documented cross-tenant read, after `listForUser`), then in one `withTenant` transaction consumes the invite with a conditional `UPDATE ... RETURNING` and inserts the membership (`ON CONFLICT DO NOTHING`; already a member rolls back, so the invite stays usable).
+- **Alternatives:** a SECURITY DEFINER SQL function (hides logic in SQL, harder to test); `SELECT ... FOR UPDATE` then `UPDATE` (two statements for the same guarantee).
+- **Why:** the only unguarded read filters on a 256-bit secret's hash, and single use is enforced by one statement.

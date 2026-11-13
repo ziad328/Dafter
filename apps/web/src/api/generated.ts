@@ -1,5 +1,5 @@
 import { baseApi as api } from './base';
-export const addTagTypes = ['system', 'auth', 'workspaces'] as const;
+export const addTagTypes = ['system', 'auth', 'workspaces', 'members'] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
     addTagTypes,
@@ -54,6 +54,30 @@ const injectedRtkApi = api
         query: () => ({ url: `/api/v1/workspaces/current` }),
         providesTags: ['workspaces'],
       }),
+      createInvite: build.mutation<CreateInviteApiResponse, CreateInviteApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/invites`,
+          method: 'POST',
+          body: queryArg.createInviteRequest,
+        }),
+        invalidatesTags: ['members'],
+      }),
+      acceptInvite: build.mutation<AcceptInviteApiResponse, AcceptInviteApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/invites/${queryArg.token}/accept`, method: 'POST' }),
+        invalidatesTags: ['members'],
+      }),
+      listMembers: build.query<ListMembersApiResponse, ListMembersApiArg>({
+        query: () => ({ url: `/api/v1/members` }),
+        providesTags: ['members'],
+      }),
+      setAssistantScopes: build.mutation<SetAssistantScopesApiResponse, SetAssistantScopesApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/members/${queryArg.id}/scopes`,
+          method: 'PUT',
+          body: queryArg.setScopesRequest,
+        }),
+        invalidatesTags: ['members'],
+      }),
     }),
     overrideExisting: false,
   });
@@ -83,6 +107,22 @@ export type ListWorkspacesApiResponse = /** status 200 The caller's workspaces *
 export type ListWorkspacesApiArg = void;
 export type GetCurrentWorkspaceApiResponse = /** status 200 The active workspace */ Workspace;
 export type GetCurrentWorkspaceApiArg = void;
+export type CreateInviteApiResponse =
+  /** status 201 The invite; its token is shown only here */ Invite;
+export type CreateInviteApiArg = {
+  createInviteRequest: CreateInviteRequest;
+};
+export type AcceptInviteApiResponse = /** status 200 The joined workspace */ Workspace;
+export type AcceptInviteApiArg = {
+  token: string;
+};
+export type ListMembersApiResponse = /** status 200 Members of the active workspace */ MemberList;
+export type ListMembersApiArg = void;
+export type SetAssistantScopesApiResponse = unknown;
+export type SetAssistantScopesApiArg = {
+  id: string;
+  setScopesRequest: SetScopesRequest;
+};
 export type HealthResponse = {
   status: 'ok';
 };
@@ -97,6 +137,10 @@ export type ErrorCode =
   | 'PHONE_TAKEN'
   | 'EMAIL_TAKEN'
   | 'WORKSPACE_NOT_FOUND'
+  | 'INVITE_INVALID'
+  | 'ALREADY_MEMBER'
+  | 'MEMBER_NOT_ASSISTANT'
+  | 'SCOPE_TEACHER_INVALID'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -140,6 +184,27 @@ export type CreateWorkspaceRequest = {
   nameEn?: string;
 };
 export type WorkspaceList = Workspace[];
+export type Invite = {
+  id: string;
+  role: 'teacher' | 'assistant';
+  token: string;
+  expiresAt: string;
+};
+export type CreateInviteRequest = {
+  role: 'teacher' | 'assistant';
+};
+export type Member = {
+  id: string;
+  userId: string;
+  name: string;
+  phone: string | null;
+  role: 'owner' | 'teacher' | 'assistant';
+  teacherMembershipIds: string[];
+};
+export type MemberList = Member[];
+export type SetScopesRequest = {
+  teacherMembershipIds: string[];
+};
 export const {
   useGetHealthQuery,
   useRegisterMutation,
@@ -150,4 +215,8 @@ export const {
   useCreateWorkspaceMutation,
   useListWorkspacesQuery,
   useGetCurrentWorkspaceQuery,
+  useCreateInviteMutation,
+  useAcceptInviteMutation,
+  useListMembersQuery,
+  useSetAssistantScopesMutation,
 } = injectedRtkApi;

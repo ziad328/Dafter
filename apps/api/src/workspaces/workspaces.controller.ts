@@ -4,6 +4,7 @@ import {
   createWorkspaceRequest,
   type Workspace,
 } from '@dafter/contracts';
+import type { AuditedRequest } from '../audit.interceptor.js';
 import { AuthGuard, type AuthedRequest } from '../auth/auth.guard.js';
 import { ZodPipe } from '../zod-pipe.js';
 import { TenantGuard, type TenantedRequest } from './tenant.guard.js';
@@ -15,11 +16,13 @@ export class WorkspacesController {
   constructor(@Inject(WorkspacesService) private readonly workspaces: WorkspacesService) {}
 
   @Post()
-  create(
-    @Req() req: AuthedRequest,
+  async create(
+    @Req() req: AuthedRequest & AuditedRequest,
     @Body(new ZodPipe(createWorkspaceRequest)) body: CreateWorkspaceRequest,
   ): Promise<Workspace> {
-    return this.workspaces.create(req.userId, body);
+    const ws = await this.workspaces.create(req.userId, body);
+    req.audit = { workspaceId: ws.id };
+    return ws;
   }
 
   @Get()

@@ -1,8 +1,17 @@
+import * as z from 'zod';
 import { createDocument } from 'zod-openapi';
 import { authResponse, loginRequest, me, registerRequest } from './auth.js';
 import { errorResponse } from './errors.js';
 import { healthResponse } from './health.js';
-import { createWorkspaceRequest, workspace, workspaceList } from './workspaces.js';
+import {
+  createInviteRequest,
+  createWorkspaceRequest,
+  invite,
+  memberList,
+  setScopesRequest,
+  workspace,
+  workspaceList,
+} from './workspaces.js';
 
 const json = <T>(schema: T) => ({ 'application/json': { schema } });
 
@@ -88,6 +97,55 @@ export function buildOpenApi() {
             200: { description: 'The active workspace', content: json(workspace) },
             ...errors,
           },
+        },
+      },
+      '/api/v1/invites': {
+        post: {
+          operationId: 'createInvite',
+          tags: ['members'],
+          description: 'Owner only. Single use, valid for 72 hours.',
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(createInviteRequest) },
+          responses: {
+            201: { description: 'The invite; its token is shown only here', content: json(invite) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/invites/{token}/accept': {
+        post: {
+          operationId: 'acceptInvite',
+          tags: ['members'],
+          description:
+            'Joins the signed-in user to the inviting workspace. Needs no X-Workspace-Id.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ token: z.string() }) },
+          responses: {
+            200: { description: 'The joined workspace', content: json(workspace) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/members': {
+        get: {
+          operationId: 'listMembers',
+          tags: ['members'],
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'Members of the active workspace', content: json(memberList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/members/{id}/scopes': {
+        put: {
+          operationId: 'setAssistantScopes',
+          tags: ['members'],
+          description: 'Owner only. Replaces the teachers an assistant works for.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(setScopesRequest) },
+          responses: { 204: { description: 'Scopes replaced' }, ...errors },
         },
       },
     },

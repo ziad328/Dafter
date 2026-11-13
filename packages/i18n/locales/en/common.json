@@ -22,6 +22,10 @@
     "INVALID_CREDENTIALS": "Wrong phone, email or password.",
     "PHONE_TAKEN": "This phone number is already registered.",
     "EMAIL_TAKEN": "This email is already registered.",
-    "WORKSPACE_NOT_FOUND": "This workspace doesn't exist or you're not a member."
+    "WORKSPACE_NOT_FOUND": "This workspace doesn't exist or you're not a member.",
+    "INVITE_INVALID": "This invite link is invalid, expired or already used.",
+    "ALREADY_MEMBER": "You're already a member of this workspace.",
+    "MEMBER_NOT_ASSISTANT": "This member isn't an assistant.",
+    "SCOPE_TEACHER_INVALID": "One of the selected teachers isn't in this workspace."
   }
 }

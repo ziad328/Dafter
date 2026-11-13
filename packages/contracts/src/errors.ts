@@ -17,6 +17,12 @@ export const ERROR_STATUS = {
   EMAIL_TAKEN: 409,
   // Unknown id, or not a member: both 404 so a workspace's existence never leaks.
   WORKSPACE_NOT_FOUND: 404,
+  // Unknown, used and expired tokens look the same, so tokens cannot be probed.
+  INVITE_INVALID: 410,
+  ALREADY_MEMBER: 409,
+  MEMBER_NOT_ASSISTANT: 409,
+  // A scope target is missing from the workspace or is not a teacher.
+  SCOPE_TEACHER_INVALID: 400,
   INTERNAL: 500,
 } as const;
 

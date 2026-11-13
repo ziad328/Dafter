@@ -21,6 +21,8 @@ const NON_TENANT_ROUTES = new Set([
   // Cross-workspace by design: create a workspace, list my workspaces.
   'POST /api/v1/workspaces',
   'GET /api/v1/workspaces',
+  // The invitee is not a member yet; the token names the workspace.
+  'POST /api/v1/invites/:token/accept',
 ]);
 
 const testDb = useTestDb();

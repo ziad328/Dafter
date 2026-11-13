@@ -23,3 +23,14 @@ Superusers skip RLS even with FORCE. Locally and in Testcontainers the owner is 
 
 **3. Why return 404, not 403, for another workspace's id, and why make the isolation suite generated?**
 A 403 confirms the workspace exists, which leaks information. 404 looks the same as "no such id". The suite reads routes from Nest's metadata and tables from `information_schema`, so a new endpoint without `TenantGuard`, or a new tenant table without RLS, fails CI without anyone remembering to add a test.
+
+## Day 6 · Invites across tenants
+
+**1. The invitee is not a member, so RLS hides the invite. How do you look it up safely?**
+One owner-connection read filtered only by `sha256(token)`, which returns the workspace id. Everything after it (consuming the invite, adding the membership) runs under `withTenant` for that id, so RLS applies again.
+
+**2. How is an invite single use when two people click the link at once?**
+`UPDATE invites SET used_at = now WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now RETURNING role`. Row locking means only one update matches; the other gets 0 rows and `INVITE_INVALID`. No `SELECT ... FOR UPDATE` round trip is needed.
+
+**3. Why return the same error for unknown, used and expired tokens, and store only a hash?**
+Different errors would let someone probe which tokens exist. Storing the hash means a database leak does not hand out working invite links.

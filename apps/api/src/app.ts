@@ -1,11 +1,13 @@
 import fastifyCookie from '@fastify/cookie';
 import { Controller, Get, Module } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { APP_INTERCEPTOR, NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { HealthResponse } from '@dafter/contracts';
 import { createDb, type Db } from '@dafter/db';
 import { AuthModule } from './auth/auth.module.js';
+import { MembersModule } from './members/members.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
+import { AuditInterceptor } from './audit.interceptor.js';
 import { Clock } from './clock.js';
 import { DB } from './db.js';
 import { ErrorFilter } from './errors.js';
@@ -19,7 +21,11 @@ class HealthController {
   }
 }
 
-@Module({ imports: [AuthModule, WorkspacesModule], controllers: [HealthController] })
+@Module({
+  imports: [AuthModule, WorkspacesModule, MembersModule],
+  controllers: [HealthController],
+  providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
+})
 class AppModule {}
 
 /** Tests pass their own database and clock; otherwise DATABASE_URL and the system clock are used. */
