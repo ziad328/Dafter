@@ -220,7 +220,6 @@
     "verify": "Sign in",
     "changeEmail": "Use another email",
     "welcome": "Welcome, {name}",
-    "comingSoon": "Your schedule and attendance will appear here.",
     "binding": "Linking this phone…",
     "bound": "This phone is linked to your account.",
     "bindErrors": {
@@ -237,7 +236,11 @@
       "copy": "Copy link",
       "reset": "Reset phone",
       "resetConfirm": "Tap again to reset the phone"
-    }
+    },
+    "schedule": "My schedule",
+    "noSessions": "No sessions in the next two weeks.",
+    "history": "My attendance",
+    "noHistory": "No attendance yet."
   },
   "live": {
     "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",
@@ -269,5 +272,16 @@
       "excused": "Marked as excused",
       "absent": "Marked absent"
     }
+  },
+  "install": {
+    "title": "Install the Dafter app first",
+    "why": "Your login and attendance key live inside the installed app, so sign in there, not in the browser.",
+    "button": "Install the app",
+    "ios": "Tap the Share button, then \"Add to Home Screen\". Open Dafter from your home screen.",
+    "other": "Open the browser menu and choose \"Install app\" or \"Add to Home Screen\". Then open Dafter from your home screen.",
+    "then": "If the app asks for it, copy the same invite link again and paste it there.",
+    "paste": "First time? Paste your invite link",
+    "pasteInvalid": "This is not a Dafter invite link.",
+    "activate": "Activate"
   }
 }

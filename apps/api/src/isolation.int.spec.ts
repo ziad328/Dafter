@@ -29,6 +29,9 @@ const NON_TENANT_ROUTES = new Set([
   'POST /api/v1/devices/bind',
   // The MAC-checked code names the session; the student's record in its workspace is required.
   'POST /api/v1/check-ins',
+  // The student's own rows in every center, read per center inside withTenant.
+  'GET /api/v1/me/schedule',
+  'GET /api/v1/me/attendance',
   // Development only (DEV_MAIL_INBOX=1).
   'GET /api/v1/dev/mail',
 ]);

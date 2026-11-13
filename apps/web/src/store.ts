@@ -9,6 +9,8 @@ api.enhanceEndpoints({
     // Opening and closing change the session's status in the timetable.
     openSession: { invalidatesTags: ['sessions'] },
     closeSession: { invalidatesTags: ['sessions'] },
+    // A scan changes the student's own history on /s.
+    checkIn: { invalidatesTags: ['student'] },
   },
 });
 

@@ -1,6 +1,6 @@
 import { normalizeArabic, otpRequest, otpVerifyRequest } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -9,6 +9,14 @@ import { useRequestOtpMutation, useVerifyOtpMutation } from '@/api/generated';
 import { Field, FormError } from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  inviteFromText,
+  isInstalled,
+  isIos,
+  saveInvite,
+  savedInvite,
+  useInstallPrompt,
+} from '@/lib/pwa';
 import { errorKey } from '@/lib/session';
 
 const emailForm = otpRequest.pick({ email: true });
@@ -17,10 +25,21 @@ const codeForm = otpVerifyRequest.pick({ code: true });
 /**
  * Student sign-in by emailed code. /s/activate/:token is the first time (the invite names the
  * student record); /s/login is every later time. Binding the phone happens on /s.
+ * Rule 13: in a browser tab this only shows how to install; the forms run in the installed app.
  */
 export default function StudentLogin() {
+  const params = useParams();
+  // Android carries the invite into the installed app through shared storage.
+  const token = params.token ?? savedInvite() ?? undefined;
+  useEffect(() => {
+    if (params.token) saveInvite(params.token);
+  }, [params.token]);
+  if (!isInstalled()) return <InstallGate />;
+  return <SignIn token={token} />;
+}
+
+function SignIn({ token }: { token?: string }) {
   const { t } = useTranslation();
-  const { token } = useParams();
   const [email, setEmail] = useState<string>();
 
   return (
@@ -44,7 +63,60 @@ export default function StudentLogin() {
       ) : (
         <EmailStep inviteToken={token} onSent={setEmail} />
       )}
+      {!token && <PasteInvite />}
     </Card>
+  );
+}
+
+/** In a browser tab: install first (Android button, iPhone instructions). */
+function InstallGate() {
+  const { t } = useTranslation();
+  const install = useInstallPrompt();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h1>{t('install.title')}</h1>
+        </CardTitle>
+        <CardDescription>{t('install.why')}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3 text-sm">
+        {install ? (
+          <Button onClick={install}>{t('install.button')}</Button>
+        ) : (
+          <p>{t(isIos() ? 'install.ios' : 'install.other')}</p>
+        )}
+        <p className="text-muted-foreground">{t('install.then')}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** First time on iPhone: the installed app cannot see the browser's storage, so paste the link. */
+function PasteInvite() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [text, setText] = useState('');
+  const token = inviteFromText(text);
+  return (
+    <CardContent className="mt-4 grid gap-3 border-t pt-4">
+      <Field
+        label={t('install.paste')}
+        dir="ltr"
+        autoComplete="off"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        error={text && !token ? t('install.pasteInvalid') : undefined}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        disabled={!token}
+        onClick={() => void navigate(`/s/activate/${token}`)}
+      >
+        {t('install.activate')}
+      </Button>
+    </CardContent>
   );
 }
 
@@ -63,6 +135,8 @@ function EmailStep({
 
   const onSubmit = handleSubmit(async ({ email }) => {
     const res = await request({ otpRequest: { email, inviteToken } });
+    // A used or expired saved link would block every later try; forget it.
+    if ('error' in res && errorKey(res.error) === 'errors.INVITE_INVALID') saveInvite(null);
     if (!('error' in res)) onSent(email);
   });
 
@@ -104,7 +178,10 @@ function CodeStep({
 
   const onSubmit = handleSubmit(async ({ code }) => {
     const res = await verify({ otpVerifyRequest: { email, code, inviteToken } });
-    if (res.data) void navigate('/s', { replace: true });
+    if (res.data) {
+      saveInvite(null);
+      void navigate('/s', { replace: true });
+    }
   });
 
   return (

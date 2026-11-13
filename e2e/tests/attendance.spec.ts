@@ -42,6 +42,7 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
     (await request.post(`/api/v1/${url}`, { headers, data })).json();
 
   const [subject] = await get('subjects');
+  const subjectName = (lang === 'en' ? subject.nameEn : subject.nameAr) as string;
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
     subjectId: subject.id,
@@ -87,7 +88,11 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
     hasTouch: true,
     isMobile: true,
   });
-  await phone.addInitScript((l) => localStorage.setItem('dafter.locale', l), lang);
+  await phone.addInitScript((l) => {
+    localStorage.setItem('dafter.locale', l);
+    // Stands in for the installed PWA (dev only); pwa.spec.ts covers the browser-tab gate.
+    localStorage.setItem('dafter.devInstalled', '1');
+  }, lang);
   const s = await phone.newPage();
   const email = `scan${n}@example.com`;
   await s.goto(`/s/activate/${invite}`);
@@ -106,6 +111,10 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   const shown = (await qr.getAttribute('data-code'))!;
   await s.evaluate((text) => (window as Hook).__dafterScan!(text), shown);
   await expect(s.getByText(t.scan.done.present)).toBeVisible();
+  // The student's home lists today's session and the check-in.
+  await s.getByRole('link', { name: t.scan.back }).click();
+  await expect(s.getByTestId('my-schedule')).toContainText(subjectName);
+  await expect(s.getByTestId('my-attendance')).toContainText(t.live.status.present);
   await phone.close();
 
   // Live: the teacher sees the scan without reloading.

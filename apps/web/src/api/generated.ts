@@ -2,6 +2,7 @@ import { baseApi as api } from './base';
 export const addTagTypes = [
   'system',
   'auth',
+  'student',
   'workspaces',
   'members',
   'curriculum',
@@ -48,6 +49,14 @@ const injectedRtkApi = api
       getMe: build.query<GetMeApiResponse, GetMeApiArg>({
         query: () => ({ url: `/api/v1/me` }),
         providesTags: ['auth'],
+      }),
+      getMySchedule: build.query<GetMyScheduleApiResponse, GetMyScheduleApiArg>({
+        query: () => ({ url: `/api/v1/me/schedule` }),
+        providesTags: ['student'],
+      }),
+      getMyAttendance: build.query<GetMyAttendanceApiResponse, GetMyAttendanceApiArg>({
+        query: () => ({ url: `/api/v1/me/attendance` }),
+        providesTags: ['student'],
       }),
       createWorkspace: build.mutation<CreateWorkspaceApiResponse, CreateWorkspaceApiArg>({
         query: (queryArg) => ({
@@ -278,6 +287,10 @@ export type LogoutApiResponse = unknown;
 export type LogoutApiArg = void;
 export type GetMeApiResponse = /** status 200 The signed-in user */ Me;
 export type GetMeApiArg = void;
+export type GetMyScheduleApiResponse = /** status 200 My sessions */ MySchedule;
+export type GetMyScheduleApiArg = void;
+export type GetMyAttendanceApiResponse = /** status 200 My attendance */ MyAttendance;
+export type GetMyAttendanceApiArg = void;
 export type CreateWorkspaceApiResponse =
   /** status 201 Created; the caller is its owner */ Workspace;
 export type CreateWorkspaceApiArg = {
@@ -482,6 +495,38 @@ export type LoginRequest = {
   login: string;
   password: string;
 };
+export type CurriculumItem = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+};
+export type MySession = {
+  id: string;
+  center: {
+    nameAr: string;
+    nameEn: string | null;
+  };
+  subject: CurriculumItem;
+  gradeLevel: CurriculumItem;
+  teacherName: string;
+  startsAt: string;
+  endsAt: string;
+  status: 'scheduled' | 'open' | 'closed' | 'cancelled';
+  timezone: string;
+};
+export type MySchedule = MySession[];
+export type MyAttendanceRecord = {
+  sessionId: string;
+  center: {
+    nameAr: string;
+    nameEn: string | null;
+  };
+  subject: CurriculumItem;
+  startsAt: string;
+  timezone: string;
+  status: 'present' | 'late' | 'absent' | 'excused' | 'makeup';
+};
+export type MyAttendance = MyAttendanceRecord[];
 export type Workspace = {
   id: string;
   type: 'center' | 'independent';
@@ -516,11 +561,6 @@ export type Member = {
 export type MemberList = Member[];
 export type SetScopesRequest = {
   teacherMembershipIds: string[];
-};
-export type CurriculumItem = {
-  id: string;
-  nameAr: string;
-  nameEn: string;
 };
 export type CurriculumList = CurriculumItem[];
 export type GroupSlotOutput = {
@@ -696,6 +736,8 @@ export const {
   useRefreshMutation,
   useLogoutMutation,
   useGetMeQuery,
+  useGetMyScheduleQuery,
+  useGetMyAttendanceQuery,
   useCreateWorkspaceMutation,
   useListWorkspacesQuery,
   useGetCurrentWorkspaceQuery,

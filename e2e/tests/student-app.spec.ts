@@ -54,7 +54,11 @@ test('owner enrolls a student and sends a link; the student activates and binds 
     hasTouch: true,
     isMobile: true,
   });
-  await phone.addInitScript((l) => localStorage.setItem('dafter.locale', l), lang);
+  await phone.addInitScript((l) => {
+    localStorage.setItem('dafter.locale', l);
+    // Stands in for the installed PWA (dev only); pwa.spec.ts covers the browser-tab gate.
+    localStorage.setItem('dafter.devInstalled', '1');
+  }, lang);
   const student = await phone.newPage();
   await student.goto(link);
   await student.getByLabel(t.studentApp.email).fill(email);

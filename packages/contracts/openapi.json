@@ -191,6 +191,74 @@
         }
       }
     },
+    "/api/v1/me/schedule": {
+      "get": {
+        "operationId": "getMySchedule",
+        "tags": ["student"],
+        "description": "Student: sessions of my active enrollments in every center, from 3 hours ago to 14 days ahead.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySchedule"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/attendance": {
+      "get": {
+        "operationId": "getMyAttendance",
+        "tags": ["student"],
+        "description": "Student: my last 50 attendance records in every center, newest first.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My attendance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAttendance"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces": {
       "post": {
         "operationId": "createWorkspace",
@@ -2233,6 +2301,137 @@
         "required": ["id", "name", "phone", "email", "locale"],
         "additionalProperties": false
       },
+      "MySchedule": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MySession"
+        }
+      },
+      "MySession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "center": {
+            "type": "object",
+            "properties": {
+              "nameAr": {
+                "type": "string"
+              },
+              "nameEn": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["nameAr", "nameEn"],
+            "additionalProperties": false
+          },
+          "subject": {
+            "$ref": "#/components/schemas/CurriculumItem"
+          },
+          "gradeLevel": {
+            "$ref": "#/components/schemas/CurriculumItem"
+          },
+          "teacherName": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["scheduled", "open", "closed", "cancelled"]
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "center",
+          "subject",
+          "gradeLevel",
+          "teacherName",
+          "startsAt",
+          "endsAt",
+          "status",
+          "timezone"
+        ],
+        "additionalProperties": false
+      },
+      "CurriculumItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "nameAr", "nameEn"],
+        "additionalProperties": false
+      },
+      "MyAttendance": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MyAttendanceRecord"
+        }
+      },
+      "MyAttendanceRecord": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "center": {
+            "type": "object",
+            "properties": {
+              "nameAr": {
+                "type": "string"
+              },
+              "nameEn": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["nameAr", "nameEn"],
+            "additionalProperties": false
+          },
+          "subject": {
+            "$ref": "#/components/schemas/CurriculumItem"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["present", "late", "absent", "excused", "makeup"]
+          }
+        },
+        "required": ["sessionId", "center", "subject", "startsAt", "timezone", "status"],
+        "additionalProperties": false
+      },
       "Workspace": {
         "type": "object",
         "properties": {
@@ -2338,24 +2537,6 @@
         "items": {
           "$ref": "#/components/schemas/CurriculumItem"
         }
-      },
-      "CurriculumItem": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "nameAr": {
-            "type": "string"
-          },
-          "nameEn": {
-            "type": "string"
-          }
-        },
-        "required": ["id", "nameAr", "nameEn"],
-        "additionalProperties": false
       },
       "GroupList": {
         "type": "array",

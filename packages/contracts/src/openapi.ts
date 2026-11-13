@@ -19,6 +19,7 @@ import {
 } from './attendance.js';
 import { createEnrollmentRequest, enrollment, enrollmentList } from './enrollments.js';
 import { healthResponse } from './health.js';
+import { myAttendance, mySchedule } from './me.js';
 import {
   bindDeviceRequest,
   device,
@@ -103,6 +104,28 @@ export function buildOpenApi() {
           tags: ['auth'],
           security: [{ bearer: [] }],
           responses: { 200: { description: 'The signed-in user', content: json(me) }, ...errors },
+        },
+      },
+      '/api/v1/me/schedule': {
+        get: {
+          operationId: 'getMySchedule',
+          tags: ['student'],
+          description:
+            'Student: sessions of my active enrollments in every center, from 3 hours ago to 14 days ahead.',
+          security: [{ bearer: [] }],
+          responses: { 200: { description: 'My sessions', content: json(mySchedule) }, ...errors },
+        },
+      },
+      '/api/v1/me/attendance': {
+        get: {
+          operationId: 'getMyAttendance',
+          tags: ['student'],
+          description: 'Student: my last 50 attendance records in every center, newest first.',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'My attendance', content: json(myAttendance) },
+            ...errors,
+          },
         },
       },
       '/api/v1/workspaces': {
