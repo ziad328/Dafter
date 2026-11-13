@@ -8,7 +8,9 @@ import { AttendanceModule } from './attendance/attendance.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { GroupsModule } from './groups/groups.module.js';
 import { MeModule } from './me/me.module.js';
+import { JobsModule } from './jobs/tick.controller.js';
 import { MessagesModule } from './messages/messages.module.js';
+import { OutboxSender } from './messages/outbox-sender.js';
 import { MoneyModule } from './money/money.module.js';
 import { MembersModule } from './members/members.module.js';
 import { SessionsModule } from './sessions/sessions.module.js';
@@ -43,6 +45,7 @@ class HealthController {
     MeModule,
     MoneyModule,
     MessagesModule,
+    JobsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
@@ -69,10 +72,11 @@ export async function createApp(
         { provide: DB, useValue: db },
         { provide: Clock, useValue: options.clock ?? new Clock() },
         { provide: Mailer, useValue: options.mailer ?? mailerFromEnv() },
+        OutboxSender,
       ],
-      exports: [DB, Clock, Mailer],
+      exports: [DB, Clock, Mailer, OutboxSender],
     },
-    // Behind Render (and the Pages proxy) req.ip comes from X-Forwarded-For; never trust it locally.
+    // Behind the host's proxy (Vercel) req.ip comes from X-Forwarded-For; never trust it locally.
     new FastifyAdapter({ trustProxy: process.env.TRUST_PROXY === '1' }),
     { logger: options.logger },
   );

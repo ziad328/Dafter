@@ -34,6 +34,8 @@ const NON_TENANT_ROUTES = new Set([
   'GET /api/v1/me/attendance',
   // Development only (DEV_MAIL_INBOX=1).
   'GET /api/v1/dev/mail',
+  // Cron only, guarded by CRON_SECRET; runs every workspace through withTenant.
+  'GET /api/v1/internal/tick',
 ]);
 
 const testDb = useTestDb();

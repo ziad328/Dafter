@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ListSessionsQuery, MoveSessionRequest, Session } from '@dafter/contracts';
 import { Clock } from '../clock.js';
+import { OutboxSender } from '../messages/outbox-sender.js';
 import { AppError } from '../errors.js';
 import { GroupsService } from '../groups/groups.service.js';
 import type { TenantedRequest } from '../workspaces/tenant.guard.js';
@@ -18,6 +19,7 @@ export class SessionsService {
     @Inject(SessionsRepository) private readonly repo: SessionsRepository,
     @Inject(GroupsService) private readonly groups: GroupsService,
     @Inject(Clock) private readonly clock: Clock,
+    @Inject(OutboxSender) private readonly outbox: OutboxSender,
   ) {}
 
   async list(ctx: Ctx, q: ListSessionsQuery): Promise<Session[]> {
@@ -28,6 +30,7 @@ export class SessionsService {
     await this.writable(ctx, id);
     if (!(await this.repo.cancel(ctx.workspaceId, id, this.clock.now())))
       throw new AppError('SESSION_NOT_SCHEDULED');
+    await this.outbox.afterCommit(ctx.workspaceId);
     return this.get(ctx, id);
   }
 
@@ -36,6 +39,7 @@ export class SessionsService {
     // A status change between the check and the update also lands here; rare enough for v0.
     if (!(await this.repo.move(ctx.workspaceId, id, to, this.clock.now())))
       throw new AppError('SESSION_TIME_INVALID');
+    await this.outbox.afterCommit(ctx.workspaceId);
     return this.get(ctx, id);
   }
 

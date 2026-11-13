@@ -1,6 +1,6 @@
 import { createPublicKey, verify } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { defer, merge, mergeMap } from 'rxjs';
+import { exhaustMap, mergeMap, timer } from 'rxjs';
 import type {
   AttendanceRecord,
   CheckIn,
@@ -9,14 +9,16 @@ import type {
   OpenSession,
 } from '@dafter/contracts';
 import { Clock } from '../clock.js';
+import { OutboxSender } from '../messages/outbox-sender.js';
 import { AppError } from '../errors.js';
 import { SessionsService } from '../sessions/sessions.service.js';
 import type { TenantedRequest } from '../workspaces/tenant.guard.js';
 import { AttendanceRepository } from './attendance.repository.js';
-import { LiveAttendance } from './live.js';
 import { macMatches, parseQr, sessionKey, WINDOW_MS, windowAt } from './qr.js';
 
 type Ctx = Pick<TenantedRequest, 'workspaceId' | 'role' | 'membershipId'>;
+/** How often an open live screen checks for new attendance (one small indexed query). */
+export const LIVE_POLL_MS = 1000;
 
 /**
  * Policy: whoever sees the session (owner, its teacher, an assigned assistant) can open it,
@@ -30,7 +32,7 @@ export class AttendanceService {
     @Inject(AttendanceRepository) private readonly repo: AttendanceRepository,
     @Inject(SessionsService) private readonly sessions: SessionsService,
     @Inject(Clock) private readonly clock: Clock,
-    @Inject(LiveAttendance) private readonly live: LiveAttendance,
+    @Inject(OutboxSender) private readonly outbox: OutboxSender,
   ) {
     const secret = process.env.QR_SECRET;
     if (!secret) throw new Error('QR_SECRET is not set');
@@ -76,7 +78,6 @@ export class AttendanceService {
       actorId,
       this.clock.now(),
     );
-    this.live.publish(id, [record]);
     return record;
   }
 
@@ -84,20 +85,26 @@ export class AttendanceService {
     await this.sessions.get(ctx, id);
     const records = await this.repo.close(ctx.workspaceId, id, actorId, this.clock.now());
     if (!records) throw new AppError('SESSION_NOT_OPEN');
-    this.live.publish(
-      id,
-      records.filter((r) => r.method === 'auto_close'),
-    );
+    await this.outbox.afterCommit(ctx.workspaceId);
     return records;
   }
 
   /** Visibility is checked by the route's guard, before the stream starts. */
   liveFeed(ctx: Ctx, id: string) {
-    // Live first, then the snapshot: nothing is missed in between. The client keeps the newest
-    // record per student, so a snapshot row arriving after a live one does not win.
-    return merge(
-      this.live.of(id),
-      defer(() => this.repo.listForSession(ctx.workspaceId, id)).pipe(mergeMap((rows) => rows)),
+    // Polls the database (the first poll is the snapshot), then sends only the records that
+    // changed. Works with any number of API instances, including serverless ones; exhaustMap skips
+    // a tick while a slow query is still running.
+    const seen = new Map<string, string>();
+    return timer(0, LIVE_POLL_MS).pipe(
+      exhaustMap(() => this.repo.listForSession(ctx.workspaceId, id)),
+      mergeMap((rows) =>
+        rows.filter((r) => {
+          const version = `${r.status}|${r.method}|${r.recordedAt}`;
+          if (seen.get(r.studentId) === version) return false;
+          seen.set(r.studentId, version);
+          return true;
+        }),
+      ),
     );
   }
 
@@ -134,7 +141,6 @@ export class AttendanceService {
     if (record === 'not_open') throw new AppError('SESSION_NOT_OPEN');
     // Not a student of this center: same answer as an unknown session.
     if (!record) throw new AppError('SESSION_NOT_FOUND');
-    this.live.publish(qr.sessionId, [record]);
     const { id, status, recordedAt } = record;
     return { id, sessionId: qr.sessionId, status, recordedAt };
   }

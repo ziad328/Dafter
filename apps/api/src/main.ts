@@ -6,13 +6,14 @@ import { Clock } from './clock.js';
 import { DB } from './db.js';
 import { startWorker } from './worker.js';
 
-// Local dev reads the repo-root .env; hosts (Render) inject real env vars instead.
+// Local dev reads the repo-root .env; hosts inject real env vars instead.
 const envFile = '../../.env';
 if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 async function bootstrap() {
   const directUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL!;
-  // Deploys (Render) migrate on every start; already-applied migrations are skipped.
+  // Long-running hosts migrate on every start; already-applied migrations are skipped. Vercel
+  // uses src/vercel.ts instead, with no worker and no migrations at boot.
   if (process.env.MIGRATE_ON_START === '1') {
     await runMigrations(directUrl);
     new Logger('Migrations').log('Applied');

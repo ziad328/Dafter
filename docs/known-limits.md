@@ -8,9 +8,13 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
+| The demo runs on Vercel Hobby: personal, non-commercial use only; 4 active CPU-hours a month; functions end after 300 s | Fine for the demo; a paying center needs a paid host or a VPS | centers |
+| No always-on worker on Vercel: messages leave right after their write (`OUTBOX_SEND_INLINE`); held ones go at the 08:00 Cairo daily cron; retries wait for the hourly cron-job.org call (optional) | A failed send can wait up to an hour (or a day without cron-job.org) | centers (VPS with pg-boss) |
+| Vercel doesn't run migrations; they run from a laptop (`pnpm demo:seed:neon`) before pushing | Forgetting breaks the deploy until it's run | later (a CI step) |
+| The live list polls the database every second per open teacher screen | Up to 1 s delay; Neon stays awake while a class is live | later (LISTEN/NOTIFY on a long-running host) |
+| The first request after a quiet spell starts NestJS (cold start) | About 1–2 s wait | — |
 | CI has never run green on GitHub (remote has up to Day 9; nothing since is pushed); `oasdiff` contract check not set up | Workflow errors are unknown until the first push | D17b (push) |
 | Rate limits are in process memory | They reset on restart and count per instance | later (Redis at the VPS stage) |
-| The live SSE bus is in process | Check-ins only reach screens on the same API process | later (LISTEN/NOTIFY with more than one process) |
 | Every job loops over all workspaces in one pass (sessions, charges, outbox) | Slow with thousands of workspaces | later |
 | Test harness: cloned test databases are never dropped, and the global setup always starts a container | Slower local runs only | later |
 
@@ -18,10 +22,9 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| Anyone can call Render directly (bypassing the Pages proxy) with a made-up `X-Forwarded-For`, so per-IP limits can be dodged there | Weaker sign-up and OTP limits on the demo | centers (shared proxy secret, or a custom domain in front of Render) |
 | The demo's staff password is public (`dafter-dev-123`) | Anyone can change demo data; reseed with `pnpm demo:seed:neon` | — (demo only) |
 | Brevo's free tier sends from one verified address and has a daily cap | Login codes stop for the day if the cap is hit | centers (own domain) |
-| Register limit skips loopback (`127.0.0.1`) so local tools and tests can sign up freely | None in production (clients are never loopback behind Render) | — |
+| Register limit skips loopback (`127.0.0.1`) so local tools and tests can sign up freely | None in production (clients are never loopback behind Vercel) | — |
 | Two tabs refreshing at the same moment log the user out (reuse detection); single-flight only covers one tab | Rare surprise sign-out | later (short grace window if it bites) |
 | The audit row is written in its own transaction after the handler, also for payments | A failed audit insert returns 500 after the write committed; a crash in between loses the audit row | centers |
 | Invites: the scope check and the scope update run in separate transactions; extra workspace read on accept; duplicated token-creation code | Only matters once members can be removed | later |

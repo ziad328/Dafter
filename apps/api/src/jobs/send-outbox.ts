@@ -9,12 +9,20 @@ export const MAX_ATTEMPTS = 5;
 const BATCH = 50;
 
 /**
- * Delivers due outbox rows in every workspace. Rows are locked with SKIP LOCKED, so two workers
- * never send the same row. A failure waits 2^attempts minutes; after 5 attempts it is failed.
+ * Delivers due outbox rows in every workspace (or only `workspaceId`). Rows are locked with SKIP
+ * LOCKED, so two senders never send the same row. A failure waits 2^attempts minutes; after 5
+ * attempts it is failed.
  */
-export async function sendDueMessages(db: Db, clock: Clock, provider: MessageProvider) {
+export async function sendDueMessages(
+  db: Db,
+  clock: Clock,
+  provider: MessageProvider,
+  workspaceId?: string,
+) {
   // shortcut: one pass over every workspace, like the other jobs; fan out when there are thousands.
-  const rows = await db.select({ id: workspaces.id }).from(workspaces);
+  const rows = workspaceId
+    ? [{ id: workspaceId }]
+    : await db.select({ id: workspaces.id }).from(workspaces);
   let sent = 0;
   for (const { id } of rows) sent += await withTenant(db, id, (tx) => sendWorkspace(tx, id));
   return sent;
