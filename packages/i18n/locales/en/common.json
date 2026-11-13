@@ -28,7 +28,8 @@
       "slot": "Enter the day, start and end time.",
       "slotOrder": "The end time must be after the start.",
       "slotOverlap": "This slot overlaps another one on the same day.",
-      "date": "Enter a valid date."
+      "date": "Enter a valid date.",
+      "mobile": "Enter an 11-digit Egyptian mobile number starting with 01."
     },
     "choose": "Choose…"
   },
@@ -99,7 +100,8 @@
   "home": {
     "switch": "Switch workspace",
     "groups": "Groups",
-    "timetable": "Timetable"
+    "timetable": "Timetable",
+    "students": "Students"
   },
   "errors": {
     "VALIDATION_FAILED": "Some details are not valid. Check them and try again.",
@@ -121,7 +123,9 @@
     "SCOPE_TEACHER_INVALID": "One of the selected teachers isn't in this workspace.",
     "SESSION_NOT_FOUND": "This session doesn't exist or isn't in your scope.",
     "SESSION_NOT_SCHEDULED": "This session can't be changed: it has started, ended or been cancelled.",
-    "SESSION_TIME_INVALID": "Pick a time that hasn't passed yet."
+    "SESSION_TIME_INVALID": "Pick a time that hasn't passed yet.",
+    "STUDENT_NOT_FOUND": "Student not found.",
+    "STUDENT_REFERENCE_INVALID": "That grade is not in this workspace."
   },
   "timetable": {
     "title": "Timetable",
@@ -145,5 +149,42 @@
       "cancelled": "Cancelled"
     },
     "moved": "Rescheduled"
+  },
+  "students": {
+    "title": "Students",
+    "new": "New student",
+    "edit": "Edit student",
+    "search": "Search by name or mobile",
+    "empty": "No students yet.",
+    "noResults": "No results.",
+    "nameAr": "Student name",
+    "nameEn": "Name in English",
+    "phone": "Student mobile",
+    "gradeLevel": "Grade",
+    "school": "School",
+    "guardian": "Parent",
+    "guardianPhone": "Parent mobile",
+    "guardianName": "Parent name",
+    "relation": "Relation",
+    "relations": {
+      "father": "Father",
+      "mother": "Mother",
+      "other": "Other"
+    },
+    "preferredLocale": "Message language",
+    "locales": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "whatsappOptIn": "Agrees to WhatsApp messages",
+    "status": "Status",
+    "statuses": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "create": "Add student",
+    "save": "Save",
+    "duplicatePhone": "This number is already used by:",
+    "sharedGuardian": "This parent number is used by other students; the student will share the same parent:"
   }
 }

@@ -32,6 +32,9 @@ export default function Home() {
           <Link to="/timetable">{t('home.timetable')}</Link>
         </Button>
         <Button asChild variant="outline">
+          <Link to="/students">{t('home.students')}</Link>
+        </Button>
+        <Button asChild variant="outline">
           <Link to="/groups">{t('home.groups')}</Link>
         </Button>
         <Button asChild variant="outline">

@@ -9,6 +9,9 @@ import {
   groups,
   sessions,
   invites,
+  guardians,
+  studentGuardians,
+  students,
   memberships,
   subjects,
 } from './schema.js';
@@ -80,6 +83,20 @@ beforeAll(async () => {
     startsAt: new Date('2026-11-21T14:00:00Z'),
     endsAt: new Date('2026-11-21T15:30:00Z'),
   });
+  const [student] = await db
+    .insert(students)
+    .values({ workspaceId: a, nameAr: 'أحمد', nameSearch: 'احمد', gradeLevelId: grade!.id })
+    .returning();
+  const [guardian] = await db
+    .insert(guardians)
+    .values({ workspaceId: a, phone: '01200000001' })
+    .returning();
+  await db.insert(studentGuardians).values({
+    workspaceId: a,
+    studentId: student!.id,
+    guardianId: guardian!.id,
+    isPrimary: true,
+  });
   tables = await tenantTables();
 });
 
@@ -103,6 +120,9 @@ describe('RLS on every tenant table', () => {
         'groups',
         'group_slots',
         'sessions',
+        'students',
+        'guardians',
+        'student_guardians',
       ]),
     );
   });

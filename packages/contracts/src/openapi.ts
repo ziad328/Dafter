@@ -10,6 +10,13 @@ import {
   updateGroupRequest,
 } from './groups.js';
 import { healthResponse } from './health.js';
+import {
+  createStudentRequest,
+  listStudentsQuery,
+  student,
+  studentList,
+  updateStudentRequest,
+} from './students.js';
 import { listSessionsQuery, moveSessionRequest, session, sessionList } from './sessions.js';
 import {
   createInviteRequest,
@@ -240,6 +247,42 @@ export function buildOpenApi() {
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           responses: { 200: { description: 'Cancelled', content: json(session) }, ...errors },
+        },
+      },
+      '/api/v1/students': {
+        get: {
+          operationId: 'listStudents',
+          tags: ['students'],
+          description: 'Every staff role. Search by normalized name or phone prefix; first 50.',
+          security: [{ bearer: [] }],
+          requestParams: { query: listStudentsQuery },
+          responses: { 200: { description: 'Students', content: json(studentList) }, ...errors },
+        },
+        post: {
+          operationId: 'createStudent',
+          tags: ['students'],
+          description: 'Every staff role. The guardian is reused when the phone already exists.',
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(createStudentRequest) },
+          responses: { 201: { description: 'Created', content: json(student) }, ...errors },
+        },
+      },
+      '/api/v1/students/{id}': {
+        get: {
+          operationId: 'getStudent',
+          tags: ['students'],
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 200: { description: 'The student', content: json(student) }, ...errors },
+        },
+        patch: {
+          operationId: 'updateStudent',
+          tags: ['students'],
+          description: 'Every staff role. Archive with status; students are never deleted.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(updateStudentRequest) },
+          responses: { 200: { description: 'Updated', content: json(student) }, ...errors },
         },
       },
     },

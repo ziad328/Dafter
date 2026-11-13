@@ -7,6 +7,7 @@ export const addTagTypes = [
   'curriculum',
   'groups',
   'sessions',
+  'students',
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -140,6 +141,35 @@ const injectedRtkApi = api
         query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/cancel`, method: 'POST' }),
         invalidatesTags: ['sessions'],
       }),
+      listStudents: build.query<ListStudentsApiResponse, ListStudentsApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/students`,
+          params: {
+            q: queryArg.q,
+          },
+        }),
+        providesTags: ['students'],
+      }),
+      createStudent: build.mutation<CreateStudentApiResponse, CreateStudentApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/students`,
+          method: 'POST',
+          body: queryArg.createStudentRequest,
+        }),
+        invalidatesTags: ['students'],
+      }),
+      getStudent: build.query<GetStudentApiResponse, GetStudentApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/students/${queryArg.id}` }),
+        providesTags: ['students'],
+      }),
+      updateStudent: build.mutation<UpdateStudentApiResponse, UpdateStudentApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/students/${queryArg.id}`,
+          method: 'PATCH',
+          body: queryArg.updateStudentRequest,
+        }),
+        invalidatesTags: ['students'],
+      }),
     }),
     overrideExisting: false,
   });
@@ -220,6 +250,23 @@ export type CancelSessionApiResponse = /** status 200 Cancelled */ Session;
 export type CancelSessionApiArg = {
   id: string;
 };
+export type ListStudentsApiResponse = /** status 200 Students */ StudentList;
+export type ListStudentsApiArg = {
+  q?: string;
+};
+export type CreateStudentApiResponse = /** status 201 Created */ Student;
+export type CreateStudentApiArg = {
+  createStudentRequest: CreateStudentRequest;
+};
+export type GetStudentApiResponse = /** status 200 The student */ Student;
+export type GetStudentApiArg = {
+  id: string;
+};
+export type UpdateStudentApiResponse = /** status 200 Updated */ Student;
+export type UpdateStudentApiArg = {
+  id: string;
+  updateStudentRequest: UpdateStudentRequest;
+};
 export type HealthResponse = {
   status: 'ok';
 };
@@ -243,6 +290,8 @@ export type ErrorCode =
   | 'SESSION_NOT_FOUND'
   | 'SESSION_NOT_SCHEDULED'
   | 'SESSION_TIME_INVALID'
+  | 'STUDENT_NOT_FOUND'
+  | 'STUDENT_REFERENCE_INVALID'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -367,6 +416,50 @@ export type MoveSessionRequest = {
   startTime: string;
   endTime: string;
 };
+export type Guardian = {
+  id: string;
+  name: string | null;
+  phone: string;
+  relation: 'father' | 'mother' | 'other';
+  preferredLocale: 'ar' | 'en';
+  whatsappOptIn: boolean;
+  isPrimary: boolean;
+};
+export type Student = {
+  id: string;
+  nameAr: string;
+  nameEn: string | null;
+  phone: string | null;
+  gradeLevel: CurriculumItem;
+  school: string | null;
+  status: 'active' | 'archived';
+  guardians: Guardian[];
+};
+export type StudentList = Student[];
+export type GuardianInput = {
+  phone: string;
+  name?: string;
+  relation: 'father' | 'mother' | 'other';
+  preferredLocale: 'ar' | 'en';
+  whatsappOptIn: boolean;
+};
+export type CreateStudentRequest = {
+  nameAr: string;
+  nameEn?: string;
+  phone?: string;
+  gradeLevelId: string;
+  school?: string;
+  guardian: GuardianInput;
+};
+export type UpdateStudentRequest = {
+  nameAr?: string;
+  nameEn?: string | null;
+  phone?: string | null;
+  gradeLevelId?: string;
+  school?: string | null;
+  status?: 'active' | 'archived';
+  guardian?: GuardianInput;
+};
 export const {
   useGetHealthQuery,
   useRegisterMutation,
@@ -390,4 +483,8 @@ export const {
   useListSessionsQuery,
   useMoveSessionMutation,
   useCancelSessionMutation,
+  useListStudentsQuery,
+  useCreateStudentMutation,
+  useGetStudentQuery,
+  useUpdateStudentMutation,
 } = injectedRtkApi;

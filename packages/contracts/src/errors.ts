@@ -33,6 +33,10 @@ export const ERROR_STATUS = {
   SESSION_NOT_SCHEDULED: 409,
   // A move to a time that has already passed.
   SESSION_TIME_INVALID: 400,
+  // Unknown id or another workspace's student: never 403.
+  STUDENT_NOT_FOUND: 404,
+  // A grade level that is not in this workspace.
+  STUDENT_REFERENCE_INVALID: 400,
   INTERNAL: 500,
 } as const;
 

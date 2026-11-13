@@ -1,7 +1,8 @@
 import * as z from 'zod';
 
 // Egyptian mobile: 01 + 9 digits, stored in local form.
-const phone = z.string().regex(/^01\d{9}$/);
+export const mobilePhone = z.string().regex(/^01\d{9}$/);
+const phone = mobilePhone;
 const email = z.email().max(254);
 const password = z.string().min(8).max(128);
 

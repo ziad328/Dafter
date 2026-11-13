@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   foreignKey,
   index,
@@ -26,6 +27,8 @@ export const memberRole = pgEnum('member_role', ['owner', 'teacher', 'assistant'
 export const locale = pgEnum('locale', ['ar', 'en']);
 export const groupStatus = pgEnum('group_status', ['active', 'archived']);
 export const sessionStatus = pgEnum('session_status', ['scheduled', 'open', 'closed', 'cancelled']);
+export const studentStatus = pgEnum('student_status', ['active', 'archived']);
+export const guardianRelation = pgEnum('guardian_relation', ['father', 'mother', 'other']);
 
 // Identity: global, not per workspace.
 
@@ -257,6 +260,90 @@ export const sessions = pgTable(
       foreignColumns: [groups.workspaceId, groups.id],
     }),
     check('sessions_time_check', sql`${t.endsAt} > ${t.startsAt}`),
+  ],
+);
+
+// Students: workspace-wide (any staff role), never deleted, only archived.
+
+export const students = pgTable(
+  'students',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    nameAr: text('name_ar').notNull(),
+    nameEn: text('name_en'),
+    phone: text('phone'),
+    gradeLevelId: uuid('grade_level_id').notNull(),
+    school: text('school'),
+    // Set when the student activates the app (Day 11).
+    userId: uuid('user_id').references(() => users.id),
+    // normalizeArabic(name_ar + name_en), written by the API on every save.
+    nameSearch: text('name_search').notNull(),
+    status: studentStatus('status').notNull().default('active'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('students_workspace_id_key').on(t.workspaceId, t.id),
+    // Not unique: siblings may share a phone; the app only warns.
+    index('students_workspace_phone_idx').on(t.workspaceId, t.phone),
+    index('students_name_search_idx').using('gin', t.nameSearch.op('gin_trgm_ops')),
+    foreignKey({
+      name: 'students_grade_level_fk',
+      columns: [t.workspaceId, t.gradeLevelId],
+      foreignColumns: [gradeLevels.workspaceId, gradeLevels.id],
+    }),
+  ],
+);
+
+/** One row per parent phone in a workspace, so siblings share a guardian (and one message). */
+export const guardians = pgTable(
+  'guardians',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    name: text('name'),
+    phone: text('phone').notNull(),
+    relation: guardianRelation('relation').notNull().default('other'),
+    preferredLocale: locale('preferred_locale').notNull().default('ar'),
+    whatsappOptIn: boolean('whatsapp_opt_in').notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('guardians_workspace_id_key').on(t.workspaceId, t.id),
+    unique('guardians_workspace_phone_key').on(t.workspaceId, t.phone),
+  ],
+);
+
+export const studentGuardians = pgTable(
+  'student_guardians',
+  {
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    studentId: uuid('student_id').notNull(),
+    guardianId: uuid('guardian_id').notNull(),
+    isPrimary: boolean('is_primary').notNull().default(false),
+  },
+  (t) => [
+    primaryKey({ columns: [t.workspaceId, t.studentId, t.guardianId] }),
+    index('student_guardians_guardian_idx').on(t.workspaceId, t.guardianId),
+    uniqueIndex('student_guardians_one_primary_key')
+      .on(t.workspaceId, t.studentId)
+      .where(sql`${t.isPrimary}`),
+    foreignKey({
+      name: 'student_guardians_student_fk',
+      columns: [t.workspaceId, t.studentId],
+      foreignColumns: [students.workspaceId, students.id],
+    }),
+    foreignKey({
+      name: 'student_guardians_guardian_fk',
+      columns: [t.workspaceId, t.guardianId],
+      foreignColumns: [guardians.workspaceId, guardians.id],
+    }),
   ],
 );
 

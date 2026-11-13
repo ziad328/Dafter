@@ -14,6 +14,8 @@ const Home = lazy(() => import('./screens/Home'));
 const Groups = lazy(() => import('./screens/Groups'));
 const GroupForm = lazy(() => import('./screens/GroupForm'));
 const Timetable = lazy(() => import('./screens/Timetable'));
+const Students = lazy(() => import('./screens/Students'));
+const StudentForm = lazy(() => import('./screens/StudentForm'));
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -89,6 +91,9 @@ const router = createBrowserRouter([
           { path: '/groups/new', element: <GroupForm /> },
           { path: '/groups/:id', element: <GroupForm /> },
           { path: '/timetable', element: <Timetable /> },
+          { path: '/students', element: <Students /> },
+          { path: '/students/new', element: <StudentForm /> },
+          { path: '/students/:id', element: <StudentForm /> },
         ],
       },
       { path: '*', element: <Navigate to="/" replace /> },
