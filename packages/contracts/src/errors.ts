@@ -37,6 +37,14 @@ export const ERROR_STATUS = {
   STUDENT_NOT_FOUND: 404,
   // A grade level that is not in this workspace.
   STUDENT_REFERENCE_INVALID: 400,
+  // Wrong, expired, used up or never sent: one code, so emails cannot be probed.
+  OTP_INVALID: 400,
+  STUDENT_ALREADY_ACTIVATED: 409,
+  // The account already has an active phone (an assistant resets it), or the key is taken.
+  DEVICE_ALREADY_BOUND: 409,
+  DEVICE_KEY_INVALID: 400,
+  ENROLLMENT_EXISTS: 409,
+  ENROLLMENT_NOT_FOUND: 404,
   INTERNAL: 500,
 } as const;
 

@@ -12,6 +12,8 @@ import {
   guardians,
   studentGuardians,
   students,
+  enrollments,
+  studentInvites,
   memberships,
   subjects,
 } from './schema.js';
@@ -97,6 +99,12 @@ beforeAll(async () => {
     guardianId: guardian!.id,
     isPrimary: true,
   });
+  await db
+    .insert(enrollments)
+    .values({ workspaceId: a, studentId: student!.id, groupId: group!.id });
+  await db
+    .insert(studentInvites)
+    .values({ workspaceId: a, studentId: student!.id, tokenHash: 'h', expiresAt: new Date() });
   tables = await tenantTables();
 });
 
@@ -123,6 +131,8 @@ describe('RLS on every tenant table', () => {
         'students',
         'guardians',
         'student_guardians',
+        'enrollments',
+        'student_invites',
       ]),
     );
   });

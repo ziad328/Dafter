@@ -8,6 +8,8 @@ import { AuthModule } from './auth/auth.module.js';
 import { GroupsModule } from './groups/groups.module.js';
 import { MembersModule } from './members/members.module.js';
 import { SessionsModule } from './sessions/sessions.module.js';
+import { StudentAuthModule } from './student-auth/student-auth.module.js';
+import { ConsoleMailer, Mailer } from './student-auth/mailer.js';
 import { StudentsModule } from './students/students.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { AuditInterceptor } from './audit.interceptor.js';
@@ -32,6 +34,7 @@ class HealthController {
     GroupsModule,
     SessionsModule,
     StudentsModule,
+    StudentAuthModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
@@ -39,7 +42,9 @@ class HealthController {
 class AppModule {}
 
 /** Tests pass their own database and clock; otherwise DATABASE_URL and the system clock are used. */
-export async function createApp(options: { logger?: false; db?: Db; clock?: Clock } = {}) {
+export async function createApp(
+  options: { logger?: false; db?: Db; clock?: Clock; mailer?: Mailer } = {},
+) {
   let db = options.db;
   let closeDb = async () => {};
   if (!db) {
@@ -55,8 +60,10 @@ export async function createApp(options: { logger?: false; db?: Db; clock?: Cloc
       providers: [
         { provide: DB, useValue: db },
         { provide: Clock, useValue: options.clock ?? new Clock() },
+        // shortcut: console only; Day 17 picks a real provider when MAIL_PROVIDER is set.
+        { provide: Mailer, useValue: options.mailer ?? new ConsoleMailer() },
       ],
-      exports: [DB, Clock],
+      exports: [DB, Clock, Mailer],
     },
     new FastifyAdapter(),
     { logger: options.logger },

@@ -19,3 +19,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** `POST /invites/:token/accept` finds the workspace by `token_hash` without RLS (the second documented cross-tenant read, after `listForUser`), then in one `withTenant` transaction consumes the invite with a conditional `UPDATE ... RETURNING` and inserts the membership (`ON CONFLICT DO NOTHING`; already a member rolls back, so the invite stays usable).
 - **Alternatives:** a SECURITY DEFINER SQL function (hides logic in SQL, harder to test); `SELECT ... FOR UPDATE` then `UPDATE` (two statements for the same guarantee).
 - **Why:** the only unguarded read filters on a 256-bit secret's hash, and single use is enforced by one statement.
+
+## 2026-11-13 · Student logins: email on `users`, invite-linked activation, OTP and device key
+
+- **Decision:** the student's email lives on the global `users` row (no password). Activation uses a single-use, 72-hour `student_invites` token that names one student record; one transaction then uses up the OTP and the invite, finds or creates the user and links `students.user_id`. Later logins use the email alone. The phone binds an ECDSA P-256 public key (`student_devices`, partial unique on the active user and on the active key). A staff reset revokes the device and all of that user's refresh tokens.
+- **Alternatives:** an email column on `students` typed by staff (one login across centers would mean copies that drift, and typos lock the student out); SMS OTP (costs money per message, so it waits for a provider); device fingerprinting instead of a key (can be faked and changes on its own).
+- **Why:** one login per child across centers, while each center keeps its own record; staff never handle the email; the private key can't leave the phone, so check-ins (Day 12) prove the phone itself.

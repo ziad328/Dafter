@@ -1,0 +1,185 @@
+import type { Enrollment, Student } from '@dafter/contracts';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  useCreateEnrollmentMutation,
+  useCreateStudentInviteMutation,
+  useLeaveEnrollmentMutation,
+  useListEnrollmentsQuery,
+  useListGroupsQuery,
+  useResetStudentDeviceMutation,
+} from '@/api/generated';
+import { Field, FormError, SelectField } from '@/components/Field';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { itemName } from '@/lib/groups';
+import { errorKey } from '@/lib/session';
+
+/** Groups the student is in, with add and leave. Only groups the caller can see are offered. */
+export function Enrollments({ studentId }: { studentId: string }) {
+  const { t, i18n } = useTranslation();
+  const list = useListEnrollmentsQuery({ id: studentId });
+  const groups = useListGroupsQuery();
+  const [enroll, enrolled] = useCreateEnrollmentMutation();
+  const [leave, left] = useLeaveEnrollmentMutation();
+  const [groupId, setGroupId] = useState('');
+  const [discount, setDiscount] = useState('');
+  const active = list.data?.filter((e) => e.status === 'active') ?? [];
+  const name = (e: Pick<Enrollment, 'subject' | 'gradeLevel' | 'teacherName'>) =>
+    `${itemName(e.subject, i18n.language)} · ${itemName(e.gradeLevel, i18n.language)} · ${e.teacherName}`;
+  const pct = Number(discount || 0);
+
+  const onAdd = async () => {
+    const res = await enroll({
+      id: studentId,
+      createEnrollmentRequest: { groupId, discountPct: pct },
+    });
+    if (res.data) {
+      setGroupId('');
+      setDiscount('');
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h2>{t('enrollments.title')}</h2>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {active.length === 0 && (
+          <p className="text-sm text-muted-foreground">{t('enrollments.empty')}</p>
+        )}
+        <ul className="grid gap-2">
+          {active.map((e) => (
+            <li key={e.id} className="flex items-center justify-between gap-2 text-sm">
+              <span>
+                {name(e)}
+                {e.discountPct > 0 && (
+                  <span className="ms-2 text-muted-foreground">
+                    {t('enrollments.discountShort', { pct: e.discountPct })}
+                  </span>
+                )}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={left.isLoading}
+                onClick={() => void leave({ id: studentId, enrollmentId: e.id })}
+              >
+                {t('enrollments.leave')}
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <SelectField
+          label={t('enrollments.group')}
+          value={groupId}
+          onChange={(ev) => setGroupId(ev.target.value)}
+        >
+          <option value="">{t('form.choose')}</option>
+          {groups.data
+            ?.filter((g) => g.status === 'active' && !active.some((e) => e.groupId === g.id))
+            .map((g) => (
+              <option key={g.id} value={g.id}>
+                {name(g)}
+              </option>
+            ))}
+        </SelectField>
+        <Field
+          label={`${t('enrollments.discount')} ${t('form.optional')}`}
+          inputMode="numeric"
+          dir="ltr"
+          value={discount}
+          onChange={(ev) => setDiscount(ev.target.value.replace(/\D/g, '').slice(0, 3))}
+          error={pct > 100 ? t('form.invalid.discount') : undefined}
+        />
+        <FormError
+          message={(enrolled.error ?? left.error) && t(errorKey(enrolled.error ?? left.error))}
+        />
+        <Button
+          type="button"
+          disabled={!groupId || pct > 100 || enrolled.isLoading}
+          onClick={() => void onAdd()}
+        >
+          {t('enrollments.add')}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** App access: hand out an activation link, or reset the bound phone. */
+export function AppAccess({ student }: { student: Student }) {
+  const { t } = useTranslation();
+  const [invite, invited] = useCreateStudentInviteMutation();
+  const [reset, wasReset] = useResetStudentDeviceMutation();
+  const [confirming, setConfirming] = useState(false);
+  const link = invited.data && `${window.location.origin}/s/activate/${invited.data.token}`;
+
+  const status = !student.activated
+    ? t('studentApp.staff.notActivated')
+    : student.deviceBound
+      ? t('studentApp.staff.bound')
+      : t('studentApp.staff.noPhone');
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h2>{t('studentApp.staff.title')}</h2>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <p role="status" className="text-sm">
+          {status}
+        </p>
+        {!student.activated && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={invited.isLoading}
+            onClick={() => void invite({ id: student.id })}
+          >
+            {t('studentApp.staff.invite')}
+          </Button>
+        )}
+        {link && (
+          <div className="grid gap-2 rounded-md border p-3 text-sm">
+            <p>{t('studentApp.staff.linkHint')}</p>
+            <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="invite-link">
+              {link}
+            </bdi>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void navigator.clipboard?.writeText(link).catch(() => {})}
+            >
+              {t('studentApp.staff.copy')}
+            </Button>
+          </div>
+        )}
+        {student.deviceBound && (
+          <Button
+            type="button"
+            variant={confirming ? 'destructive' : 'outline'}
+            disabled={wasReset.isLoading}
+            onClick={() => {
+              if (!confirming) return setConfirming(true);
+              setConfirming(false);
+              void reset({ id: student.id });
+            }}
+          >
+            {t(confirming ? 'studentApp.staff.resetConfirm' : 'studentApp.staff.reset')}
+          </Button>
+        )}
+        <FormError
+          message={
+            (invited.error ?? wasReset.error) && t(errorKey(invited.error ?? wasReset.error))
+          }
+        />
+      </CardContent>
+    </Card>
+  );
+}

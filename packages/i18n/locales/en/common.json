@@ -29,7 +29,9 @@
       "slotOrder": "The end time must be after the start.",
       "slotOverlap": "This slot overlaps another one on the same day.",
       "date": "Enter a valid date.",
-      "mobile": "Enter an 11-digit Egyptian mobile number starting with 01."
+      "mobile": "Enter an 11-digit Egyptian mobile number starting with 01.",
+      "code": "Enter the 6-digit code.",
+      "discount": "Enter a number from 0 to 100."
     },
     "choose": "Choose…"
   },
@@ -125,7 +127,13 @@
     "SESSION_NOT_SCHEDULED": "This session can't be changed: it has started, ended or been cancelled.",
     "SESSION_TIME_INVALID": "Pick a time that hasn't passed yet.",
     "STUDENT_NOT_FOUND": "Student not found.",
-    "STUDENT_REFERENCE_INVALID": "That grade is not in this workspace."
+    "STUDENT_REFERENCE_INVALID": "That grade is not in this workspace.",
+    "OTP_INVALID": "The code is wrong or expired. Request a new one.",
+    "STUDENT_ALREADY_ACTIVATED": "This student already activated the app.",
+    "DEVICE_ALREADY_BOUND": "This account or phone is already linked.",
+    "DEVICE_KEY_INVALID": "This phone could not be linked.",
+    "ENROLLMENT_EXISTS": "The student is already in this group.",
+    "ENROLLMENT_NOT_FOUND": "Enrollment not found."
   },
   "timetable": {
     "title": "Timetable",
@@ -186,5 +194,44 @@
     "save": "Save",
     "duplicatePhone": "This number is already used by:",
     "sharedGuardian": "This parent number is used by other students; the student will share the same parent:"
+  },
+  "enrollments": {
+    "title": "Groups",
+    "empty": "Not in any group yet.",
+    "group": "Group",
+    "discount": "Discount %",
+    "discountShort": "{pct}% off",
+    "add": "Add to group",
+    "leave": "Leave"
+  },
+  "studentApp": {
+    "activateTitle": "Activate the Dafter app",
+    "loginTitle": "Student sign-in",
+    "emailHint": "We will email you a 6-digit code.",
+    "codeSent": "We sent a code to",
+    "email": "Email",
+    "sendCode": "Send code",
+    "code": "Code",
+    "verify": "Sign in",
+    "changeEmail": "Use another email",
+    "welcome": "Welcome, {name}",
+    "comingSoon": "Your schedule and attendance will appear here.",
+    "binding": "Linking this phone…",
+    "bound": "This phone is linked to your account.",
+    "bindErrors": {
+      "otherPhone": "Your account is linked to another phone. Ask the center to reset it.",
+      "failed": "Could not link this phone. Try again."
+    },
+    "staff": {
+      "title": "Student app",
+      "notActivated": "Not activated yet.",
+      "bound": "Activated on a phone.",
+      "noPhone": "Activated, no phone linked.",
+      "invite": "Create activation link",
+      "linkHint": "Send this link to the student. It works once, for 72 hours.",
+      "copy": "Copy link",
+      "reset": "Reset phone",
+      "resetConfirm": "Tap again to reset the phone"
+    }
   }
 }

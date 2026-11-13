@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Inject,
   Param,
   Patch,
@@ -12,11 +14,15 @@ import {
 } from '@nestjs/common';
 import * as z from 'zod';
 import {
+  type CreateEnrollmentRequest,
+  createEnrollmentRequest,
   type CreateStudentRequest,
+  type Enrollment,
   createStudentRequest,
   type ListStudentsQuery,
   listStudentsQuery,
   type Student,
+  type StudentInvite,
   type UpdateStudentRequest,
   updateStudentRequest,
 } from '@dafter/contracts';
@@ -64,5 +70,45 @@ export class StudentsController {
     @Body(new ZodPipe(updateStudentRequest)) body: UpdateStudentRequest,
   ): Promise<Student> {
     return this.students.update(req, id, body);
+  }
+
+  @Get(':id/enrollments')
+  enrollments(
+    @Req() req: TenantedRequest,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+  ): Promise<Enrollment[]> {
+    return this.students.listEnrollments(req, id);
+  }
+
+  @Post(':id/enrollments')
+  enroll(
+    @Req() req: TenantedRequest,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+    @Body(new ZodPipe(createEnrollmentRequest)) body: CreateEnrollmentRequest,
+  ): Promise<Enrollment> {
+    return this.students.enroll(req, id, body);
+  }
+
+  @Delete(':id/enrollments/:enrollmentId')
+  leave(
+    @Req() req: TenantedRequest,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+    @Param('enrollmentId', new ZodPipe(z.uuid())) enrollmentId: string,
+  ): Promise<Enrollment> {
+    return this.students.leave(req, id, enrollmentId);
+  }
+
+  @Post(':id/invite')
+  invite(
+    @Req() req: TenantedRequest,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+  ): Promise<StudentInvite> {
+    return this.students.createInvite(req, id);
+  }
+
+  @Delete(':id/device')
+  @HttpCode(204)
+  async resetDevice(@Req() req: TenantedRequest, @Param('id', new ZodPipe(z.uuid())) id: string) {
+    await this.students.resetDevice(req, id, req.userId);
   }
 }

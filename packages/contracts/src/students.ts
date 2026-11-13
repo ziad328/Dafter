@@ -72,6 +72,9 @@ export const student = z
     school: z.string().nullable(),
     status: studentStatus,
     guardians: z.array(guardian),
+    // The student has activated the app (linked to a login) / has a bound phone.
+    activated: z.boolean(),
+    deviceBound: z.boolean(),
   })
   .meta({ id: 'Student' });
 

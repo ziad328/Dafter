@@ -45,3 +45,14 @@ Each would call `/auth/refresh` with the same cookie. The first rotates it; the 
 
 **3. Why must login's 401 never trigger a refresh, and how does `?next=` avoid an open redirect?**
 `INVALID_CREDENTIALS` is an answer, not an expired token; refreshing would hide the error and could loop. Only same-app paths (start with `/`, not `//`) are accepted for `next`, so a crafted link cannot send a user to another site after they sign in.
+
+## Day 11 · Student login by email code and phone binding
+
+**1. Why can a wrong OTP guess not simply `throw` inside the verify transaction?**
+A throw rolls the transaction back, including the `attempts + 1`, so an attacker would get unlimited guesses. A wrong guess returns `null` (the attempt commits) and the error is thrown after the transaction. The code row is read `FOR UPDATE`, so parallel guesses are counted one by one, and the fifth wrong guess burns the code. With 5 guesses on a 1-in-a-million code that expires in 10 minutes, brute force is not practical.
+
+**2. How does the API stop someone from using `/auth/otp/request` to find out which emails have accounts?**
+Without an invite it always answers 204, whether or not it sent a code, and verify has a single `OTP_INVALID` for wrong, expired, burned or never-sent codes. What is left: response timing differs a little (a sent code does an insert and an email), and with an invite token `EMAIL_TAKEN` reveals a staff email to whoever holds that link. Register leaks staff emails the same way.
+
+**3. Why is the phone key made with `extractable: false`, and why does binding need no challenge signature?**
+A non-extractable private key can sign but can never be exported, so it cannot be copied off the phone; IndexedDB stores the `CryptoKey` object itself. Binding only stores the public key. A student who binds a key they don't hold gains nothing, because every check-in (Day 12) must be signed by the bound key, which is the proof of possession. Partial unique indexes keep one active key per account and one account per key.

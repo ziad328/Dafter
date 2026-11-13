@@ -23,6 +23,12 @@ const NON_TENANT_ROUTES = new Set([
   'GET /api/v1/workspaces',
   // The invitee is not a member yet; the token names the workspace.
   'POST /api/v1/invites/:token/accept',
+  // Student login spans every workspace the student belongs to; the invite names the record.
+  'POST /api/v1/auth/otp/request',
+  'POST /api/v1/auth/otp/verify',
+  'POST /api/v1/devices/bind',
+  // Development only (DEV_MAIL_INBOX=1).
+  'GET /api/v1/dev/mail',
 ]);
 
 const testDb = useTestDb();

@@ -6,3 +6,5 @@ export * from './groups.js';
 export * from './sessions.js';
 export * from './normalize.js';
 export * from './students.js';
+export * from './enrollments.js';
+export * from './student-auth.js';

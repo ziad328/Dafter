@@ -9,7 +9,15 @@ import {
   groupList,
   updateGroupRequest,
 } from './groups.js';
+import { createEnrollmentRequest, enrollment, enrollmentList } from './enrollments.js';
 import { healthResponse } from './health.js';
+import {
+  bindDeviceRequest,
+  device,
+  otpRequest,
+  otpVerifyRequest,
+  studentInvite,
+} from './student-auth.js';
 import {
   createStudentRequest,
   listStudentsQuery,
@@ -283,6 +291,81 @@ export function buildOpenApi() {
           requestParams: { path: z.object({ id: z.uuid() }) },
           requestBody: { required: true, content: json(updateStudentRequest) },
           responses: { 200: { description: 'Updated', content: json(student) }, ...errors },
+        },
+      },
+      '/api/v1/students/{id}/enrollments': {
+        get: {
+          operationId: 'listEnrollments',
+          tags: ['students'],
+          description: 'Every staff role. Active and past enrollments.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            200: { description: 'Enrollments', content: json(enrollmentList) },
+            ...errors,
+          },
+        },
+        post: {
+          operationId: 'createEnrollment',
+          tags: ['students'],
+          description: 'Into a group the caller can see (same scope as GET /groups).',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(createEnrollmentRequest) },
+          responses: { 201: { description: 'Enrolled', content: json(enrollment) }, ...errors },
+        },
+      },
+      '/api/v1/students/{id}/enrollments/{enrollmentId}': {
+        delete: {
+          operationId: 'leaveEnrollment',
+          tags: ['students'],
+          description: 'Marks the enrollment as left; the row stays for history.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid(), enrollmentId: z.uuid() }) },
+          responses: { 200: { description: 'Left', content: json(enrollment) }, ...errors },
+        },
+      },
+      '/api/v1/students/{id}/invite': {
+        post: {
+          operationId: 'createStudentInvite',
+          tags: ['students'],
+          description: 'Single-use app activation link, 72 hours. Replaces older unused links.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            201: { description: 'The token is shown only here', content: json(studentInvite) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/students/{id}/device': {
+        delete: {
+          operationId: 'resetStudentDevice',
+          tags: ['students'],
+          description: 'Unbinds the phone and signs the student out everywhere. Audited.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 204: { description: 'No active phone' }, ...errors },
+        },
+      },
+      '/api/v1/auth/otp/request': {
+        post: {
+          operationId: 'requestOtp',
+          tags: ['student-auth'],
+          description: 'Emails a 6-digit code. Always 204, so emails cannot be probed.',
+          requestBody: { required: true, content: json(otpRequest) },
+          responses: { 204: { description: 'Sent if the email can sign in' }, ...errors },
+        },
+      },
+      '/api/v1/auth/otp/verify': authPost('verifyOtp', otpVerifyRequest),
+      '/api/v1/devices/bind': {
+        post: {
+          operationId: 'bindDevice',
+          tags: ['student-auth'],
+          description: "Binds this phone's public key to the signed-in student.",
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(bindDeviceRequest) },
+          responses: { 201: { description: 'Bound', content: json(device) }, ...errors },
         },
       },
     },

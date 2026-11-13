@@ -16,6 +16,8 @@ const GroupForm = lazy(() => import('./screens/GroupForm'));
 const Timetable = lazy(() => import('./screens/Timetable'));
 const Students = lazy(() => import('./screens/Students'));
 const StudentForm = lazy(() => import('./screens/StudentForm'));
+const StudentLogin = lazy(() => import('./screens/StudentLogin'));
+const StudentHome = lazy(() => import('./screens/StudentHome'));
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -62,14 +64,14 @@ function Layout() {
   );
 }
 
-function RequireAuth() {
+function RequireAuth({ loginPath = '/login' }: { loginPath?: string }) {
   const { t } = useTranslation();
   const me = useGetMeQuery();
   const { pathname } = useLocation();
 
   if (me.isLoading) return <Skeleton />;
   if (me.error && 'status' in me.error && me.error.status === 401) {
-    return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />;
+    return <Navigate to={`${loginPath}?next=${encodeURIComponent(pathname)}`} replace />;
   }
   if (me.error) return <FormError message={t(errorKey(me.error))} />;
   return <Outlet />;
@@ -82,6 +84,13 @@ const router = createBrowserRouter([
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Register /> },
       { path: '/invite/:token', element: <AcceptInvite /> },
+      // Student app (Day 14 makes it the installable PWA).
+      { path: '/s/login', element: <StudentLogin /> },
+      { path: '/s/activate/:token', element: <StudentLogin /> },
+      {
+        element: <RequireAuth loginPath="/s/login" />,
+        children: [{ path: '/s', element: <StudentHome /> }],
+      },
       {
         element: <RequireAuth />,
         children: [

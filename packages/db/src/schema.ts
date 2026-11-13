@@ -364,3 +364,107 @@ export const auditLog = pgTable(
   },
   (t) => [index('audit_log_workspace_at_idx').on(t.workspaceId, t.at)],
 );
+
+// Student accounts (Day 11). Identity tables are global: one login spans every center.
+
+export const otpCodes = pgTable(
+  'otp_codes',
+  {
+    id: id(),
+    channel: text('channel').notNull().default('email'),
+    // Lowercased email.
+    destination: text('destination').notNull(),
+    codeHash: text('code_hash').notNull(),
+    expiresAt: tz('expires_at').notNull(),
+    attempts: smallint('attempts').notNull().default(0),
+    consumedAt: tz('consumed_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('otp_codes_destination_idx').on(t.destination, t.createdAt)],
+);
+
+/** A phone's WebCrypto public key. At most one active device per user and one user per key. */
+export const studentDevices = pgTable(
+  'student_devices',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    // SPKI, base64url (ECDSA P-256).
+    publicKey: text('public_key').notNull(),
+    label: text('label'),
+    boundAt: tz('bound_at').notNull().defaultNow(),
+    revokedAt: tz('revoked_at'),
+    revokedBy: uuid('revoked_by').references(() => users.id),
+  },
+  (t) => [
+    uniqueIndex('student_devices_one_active_per_user')
+      .on(t.userId)
+      .where(sql`${t.revokedAt} is null`),
+    uniqueIndex('student_devices_one_active_per_key')
+      .on(t.publicKey)
+      .where(sql`${t.revokedAt} is null`),
+  ],
+);
+
+/** Single-use activation link for one student record (72 hours, hash stored). */
+export const studentInvites = pgTable(
+  'student_invites',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    studentId: uuid('student_id').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: tz('expires_at').notNull(),
+    usedAt: tz('used_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('student_invites_student_idx').on(t.workspaceId, t.studentId),
+    foreignKey({
+      name: 'student_invites_student_fk',
+      columns: [t.workspaceId, t.studentId],
+      foreignColumns: [students.workspaceId, students.id],
+    }),
+  ],
+);
+
+export const enrollmentStatus = pgEnum('enrollment_status', ['active', 'left']);
+
+export const enrollments = pgTable(
+  'enrollments',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    studentId: uuid('student_id').notNull(),
+    groupId: uuid('group_id').notNull(),
+    discountPct: smallint('discount_pct').notNull().default(0),
+    status: enrollmentStatus('status').notNull().default('active'),
+    joinedAt: tz('joined_at').notNull().defaultNow(),
+    leftAt: tz('left_at'),
+  },
+  (t) => [
+    unique('enrollments_workspace_id_key').on(t.workspaceId, t.id),
+    // Leaving keeps the row (history), so only one active enrollment per student and group.
+    uniqueIndex('enrollments_one_active_key')
+      .on(t.workspaceId, t.studentId, t.groupId)
+      .where(sql`${t.status} = 'active'`),
+    index('enrollments_group_idx').on(t.workspaceId, t.groupId),
+    check('enrollments_discount_pct', sql`${t.discountPct} between 0 and 100`),
+    foreignKey({
+      name: 'enrollments_student_fk',
+      columns: [t.workspaceId, t.studentId],
+      foreignColumns: [students.workspaceId, students.id],
+    }),
+    foreignKey({
+      name: 'enrollments_group_fk',
+      columns: [t.workspaceId, t.groupId],
+      foreignColumns: [groups.workspaceId, groups.id],
+    }),
+  ],
+);

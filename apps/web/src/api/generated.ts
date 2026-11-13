@@ -8,6 +8,7 @@ export const addTagTypes = [
   'groups',
   'sessions',
   'students',
+  'student-auth',
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -170,6 +171,60 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ['students'],
       }),
+      listEnrollments: build.query<ListEnrollmentsApiResponse, ListEnrollmentsApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/students/${queryArg.id}/enrollments` }),
+        providesTags: ['students'],
+      }),
+      createEnrollment: build.mutation<CreateEnrollmentApiResponse, CreateEnrollmentApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/students/${queryArg.id}/enrollments`,
+          method: 'POST',
+          body: queryArg.createEnrollmentRequest,
+        }),
+        invalidatesTags: ['students'],
+      }),
+      leaveEnrollment: build.mutation<LeaveEnrollmentApiResponse, LeaveEnrollmentApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/students/${queryArg.id}/enrollments/${queryArg.enrollmentId}`,
+          method: 'DELETE',
+        }),
+        invalidatesTags: ['students'],
+      }),
+      createStudentInvite: build.mutation<
+        CreateStudentInviteApiResponse,
+        CreateStudentInviteApiArg
+      >({
+        query: (queryArg) => ({ url: `/api/v1/students/${queryArg.id}/invite`, method: 'POST' }),
+        invalidatesTags: ['students'],
+      }),
+      resetStudentDevice: build.mutation<ResetStudentDeviceApiResponse, ResetStudentDeviceApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/students/${queryArg.id}/device`, method: 'DELETE' }),
+        invalidatesTags: ['students'],
+      }),
+      requestOtp: build.mutation<RequestOtpApiResponse, RequestOtpApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/auth/otp/request`,
+          method: 'POST',
+          body: queryArg.otpRequest,
+        }),
+        invalidatesTags: ['student-auth'],
+      }),
+      verifyOtp: build.mutation<VerifyOtpApiResponse, VerifyOtpApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/auth/otp/verify`,
+          method: 'POST',
+          body: queryArg.otpVerifyRequest,
+        }),
+        invalidatesTags: ['auth'],
+      }),
+      bindDevice: build.mutation<BindDeviceApiResponse, BindDeviceApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/devices/bind`,
+          method: 'POST',
+          body: queryArg.bindDeviceRequest,
+        }),
+        invalidatesTags: ['student-auth'],
+      }),
     }),
     overrideExisting: false,
   });
@@ -267,6 +322,42 @@ export type UpdateStudentApiArg = {
   id: string;
   updateStudentRequest: UpdateStudentRequest;
 };
+export type ListEnrollmentsApiResponse = /** status 200 Enrollments */ EnrollmentList;
+export type ListEnrollmentsApiArg = {
+  id: string;
+};
+export type CreateEnrollmentApiResponse = /** status 201 Enrolled */ Enrollment;
+export type CreateEnrollmentApiArg = {
+  id: string;
+  createEnrollmentRequest: CreateEnrollmentRequest;
+};
+export type LeaveEnrollmentApiResponse = /** status 200 Left */ Enrollment;
+export type LeaveEnrollmentApiArg = {
+  id: string;
+  enrollmentId: string;
+};
+export type CreateStudentInviteApiResponse =
+  /** status 201 The token is shown only here */ StudentInvite;
+export type CreateStudentInviteApiArg = {
+  id: string;
+};
+export type ResetStudentDeviceApiResponse = unknown;
+export type ResetStudentDeviceApiArg = {
+  id: string;
+};
+export type RequestOtpApiResponse = unknown;
+export type RequestOtpApiArg = {
+  otpRequest: OtpRequest;
+};
+export type VerifyOtpApiResponse =
+  /** status 200 Signed in; sets the refresh cookie */ AuthResponse;
+export type VerifyOtpApiArg = {
+  otpVerifyRequest: OtpVerifyRequest;
+};
+export type BindDeviceApiResponse = /** status 201 Bound */ Device;
+export type BindDeviceApiArg = {
+  bindDeviceRequest: BindDeviceRequest;
+};
 export type HealthResponse = {
   status: 'ok';
 };
@@ -292,6 +383,12 @@ export type ErrorCode =
   | 'SESSION_TIME_INVALID'
   | 'STUDENT_NOT_FOUND'
   | 'STUDENT_REFERENCE_INVALID'
+  | 'OTP_INVALID'
+  | 'STUDENT_ALREADY_ACTIVATED'
+  | 'DEVICE_ALREADY_BOUND'
+  | 'DEVICE_KEY_INVALID'
+  | 'ENROLLMENT_EXISTS'
+  | 'ENROLLMENT_NOT_FOUND'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -434,6 +531,8 @@ export type Student = {
   school: string | null;
   status: 'active' | 'archived';
   guardians: Guardian[];
+  activated: boolean;
+  deviceBound: boolean;
 };
 export type StudentList = Student[];
 export type GuardianInput = {
@@ -459,6 +558,43 @@ export type UpdateStudentRequest = {
   school?: string | null;
   status?: 'active' | 'archived';
   guardian?: GuardianInput;
+};
+export type Enrollment = {
+  id: string;
+  groupId: string;
+  subject: CurriculumItem;
+  gradeLevel: CurriculumItem;
+  teacherName: string;
+  discountPct: number;
+  status: 'active' | 'left';
+  joinedAt: string;
+  leftAt: string | null;
+};
+export type EnrollmentList = Enrollment[];
+export type CreateEnrollmentRequest = {
+  groupId: string;
+  discountPct?: number;
+};
+export type StudentInvite = {
+  token: string;
+  expiresAt: string;
+};
+export type OtpRequest = {
+  email: string;
+  inviteToken?: string;
+};
+export type OtpVerifyRequest = {
+  email: string;
+  code: string;
+  inviteToken?: string;
+};
+export type Device = {
+  id: string;
+  boundAt: string;
+};
+export type BindDeviceRequest = {
+  publicKey: string;
+  label?: string;
 };
 export const {
   useGetHealthQuery,
@@ -487,4 +623,12 @@ export const {
   useCreateStudentMutation,
   useGetStudentQuery,
   useUpdateStudentMutation,
+  useListEnrollmentsQuery,
+  useCreateEnrollmentMutation,
+  useLeaveEnrollmentMutation,
+  useCreateStudentInviteMutation,
+  useResetStudentDeviceMutation,
+  useRequestOtpMutation,
+  useVerifyOtpMutation,
+  useBindDeviceMutation,
 } = injectedRtkApi;

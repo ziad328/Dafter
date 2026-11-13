@@ -17,6 +17,7 @@ import {
   useUpdateStudentMutation,
 } from '@/api/generated';
 import { Field, FormError, SelectField, Skeleton } from '@/components/Field';
+import { AppAccess, Enrollments } from '@/components/StudentAccount';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
@@ -61,7 +62,17 @@ export default function StudentForm() {
   if (id && existing.isLoading) return <Skeleton />;
   if (id && existing.error) return <FormError message={t(errorKey(existing.error))} />;
   // Mounted once the student is loaded, so the form's default values are the student's.
-  return <StudentFormBody key={id} id={id} student={existing.data} />;
+  return (
+    <>
+      <StudentFormBody key={id} id={id} student={existing.data} />
+      {id && existing.data && (
+        <>
+          <Enrollments studentId={id} />
+          <AppAccess student={existing.data} />
+        </>
+      )}
+    </>
+  );
 }
 
 function StudentFormBody({ id, student }: { id?: string; student?: Student }) {

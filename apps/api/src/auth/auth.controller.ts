@@ -69,7 +69,7 @@ export class MeController {
   }
 }
 
-function withCookie(reply: FastifyReply, { refreshToken, ...body }: Session): AuthResponse {
+export function withCookie(reply: FastifyReply, { refreshToken, ...body }: Session): AuthResponse {
   reply.setCookie(REFRESH_COOKIE, refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

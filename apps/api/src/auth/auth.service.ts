@@ -93,7 +93,8 @@ export class AuthService {
     }
   }
 
-  private async startSession(user: User, familyId: string): Promise<Session> {
+  /** Issues an access token and a new refresh family (staff login and student OTP login). */
+  async startSession(user: User, familyId: string = randomUUID()): Promise<Session> {
     const next = this.newRefresh();
     await this.repo.insertRefresh({
       userId: user.id,

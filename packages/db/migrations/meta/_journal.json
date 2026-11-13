@@ -36,6 +36,13 @@
       "when": 1794558595836,
       "tag": "0004_students",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794568429458,
+      "tag": "0005_student_accounts",
+      "breakpoints": true
     }
   ]
 }
