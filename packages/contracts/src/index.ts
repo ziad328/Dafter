@@ -11,3 +11,4 @@ export * from './student-auth.js';
 export * from './attendance.js';
 export * from './me.js';
 export * from './money.js';
+export * from './messages.js';

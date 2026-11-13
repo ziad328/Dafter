@@ -70,15 +70,16 @@ export function fixtures(app: () => NestFastifyApplication, db: () => Db, mailer
         slots: [{ weekday: 6, startTime: '16:00', endTime: '17:30' }],
       })
     ).json();
-    const newStudent = async () =>
+    // The same guardian phone links siblings to one guardian.
+    const newStudent = async (g: { phone?: string; locale?: 'ar' | 'en' } = {}) =>
       (
         await ownerCall('POST', 'students', {
           nameAr: `طالب ${++n}`,
           gradeLevelId: gradeId,
           guardian: {
-            phone: `0128000${String(n).padStart(4, '0')}`,
+            phone: g.phone ?? `0128000${String(n).padStart(4, '0')}`,
             relation: 'mother',
-            preferredLocale: 'ar',
+            preferredLocale: g.locale ?? 'ar',
             whatsappOptIn: false,
           },
         })

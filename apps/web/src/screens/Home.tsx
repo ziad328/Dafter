@@ -37,9 +37,20 @@ export default function Home() {
         <Button asChild variant="outline">
           <Link to="/groups">{t('home.groups')}</Link>
         </Button>
+        {current.data?.role !== 'teacher' && (
+          <Button asChild variant="outline">
+            <Link to="/messages">{t('home.messages')}</Link>
+          </Button>
+        )}
         <Button asChild variant="outline">
           <Link to="/workspaces">{t('home.switch')}</Link>
         </Button>
+        {/* shortcut: dev builds only; the demo deploy (Day 17) opens /dev/phone directly. */}
+        {import.meta.env.DEV && (
+          <Button asChild variant="ghost">
+            <Link to="/dev/phone">{t('home.phone')}</Link>
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

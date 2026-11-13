@@ -21,6 +21,8 @@ const StudentHome = lazy(() => import('./screens/StudentHome'));
 const StudentScan = lazy(() => import('./screens/StudentScan'));
 const SessionLive = lazy(() => import('./screens/SessionLive'));
 const Receipt = lazy(() => import('./screens/Receipt'));
+const FakePhone = lazy(() => import('./screens/FakePhone'));
+const Messages = lazy(() => import('./screens/Messages'));
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -108,6 +110,8 @@ const router = createBrowserRouter([
           { path: '/timetable', element: <Timetable /> },
           { path: '/sessions/:id/live', element: <SessionLive /> },
           { path: '/receipts/:id', element: <Receipt /> },
+          { path: '/messages', element: <Messages /> },
+          { path: '/dev/phone', element: <FakePhone /> },
           { path: '/students', element: <Students /> },
           { path: '/students/new', element: <StudentForm /> },
           { path: '/students/:id', element: <StudentForm /> },

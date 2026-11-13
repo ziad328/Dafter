@@ -64,6 +64,13 @@
       "when": 1794571558175,
       "tag": "0008_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794576008574,
+      "tag": "0009_outbox",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ type Hook = { __dafterScan?: (text: string) => Promise<void> };
 const cairo = (opts: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', ...opts }).format(new Date());
 
-test('teacher shows the rotating QR; a student scans; the list updates live; close marks absences', async ({
+test('teacher shows the rotating QR; a student scans; the list updates live; close marks absences and texts the parent', async ({
   page,
   browser,
   request,
@@ -133,4 +133,23 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await expect(list.getByRole('listitem').filter({ hasText: absent })).toContainText(
     t.live.status.absent,
   );
+
+  // The absent student's parent gets one message on the fake phone (worker polls every minute).
+  const hour = Number(cairo({ hour: '2-digit', hourCycle: 'h23' }));
+  if (hour >= 22 || hour < 8)
+    return test.info().annotations.push({
+      type: 'skip',
+      description: 'quiet hours in Cairo: the message waits until 08:00',
+    });
+  test.setTimeout(150_000);
+  await expect
+    .poll(async () => JSON.stringify(await get('dev/phone')), {
+      timeout: 80_000,
+      intervals: [5000],
+    })
+    .toContain(`015${n}`);
+  await page.goto('/dev/phone');
+  const parent = page.getByTestId('fake-phone').filter({ hasText: `015${n}` });
+  await expect(parent).toContainText(absent);
+  await expect(parent.getByText(absent)).toHaveCount(1);
 });

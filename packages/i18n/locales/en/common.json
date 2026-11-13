@@ -105,7 +105,9 @@
     "switch": "Switch workspace",
     "groups": "Groups",
     "timetable": "Timetable",
-    "students": "Students"
+    "students": "Students",
+    "phone": "Fake phone",
+    "messages": "Parent messages"
   },
   "errors": {
     "VALIDATION_FAILED": "Some details are not valid. Check them and try again.",
@@ -321,5 +323,33 @@
     "amount": "Amount",
     "receivedBy": "Received by",
     "print": "Print or save as PDF"
+  },
+  "phone": {
+    "title": "Fake phone",
+    "hint": "Parent messages sent by the console adapter. No real messages are sent.",
+    "empty": "No messages yet. Close a session with absences; the message shows up within a minute."
+  },
+  "messages": {
+    "title": "Parent messages",
+    "settings": "When do we message parents?",
+    "toggles": {
+      "absence": "When a student is absent (on session close)",
+      "sessionChange": "When a session is cancelled or moved"
+    },
+    "ownerOnly": "Only the workspace owner can change these settings.",
+    "filter": "Status",
+    "all": "All",
+    "empty": "No messages.",
+    "status": {
+      "queued": "Waiting",
+      "sent": "Sent",
+      "failed": "Failed"
+    },
+    "triggers": {
+      "absence": "Absence",
+      "session_cancelled": "Cancelled",
+      "session_moved": "Moved"
+    },
+    "attempts": "{count, plural, one {# attempt} other {# attempts}}"
   }
 }

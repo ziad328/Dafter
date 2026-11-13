@@ -26,7 +26,8 @@ export class SessionsService {
 
   async cancel(ctx: Ctx, id: string): Promise<Session> {
     await this.writable(ctx, id);
-    if (!(await this.repo.cancel(ctx.workspaceId, id))) throw new AppError('SESSION_NOT_SCHEDULED');
+    if (!(await this.repo.cancel(ctx.workspaceId, id, this.clock.now())))
+      throw new AppError('SESSION_NOT_SCHEDULED');
     return this.get(ctx, id);
   }
 

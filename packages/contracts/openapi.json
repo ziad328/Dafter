@@ -1388,6 +1388,160 @@
         }
       }
     },
+    "/api/v1/messages": {
+      "get": {
+        "operationId": "listMessages",
+        "tags": ["messages"],
+        "description": "Owner and assistant. The message log, newest first, first 100.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": ["queued", "sent", "failed"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboxMessageList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/message-settings": {
+      "get": {
+        "operationId": "getMessageSettings",
+        "tags": ["messages"],
+        "description": "Every staff role. Which events message parents.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageSettingsOutput"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateMessageSettings",
+        "tags": ["messages"],
+        "description": "Owner only. Applies to events from now on; queued messages still go out.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageSettingsOutput"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dev/phone": {
+      "get": {
+        "operationId": "listFakePhoneMessages",
+        "tags": ["messages"],
+        "description": "Development and demos only (DEV_FAKE_PHONE=1): the last 100 parent messages sent in the workspace, newest first.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sent messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentMessageList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/check-ins": {
       "post": {
         "operationId": "checkIn",
@@ -2252,6 +2406,18 @@
           }
         },
         "required": ["studentId", "groupId", "amountPiastres", "method"]
+      },
+      "MessageSettings": {
+        "type": "object",
+        "properties": {
+          "absence": {
+            "type": "boolean"
+          },
+          "sessionChange": {
+            "type": "boolean"
+          }
+        },
+        "required": ["absence", "sessionChange"]
       },
       "CheckInRequest": {
         "type": "object",
@@ -3159,6 +3325,138 @@
         "required": ["entry", "studentName", "center", "timezone"],
         "additionalProperties": false
       },
+      "OutboxMessageList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/OutboxMessage"
+        }
+      },
+      "OutboxMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "trigger": {
+            "type": "string",
+            "enum": ["absence", "session_cancelled", "session_moved"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "sent", "failed"]
+          },
+          "phone": {
+            "type": "string"
+          },
+          "guardianName": {
+            "type": ["string", "null"]
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["ar", "en"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sendAfter": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "sentAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "body": {
+            "type": ["string", "null"]
+          },
+          "lastError": {
+            "type": ["string", "null"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "trigger",
+          "status",
+          "phone",
+          "guardianName",
+          "students",
+          "locale",
+          "attempts",
+          "sendAfter",
+          "sentAt",
+          "body",
+          "lastError",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "SentMessageList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SentMessage"
+        }
+      },
+      "SentMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "guardianName": {
+            "type": ["string", "null"]
+          },
+          "locale": {
+            "type": "string",
+            "enum": ["ar", "en"]
+          },
+          "body": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["id", "phone", "guardianName", "locale", "body", "sentAt"],
+        "additionalProperties": false
+      },
       "CheckIn": {
         "type": "object",
         "properties": {
@@ -3403,6 +3701,19 @@
           }
         },
         "required": ["weekday", "startTime", "endTime"],
+        "additionalProperties": false
+      },
+      "MessageSettingsOutput": {
+        "type": "object",
+        "properties": {
+          "absence": {
+            "type": "boolean"
+          },
+          "sessionChange": {
+            "type": "boolean"
+          }
+        },
+        "required": ["absence", "sessionChange"],
         "additionalProperties": false
       }
     },

@@ -17,6 +17,7 @@ import {
   attendanceRecords,
   ledgerEntries,
   receiptCounters,
+  outboxMessages,
   memberships,
   subjects,
 } from './schema.js';
@@ -127,6 +128,14 @@ beforeAll(async () => {
     amountPiastres: 50000,
   });
   await db.insert(receiptCounters).values({ workspaceId: a });
+  await db.insert(outboxMessages).values({
+    workspaceId: a,
+    guardianId: guardian!.id,
+    trigger: 'absence',
+    payload: {},
+    dedupeKey: 'absence:x:y',
+    sendAfter: new Date(),
+  });
   tables = await tenantTables();
 });
 
@@ -158,6 +167,7 @@ describe('RLS on every tenant table', () => {
         'attendance_records',
         'ledger_entries',
         'receipt_counters',
+        'outbox_messages',
       ]),
     );
   });

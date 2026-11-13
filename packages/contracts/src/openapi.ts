@@ -20,6 +20,12 @@ import {
 import { createEnrollmentRequest, enrollment, enrollmentList } from './enrollments.js';
 import { healthResponse } from './health.js';
 import { createPaymentRequest, ledgerEntry, receipt, studentLedger } from './money.js';
+import {
+  listMessagesQuery,
+  messageSettings,
+  outboxMessageList,
+  sentMessageList,
+} from './messages.js';
 import { myAttendance, mySchedule } from './me.js';
 import {
   bindDeviceRequest,
@@ -406,6 +412,55 @@ export function buildOpenApi() {
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           responses: { 200: { description: 'Receipt data', content: json(receipt) }, ...errors },
+        },
+      },
+      '/api/v1/messages': {
+        get: {
+          operationId: 'listMessages',
+          tags: ['messages'],
+          description: 'Owner and assistant. The message log, newest first, first 100.',
+          security: [{ bearer: [] }],
+          requestParams: { query: listMessagesQuery },
+          responses: {
+            200: { description: 'Messages', content: json(outboxMessageList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/message-settings': {
+        get: {
+          operationId: 'getMessageSettings',
+          tags: ['messages'],
+          description: 'Every staff role. Which events message parents.',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'Settings', content: json(messageSettings) },
+            ...errors,
+          },
+        },
+        put: {
+          operationId: 'updateMessageSettings',
+          tags: ['messages'],
+          description: 'Owner only. Applies to events from now on; queued messages still go out.',
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(messageSettings) },
+          responses: {
+            200: { description: 'Settings', content: json(messageSettings) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/dev/phone': {
+        get: {
+          operationId: 'listFakePhoneMessages',
+          tags: ['messages'],
+          description:
+            'Development and demos only (DEV_FAKE_PHONE=1): the last 100 parent messages sent in the workspace, newest first.',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'Sent messages', content: json(sentMessageList) },
+            ...errors,
+          },
         },
       },
       '/api/v1/check-ins': {

@@ -78,3 +78,25 @@ Each payment first bumps the workspace's receipt counter row (`INSERT … ON CON
 
 **3. Why are money amounts integers in piastres, and how does the form avoid floats?**
 Binary floats can't represent 0.1 exactly, so sums drift by fractions of a piastre. Integers are exact. The web parses "150.50" as text (pounds × 100 + the two decimal digits) and never computes with a float. Division by 100 happens only when formatting for display.
+
+## Day 15 · Transactional outbox
+
+**1. Why write the message row in the same transaction as the absences, instead of sending from the API after commit?**
+Sending after commit loses the message if the process dies between the commit and the send. Sending before commit can text a parent about an absence that then rolls back. With the outbox, the absence and its message commit together or not at all, and a worker delivers what is committed.
+
+**2. A teacher double-taps "close" and two siblings share a mother. How many messages does she get, and what guarantees it?**
+One. The second close finds the session no longer `open` and changes nothing. Even if the insert ran again, `dedupe_key = absence:<session>:<guardian>` is unique per workspace and the insert is `ON CONFLICT DO NOTHING`. The siblings merge because the insert groups the absent students by guardian, so she gets one row that names both children.
+
+**3. Is delivery exactly-once? Where can it still send twice?**
+Rows are written exactly once, and `FOR UPDATE SKIP LOCKED` stops two workers from taking the same row. If the worker crashes after the provider accepts a message but before the commit, the row is still `queued` and is sent again: at-least-once. The fix is passing the outbox id as the provider's idempotency key once WhatsApp is added.
+
+## Day 16 · Templates, toggles and session changes
+
+**1. Why check the workspace's message toggle inside the INSERT rather than when sending?**
+Then a switched-off trigger never creates a row, so the log only shows messages that were meant to go out, and the worker needs no settings lookup. The trade-off: switching a trigger off doesn't stop messages already queued. That's stated in the API docs, and it's what most people expect from "from now on".
+
+**2. A teacher moves a session to Thursday, then to Friday. How many messages do parents get, and why isn't the dedupe key just `session_moved:<session>:<guardian>`?**
+Two, because each tells them something new. The key includes the new start time, so a repeat of the same move (a retry or a double tap) is still one message, while a move to a new time is a new event. A key without the time would silently drop the Friday message.
+
+**3. Where do templates live, and why not in the database?**
+In code, one fixed sentence per trigger and language, rendered at send time from a payload snapshot taken at the event. WhatsApp only allows pre-approved templates anyway, so editable wording would mislead centers. A snapshot (names, subject, time) keeps the message true to what happened, even if a student is renamed before the send.

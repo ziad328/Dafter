@@ -11,6 +11,7 @@ import {
   workspaces,
 } from '@dafter/db';
 import { TenantRepository } from '../tenant.repository.js';
+import { enqueueAbsences } from '../messages/outbox.js';
 
 type Status = MarkAttendanceRequest['status'];
 const DEFAULT_LATE_MINUTES = 15;
@@ -159,8 +160,9 @@ export class AttendanceRepository extends TenantRepository {
   }
 
   /**
-   * open -> closed, then every active, non-archived enrolled student without a record is absent.
-   * One transaction, so a crash never leaves a closed session with half its absences.
+   * open -> closed, then every active, non-archived enrolled student without a record is absent, and their
+   * guardians get an outbox message. One transaction: a crash leaves no half-closed session and no
+   * message without its absence.
    */
   close(workspaceId: string, id: string, actorId: string, now: Date) {
     return this.inTenant(workspaceId, async (tx) => {
@@ -184,6 +186,7 @@ export class AttendanceRepository extends TenantRepository {
         where e.workspace_id = ${workspaceId} and e.group_id = ${closed.groupId}
           and e.status = 'active' and st.status = 'active'
         on conflict do nothing`);
+      await enqueueAbsences(tx, workspaceId, id, now);
       return this.list(tx, workspaceId, id);
     });
   }

@@ -603,3 +603,44 @@ export const receiptCounters = pgTable('receipt_counters', {
     .references(() => workspaces.id),
   last: integer('last').notNull().default(0),
 });
+
+// Messaging (Day 15). Transactional outbox: rows are written in the same transaction as the
+// event; the send-outbox job delivers due rows. dedupe_key makes a repeated event a no-op.
+
+export const outboxStatus = pgEnum('outbox_status', ['queued', 'sent', 'failed']);
+
+export const outboxMessages = pgTable(
+  'outbox_messages',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    guardianId: uuid('guardian_id').notNull(),
+    trigger: text('trigger').notNull(),
+    // Snapshot of the event (names, group, time), so the message matches what happened.
+    payload: jsonb('payload').notNull(),
+    dedupeKey: text('dedupe_key').notNull(),
+    status: outboxStatus('status').notNull().default('queued'),
+    attempts: smallint('attempts').notNull().default(0),
+    // Quiet hours and retry backoff both move this forward.
+    sendAfter: tz('send_after').notNull(),
+    locale: locale('locale'),
+    body: text('body'),
+    providerMessageId: text('provider_message_id'),
+    lastError: text('last_error'),
+    sentAt: tz('sent_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('outbox_messages_dedupe_key').on(t.workspaceId, t.dedupeKey),
+    index('outbox_messages_due_idx')
+      .on(t.sendAfter)
+      .where(sql`${t.status} = 'queued'`),
+    foreignKey({
+      name: 'outbox_messages_guardian_fk',
+      columns: [t.workspaceId, t.guardianId],
+      foreignColumns: [guardians.workspaceId, guardians.id],
+    }),
+  ],
+);

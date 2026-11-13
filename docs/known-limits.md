@@ -1,0 +1,92 @@
+# Known limits and open issues
+
+Everything we know is missing, unchecked or a deliberate shortcut, in one place. Sources: the "Left:" notes in `progress.md`, `shortcut:` comments in the code, and the session reports and reviews from Days 1–15. Fixed items are removed; new ones are added by the `task-finish` skill.
+
+**Fix by:** **D17** = Day 17 deploy · **v0** = before the v0 tag (Nov 30) · **centers** = before a real center uses it · **later** = when scale or a real need shows up.
+
+## Deploy and infrastructure
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| Fastify `trustProxy` is off | Behind Render every request has the proxy's IP, so per-IP limits (OTP 30/15 min, a future register limit) would block everyone at once | D17 |
+| No real `Mailer` in production | Students can't get login codes; `ConsoleMailer` doesn't log codes in production, so they go nowhere | D17 |
+| Neon not checked for `CREATEROLE`/`SET ROLE` to `dafter_app`, the owner connection (workspace list, invite lookup), or `pg_trgm` | RLS role switching or Arabic search could fail on deploy | D17 |
+| CI has never run green on GitHub (remote has up to Day 9; nothing since is pushed); `oasdiff` contract check not set up | Workflow errors are unknown until the first push | D17 |
+| Rate limits are in process memory | They reset on restart and count per instance | later (Redis at the VPS stage) |
+| The live SSE bus is in process | Check-ins only reach screens on the same API process | later (LISTEN/NOTIFY with more than one process) |
+| Every job loops over all workspaces in one pass (sessions, charges, outbox) | Slow with thousands of workspaces | later |
+| Test harness: cloned test databases are never dropped, and the global setup always starts a container | Slower local runs only | later |
+
+## Auth and accounts
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| Register has no rate limit | Sign-up spam | D17 (needs `trustProxy`) |
+| Two tabs refreshing at the same moment log the user out (reuse detection); single-flight only covers one tab | Rare surprise sign-out | later (short grace window if it bites) |
+| The audit row is written in its own transaction after the handler, also for payments | A failed audit insert returns 500 after the write committed; a crash in between loses the audit row | centers |
+| Invites: the scope check and the scope update run in separate transactions; extra workspace read on accept; duplicated token-creation code | Only matters once members can be removed | later |
+| `PATCH /members/:id` (change role, remove) not built | Staff can't be removed | centers |
+| A phone reset from center A also unbinds it at center B (one shared login) | By design, but surprising | — (documented) |
+| Anyone holding an invite link can claim that record (single use, 72 h) | Same trust model as staff invites | — (documented) |
+| `DEV_MAIL_INBOX=1` / `DEV_FAKE_PHONE=1` expose login codes / parent messages | Must never be set on a public deploy with real users | D17 (check env) |
+
+## Groups, sessions and students
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| No archive button for groups in the UI (the API supports `status`) | Owners can't archive from the screen | v0 if time |
+| Curriculum (subjects, grades) can't be edited | Centers with other subjects are stuck | centers |
+| No group capacity check on enroll | A group can be over-filled | centers |
+| Moving a session doesn't check the teacher's other sessions | Double-booked teacher | centers |
+| `GET /groups/:id/sessions` not built | Not needed by the timetable | later |
+| Times shown as 24-hour `HH:MM` | Egyptian users expect 12-hour | v0 if time |
+| No cursor pagination (groups, students: first 50) | Big centers can't see everyone | later |
+| Teachers see every student in the workspace | Privacy choice not settled | centers |
+| The UI handles one guardian per student (the API allows more) | Second parent needs the API | centers |
+| Seed has no groups or demo data | Empty demo | D17 (Arabic demo seed) |
+
+## Attendance and student app
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| Real camera, PWA install, invite paste and binding never checked on a real iPhone and Android phone | The core student flow is only tested with hooks | v0 (one manual try each) |
+| No "too early to open" check on opening a session | A session can be opened days ahead | centers |
+| `POST /check-ins` has no rate limit | Abuse by a bound device | centers |
+| No UI for the late threshold (`settings.lateAfterMinutes`, default 15) | Fixed 15 minutes | centers |
+| No manual-mark buttons on the live screen (the API supports it) | Teacher must use another screen | v0 if time |
+| No wake-lock or brightness handling on the QR screen | The screen may dim during class | v0 if time |
+| A student on a video call can relay the QR | Known weakness of rotating QR (architecture.md) | — (documented) |
+| No offline screen when the API is unreachable | The PWA shows errors | later |
+
+## Money
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| No cash summary or unpaid report | Owners can't see who owes | centers |
+| No proration for mid-month joins | A student who joins on the 25th pays the full month | centers |
+| No nightly balance check | Drift would go unnoticed (the ledger is append-only) | later |
+| Students don't see their balance | Parents ask the center | later |
+| Fee model (one monthly fee per group) and who sees money are guesses | May change after center interviews | centers |
+
+## Messages (Day 15)
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| `whatsapp_opt_in` is not checked | Fine with the console adapter; must be checked before WhatsApp | later (with WhatsApp) |
+| Every linked guardian is texted, not only the primary | Possibly more messages than a center wants | centers |
+| A manual "absent" after close sends nothing | Late corrections don't reach parents | centers |
+| At-least-once delivery: a crash between the provider call and the commit resends | Duplicate text in a rare crash | later (outbox id as the provider's idempotency key) |
+| Up to 1 minute delay (one-minute poll) | Fine for parents | — |
+| Templates are fixed in code; a center can only switch triggers on or off | Wording can't be customized (WhatsApp needs pre-approved templates anyway) | later |
+| Switching a trigger off doesn't cancel messages already queued (e.g. held by quiet hours) | One last message may still go out | later |
+| Teachers can't see the message log (it shows every parent's phone) | They ask the owner or assistant | centers |
+| The message log shows the newest 100, no pagination or search | Older messages are hidden | later |
+| A moved session's message gives the new time only, not the old one | Parents may not know which session moved if there are several | centers |
+
+## Tooling
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| `@dafter/i18n` index can't load in Node ESM (JSON imports lack `with { type: 'json' }`), so e2e imports the locale JSON directly | Small workaround | later |
+| The `run-dafter` screenshot command doesn't sign in | Only public screens can be shot | later |
+| Message e2e is skipped during Cairo quiet hours (22:00–08:00) | Night runs check less | — |

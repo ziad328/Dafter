@@ -10,6 +10,7 @@ export const addTagTypes = [
   'sessions',
   'attendance',
   'money',
+  'messages',
   'students',
   'student-auth',
 ] as const;
@@ -205,6 +206,37 @@ const injectedRtkApi = api
       getReceipt: build.query<GetReceiptApiResponse, GetReceiptApiArg>({
         query: (queryArg) => ({ url: `/api/v1/ledger/${queryArg.id}/receipt` }),
         providesTags: ['money'],
+      }),
+      listMessages: build.query<ListMessagesApiResponse, ListMessagesApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/messages`,
+          params: {
+            status: queryArg.status,
+          },
+        }),
+        providesTags: ['messages'],
+      }),
+      getMessageSettings: build.query<GetMessageSettingsApiResponse, GetMessageSettingsApiArg>({
+        query: () => ({ url: `/api/v1/message-settings` }),
+        providesTags: ['messages'],
+      }),
+      updateMessageSettings: build.mutation<
+        UpdateMessageSettingsApiResponse,
+        UpdateMessageSettingsApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/v1/message-settings`,
+          method: 'PUT',
+          body: queryArg.messageSettings,
+        }),
+        invalidatesTags: ['messages'],
+      }),
+      listFakePhoneMessages: build.query<
+        ListFakePhoneMessagesApiResponse,
+        ListFakePhoneMessagesApiArg
+      >({
+        query: () => ({ url: `/api/v1/dev/phone` }),
+        providesTags: ['messages'],
       }),
       checkIn: build.mutation<CheckInApiResponse, CheckInApiArg>({
         query: (queryArg) => ({
@@ -421,6 +453,18 @@ export type GetReceiptApiResponse = /** status 200 Receipt data */ Receipt;
 export type GetReceiptApiArg = {
   id: string;
 };
+export type ListMessagesApiResponse = /** status 200 Messages */ OutboxMessageList;
+export type ListMessagesApiArg = {
+  status?: 'queued' | 'sent' | 'failed';
+};
+export type GetMessageSettingsApiResponse = /** status 200 Settings */ MessageSettingsOutput;
+export type GetMessageSettingsApiArg = void;
+export type UpdateMessageSettingsApiResponse = /** status 200 Settings */ MessageSettingsOutput;
+export type UpdateMessageSettingsApiArg = {
+  messageSettings: MessageSettings;
+};
+export type ListFakePhoneMessagesApiResponse = /** status 200 Sent messages */ SentMessageList;
+export type ListFakePhoneMessagesApiArg = void;
 export type CheckInApiResponse = /** status 200 Checked in */ CheckIn;
 export type CheckInApiArg = {
   checkInRequest: CheckInRequest;
@@ -727,6 +771,39 @@ export type Receipt = {
   };
   timezone: string;
 };
+export type OutboxMessage = {
+  id: string;
+  trigger: 'absence' | 'session_cancelled' | 'session_moved';
+  status: 'queued' | 'sent' | 'failed';
+  phone: string;
+  guardianName: string | null;
+  students: string[];
+  locale: ('ar' | 'en') | null;
+  attempts: number;
+  sendAfter: string;
+  sentAt: string | null;
+  body: string | null;
+  lastError: string | null;
+  createdAt: string;
+};
+export type OutboxMessageList = OutboxMessage[];
+export type MessageSettingsOutput = {
+  absence: boolean;
+  sessionChange: boolean;
+};
+export type MessageSettings = {
+  absence: boolean;
+  sessionChange: boolean;
+};
+export type SentMessage = {
+  id: string;
+  phone: string;
+  guardianName: string | null;
+  locale: 'ar' | 'en';
+  body: string;
+  sentAt: string;
+};
+export type SentMessageList = SentMessage[];
 export type CheckIn = {
   id: string;
   sessionId: string;
@@ -854,6 +931,10 @@ export const {
   useCreatePaymentMutation,
   useReverseEntryMutation,
   useGetReceiptQuery,
+  useListMessagesQuery,
+  useGetMessageSettingsQuery,
+  useUpdateMessageSettingsMutation,
+  useListFakePhoneMessagesQuery,
   useCheckInMutation,
   useListStudentsQuery,
   useCreateStudentMutation,

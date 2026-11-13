@@ -11,6 +11,7 @@ import {
   users,
   workspaces,
 } from '@dafter/db';
+import { enqueueSessionChange } from '../messages/outbox.js';
 import { TenantRepository } from '../tenant.repository.js';
 
 const subject = aliasedTable(subjects, 's');
@@ -50,22 +51,23 @@ export class SessionsRepository extends TenantRepository {
     return row;
   }
 
-  /** Cancels a scheduled session; false when it is no longer scheduled. */
-  async cancel(workspaceId: string, id: string) {
-    const rows = await this.inTenant(workspaceId, (tx) =>
-      tx
+  /** Cancels a scheduled session and tells the parents (same transaction); false when not scheduled. */
+  cancel(workspaceId: string, id: string, now: Date) {
+    return this.inTenant(workspaceId, async (tx) => {
+      const rows = await tx
         .update(sessions)
         .set({ status: 'cancelled' })
         .where(this.scheduled(workspaceId, id))
-        .returning({ id: sessions.id }),
-    );
-    return rows.length > 0;
+        .returning({ id: sessions.id });
+      if (rows.length) await enqueueSessionChange(tx, workspaceId, id, now, 'session_cancelled');
+      return rows.length > 0;
+    });
   }
 
-  /** Moves a scheduled session to a future local time; false when the new start has passed. */
-  async move(workspaceId: string, id: string, to: MoveSessionRequest, now: Date) {
-    const rows = await this.inTenant(workspaceId, (tx) =>
-      tx
+  /** Moves a scheduled session to a future local time and tells the parents; false when the new start has passed. */
+  move(workspaceId: string, id: string, to: MoveSessionRequest, now: Date) {
+    return this.inTenant(workspaceId, async (tx) => {
+      const rows = await tx
         .update(sessions)
         .set({
           startsAt: local(to.date, to.startTime),
@@ -79,9 +81,10 @@ export class SessionsRepository extends TenantRepository {
             sql`${local(to.date, to.startTime)} > ${now.toISOString()}::timestamptz`,
           ),
         )
-        .returning({ id: sessions.id }),
-    );
-    return rows.length > 0;
+        .returning({ id: sessions.id });
+      if (rows.length) await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved');
+      return rows.length > 0;
+    });
   }
 
   private scheduled(workspaceId: string, id: string) {

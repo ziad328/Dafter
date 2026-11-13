@@ -8,6 +8,7 @@ import { AttendanceModule } from './attendance/attendance.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { GroupsModule } from './groups/groups.module.js';
 import { MeModule } from './me/me.module.js';
+import { MessagesModule } from './messages/messages.module.js';
 import { MoneyModule } from './money/money.module.js';
 import { MembersModule } from './members/members.module.js';
 import { SessionsModule } from './sessions/sessions.module.js';
@@ -41,6 +42,7 @@ class HealthController {
     AttendanceModule,
     MeModule,
     MoneyModule,
+    MessagesModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
