@@ -1,16 +1,33 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npx --yes pnpm@11.5.1 install --frozen-lockfile",
-  "buildCommand": "npx --yes pnpm@11.5.1 turbo run build --filter=@dafter/web --filter=@dafter/api...",
+  "buildCommand": "npx --yes pnpm@11.5.1 turbo run build --filter=@dafter/web --filter=@dafter/api... && npx --yes pnpm@11.5.1 --filter @dafter/api bundle",
   "outputDirectory": "apps/web/dist",
   "framework": null,
+  "regions": ["fra1"],
   "functions": {
-    "api/index.js": { "maxDuration": 300 }
+    "api/index.js": {
+      "maxDuration": 300
+    }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/health", "destination": "/api/index" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
-  "crons": [{ "path": "/api/v1/internal/tick?daily=1", "schedule": "0 6 * * *" }]
+  "crons": [
+    {
+      "path": "/api/v1/internal/tick?daily=1",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }
