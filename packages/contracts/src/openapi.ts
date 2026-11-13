@@ -305,6 +305,37 @@ export function buildOpenApi() {
           },
         },
       },
+      '/api/v1/sessions/{id}/close': {
+        post: {
+          operationId: 'closeSession',
+          tags: ['attendance'],
+          description:
+            'Same staff as open. Every active enrolled student without a record is marked absent (auto_close).',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            200: { description: 'Final attendance', content: json(attendanceList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/sessions/{id}/live': {
+        get: {
+          operationId: 'liveAttendance',
+          tags: ['attendance'],
+          description:
+            'Server-sent events: every record so far, then each new or changed record as `data: AttendanceRecord`. Read with fetch (it needs the Authorization header), not the generated client.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            200: {
+              description: 'text/event-stream',
+              content: { 'text/event-stream': { schema: attendanceRecord } },
+            },
+            ...errors,
+          },
+        },
+      },
       '/api/v1/check-ins': {
         post: {
           operationId: 'checkIn',

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { useBindDeviceMutation, useGetMeQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { deviceKey, publicKeySpki } from '@/lib/device-key';
 import { errorKey } from '@/lib/session';
@@ -57,6 +59,11 @@ export default function StudentHome() {
           {state === 'binding' && t('studentApp.binding')}
           {state === 'bound' && t('studentApp.bound')}
         </p>
+        {state === 'bound' && (
+          <Button asChild>
+            <Link to="/s/scan">{t('scan.open')}</Link>
+          </Button>
+        )}
         {(state === 'otherPhone' || state === 'failed') && (
           <FormError message={t(`studentApp.bindErrors.${state}`)} />
         )}

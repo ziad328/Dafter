@@ -31,3 +31,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** the session key is `HMAC(QR_SECRET, "qr:" + sessionId)`, returned by `POST /sessions/:id/open` together with the server time. A code is `sessionId.window.mac16`. `POST /check-ins` checks, in order: the MAC (constant time), the window (current or previous), an ECDSA P-256 signature over the code with the bound device key, the session being open, and the student's record in that workspace (by `user_id`). The status is present or late (after `starts_at` + `settings.lateAfterMinutes`, default 15), or makeup when not enrolled. Repeats rely on the unique (workspace, session, student) key. A manual mark replaces any scan.
 - **Alternatives:** a random key stored as `qr_key_encrypted` (more code and key management, the same security); a generic `Idempotency-Key` table (not needed while a natural key exists).
 - **Why:** the least moving parts for a hard real-time path. A forged or foreign code is rejected before any database read, and the only cross-workspace read (session by id) happens after a valid MAC.
+
+## 2026-11-13 · Live attendance: SSE read with fetch, in-process bus
+
+- **Decision:** `GET /sessions/:id/live` is Nest `@Sse`: live changes merged with a snapshot (subscribed first, so nothing is lost; the client keeps the newest record per student), plus a 25 s ping. The web reads it with `fetch` and a small parser (`apps/web/src/api/sse.ts`), so the bearer token goes in a header. A guard checks visibility, because an SSE handler's errors arrive after the 200. The bus is an RxJS `Subject` in the API process.
+- **Alternatives:** `EventSource` with the token in the query string (it ends up in logs); polling every few seconds (slower, more load); PostgreSQL `LISTEN/NOTIFY` (needed only with more than one API process).
+- **Why:** check-ins show up instantly on one free-tier process, with no new infrastructure and no secret in URLs.

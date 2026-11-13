@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { type MoveSessionRequest, moveSessionRequest, type Session } from '@dafter/contracts';
 import {
   useCancelSessionMutation,
@@ -103,6 +103,13 @@ function SessionCard({
           {s.moved && ` · ${t('timetable.moved')}`}
         </CardDescription>
       </CardHeader>
+      {startable(s, tz) && (
+        <CardContent className="px-4">
+          <Button asChild size="sm">
+            <Link to={`/sessions/${s.id}/live`}>{t('timetable.start')}</Link>
+          </Button>
+        </CardContent>
+      )}
       {editable && (
         <CardContent className="grid gap-3 px-4">
           <FormError message={cancelled.error && t(errorKey(cancelled.error))} />
@@ -207,3 +214,8 @@ function MoveForm({
     </form>
   );
 }
+
+/** Today's scheduled or already open sessions can be started (or rejoined) from the card. */
+const startable = (s: Session, tz: string) =>
+  (s.status === 'scheduled' || s.status === 'open') &&
+  localDate(s.startsAt, tz) === localDate(new Date(), tz);

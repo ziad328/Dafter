@@ -159,6 +159,14 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ['attendance'],
       }),
+      closeSession: build.mutation<CloseSessionApiResponse, CloseSessionApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/close`, method: 'POST' }),
+        invalidatesTags: ['attendance'],
+      }),
+      liveAttendance: build.query<LiveAttendanceApiResponse, LiveAttendanceApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/live` }),
+        providesTags: ['attendance'],
+      }),
       checkIn: build.mutation<CheckInApiResponse, CheckInApiArg>({
         query: (queryArg) => ({
           url: `/api/v1/check-ins`,
@@ -343,6 +351,14 @@ export type MarkAttendanceApiArg = {
   id: string;
   studentId: string;
   markAttendanceRequest: MarkAttendanceRequest;
+};
+export type CloseSessionApiResponse = /** status 200 Final attendance */ AttendanceList;
+export type CloseSessionApiArg = {
+  id: string;
+};
+export type LiveAttendanceApiResponse = /** status 200 text/event-stream */ AttendanceRecord;
+export type LiveAttendanceApiArg = {
+  id: string;
 };
 export type CheckInApiResponse = /** status 200 Checked in */ CheckIn;
 export type CheckInApiArg = {
@@ -699,6 +715,8 @@ export const {
   useOpenSessionMutation,
   useListAttendanceQuery,
   useMarkAttendanceMutation,
+  useCloseSessionMutation,
+  useLiveAttendanceQuery,
   useCheckInMutation,
   useListStudentsQuery,
   useCreateStudentMutation,

@@ -201,6 +201,79 @@ describe('manual marking', () => {
   });
 });
 
+const sessionOn = async (date: string) =>
+  (await c.owner('GET', `sessions?from=${date}&to=${date}`)).json()[0].id as string;
+
+describe('closing a session', () => {
+  it('marks every active enrolled student without a record absent, once', async () => {
+    const id = await sessionOn('2026-11-28');
+    await c.teacher('POST', `sessions/${id}/open`);
+    const scanned = await phone();
+    const missing = await phone();
+    const makeup = await phone({ enroll: false });
+    const archived = await phone();
+    await c.owner('PATCH', `students/${archived.id}`, { status: 'archived' });
+    await scanned.scan(codeAt(id));
+
+    const res = await c.teacher('POST', `sessions/${id}/close`);
+    expect(res.statusCode).toBe(200);
+    const byStudent = new Map<string, { status: string; method: string }>(
+      res
+        .json()
+        .map((r: { studentId: string; status: string; method: string }) => [r.studentId, r]),
+    );
+    expect(byStudent.get(scanned.id)).toMatchObject({ status: 'present', method: 'student_scan' });
+    expect(byStudent.get(missing.id)).toMatchObject({ status: 'absent', method: 'auto_close' });
+    expect(byStudent.has(makeup.id)).toBe(false);
+    expect(byStudent.has(archived.id)).toBe(false);
+
+    expect((await c.owner('POST', `sessions/${id}/close`)).json().code).toBe('SESSION_NOT_OPEN');
+    expect((await makeup.scan(codeAt(id))).json().code).toBe('SESSION_NOT_OPEN');
+    expect((await c.assistant('POST', `sessions/${id}/close`)).json().code).toBe(
+      'SESSION_NOT_FOUND',
+    );
+  });
+});
+
+describe('live stream', () => {
+  it('sends the records so far, then each new check-in', async () => {
+    const id = await sessionOn('2026-12-05');
+    await c.owner('POST', `sessions/${id}/open`);
+    const early = await phone();
+    await early.scan(codeAt(id));
+    const late = await phone();
+
+    await app.listen(0, '127.0.0.1');
+    const address = (await app.getUrl()).replace('[::1]', '127.0.0.1');
+    const ctrl = new AbortController();
+    const res = await fetch(`${address}/api/v1/sessions/${id}/live`, {
+      headers: c.ownerHeaders,
+      signal: ctrl.signal,
+    });
+    expect(res.headers.get('content-type')).toContain('text/event-stream');
+    const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+    const seen: string[] = [];
+    const until = async (studentId: string) => {
+      while (!seen.includes(studentId)) {
+        const { value } = await reader.read();
+        for (const line of value!.split('\n'))
+          if (line.startsWith('data: ')) seen.push(JSON.parse(line.slice(6)).studentId);
+      }
+    };
+    await until(early.id);
+    await late.scan(codeAt(id));
+    await until(late.id);
+    ctrl.abort();
+
+    const other = await f.center();
+    const denied = await fetch(`${address}/api/v1/sessions/${id}/live`, {
+      headers: other.ownerHeaders,
+    });
+    expect(denied.status).toBe(404);
+    expect(((await denied.json()) as { code: string }).code).toBe('SESSION_NOT_FOUND');
+  });
+});
+
 // Moves the session's start back in the database rather than advancing the clock, which would
 // expire every access token in the suite.
 describe('late threshold', () => {

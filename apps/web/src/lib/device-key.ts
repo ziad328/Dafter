@@ -1,3 +1,5 @@
+import { toBase64url } from './base64url';
+
 /**
  * The phone's device key: an ECDSA P-256 pair made with extractable = false, so the private key
  * can sign but can never be read or copied out. CryptoKey objects survive in IndexedDB as-is.
@@ -53,9 +55,15 @@ async function load(): Promise<Stored> {
 
 /** SPKI, base64url: what POST /devices/bind expects. */
 export async function publicKeySpki(pair: CryptoKeyPair) {
-  const der = new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey));
-  return btoa(String.fromCharCode(...der))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  return toBase64url(new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey)));
+}
+
+/** ECDSA P-256 / SHA-256 signature (raw r||s), base64url: what POST /check-ins expects. */
+export async function signWithDevice(pair: CryptoKeyPair, text: string) {
+  const sig = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    pair.privateKey,
+    new TextEncoder().encode(text),
+  );
+  return toBase64url(new Uint8Array(sig));
 }

@@ -5,7 +5,7 @@ import en from '../../packages/i18n/locales/en/common.json' with { type: 'json' 
 
 /** Seeded by `pnpm db:reset`; every staff user has the dev password. */
 export const STAFF = { owner: '01000000001', teacher: '01000000002', assistant: '01000000003' };
-const PASSWORD = 'dafter-dev-123';
+export const PASSWORD = 'dafter-dev-123';
 
 type Lang = 'ar' | 'en';
 

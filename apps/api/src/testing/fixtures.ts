@@ -3,7 +3,7 @@ import type { Db } from '@dafter/db';
 import { makeMembership } from '@dafter/db/testing';
 import type { ConsoleMailer } from '../student-auth/mailer.js';
 
-type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type Call = (
   method: Method,
   url: string,
@@ -58,6 +58,8 @@ export function fixtures(app: () => NestFastifyApplication, db: () => Db, mailer
     };
     const ownerCall = as(owner.token);
     const teacher = await member('teacher');
+    // For raw requests (SSE) that cannot go through `inject`.
+    const ownerHeaders = { ...bearer(owner.token), 'x-workspace-id': ws };
     const gradeId = (await ownerCall('GET', 'grade-levels')).json()[0].id as string;
     const subjectId = (await ownerCall('GET', 'subjects')).json()[0].id as string;
     const group = (
@@ -82,6 +84,7 @@ export function fixtures(app: () => NestFastifyApplication, db: () => Db, mailer
       ).json().id as string;
     return {
       workspaceId: ws,
+      ownerHeaders,
       owner: ownerCall,
       teacher,
       assistant: await member('assistant'),

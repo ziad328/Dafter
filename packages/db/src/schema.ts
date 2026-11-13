@@ -250,6 +250,7 @@ export const sessions = pgTable(
     endsAt: tz('ends_at').notNull(),
     status: sessionStatus('status').notNull().default('scheduled'),
     openedAt: tz('opened_at'),
+    closedBy: uuid('closed_by').references(() => users.id),
     createdAt: createdAt(),
   },
   (t) => [

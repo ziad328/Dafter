@@ -18,6 +18,8 @@ const Students = lazy(() => import('./screens/Students'));
 const StudentForm = lazy(() => import('./screens/StudentForm'));
 const StudentLogin = lazy(() => import('./screens/StudentLogin'));
 const StudentHome = lazy(() => import('./screens/StudentHome'));
+const StudentScan = lazy(() => import('./screens/StudentScan'));
+const SessionLive = lazy(() => import('./screens/SessionLive'));
 
 function Layout() {
   const { t, i18n } = useTranslation();
@@ -89,7 +91,10 @@ const router = createBrowserRouter([
       { path: '/s/activate/:token', element: <StudentLogin /> },
       {
         element: <RequireAuth loginPath="/s/login" />,
-        children: [{ path: '/s', element: <StudentHome /> }],
+        children: [
+          { path: '/s', element: <StudentHome /> },
+          { path: '/s/scan', element: <StudentScan /> },
+        ],
       },
       {
         element: <RequireAuth />,
@@ -100,6 +105,7 @@ const router = createBrowserRouter([
           { path: '/groups/new', element: <GroupForm /> },
           { path: '/groups/:id', element: <GroupForm /> },
           { path: '/timetable', element: <Timetable /> },
+          { path: '/sessions/:id/live', element: <SessionLive /> },
           { path: '/students', element: <Students /> },
           { path: '/students/new', element: <StudentForm /> },
           { path: '/students/:id', element: <StudentForm /> },

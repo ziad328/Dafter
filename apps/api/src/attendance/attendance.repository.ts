@@ -72,6 +72,14 @@ export class AttendanceRepository extends TenantRepository {
     now: Date,
   ) {
     return this.inTenant(workspaceId, async (tx) => {
+      // FOR SHARE waits for a concurrent close (which updates this row), so a scan never lands
+      // as "absent" from a close that committed in between.
+      const [current] = await tx
+        .select({ status: sessions.status })
+        .from(sessions)
+        .where(and(eq(sessions.workspaceId, workspaceId), eq(sessions.id, s.sessionId)))
+        .for('share');
+      if (current?.status !== 'open') return 'not_open' as const;
       const [student] = await tx
         .select({ id: students.id })
         .from(students)
@@ -103,7 +111,7 @@ export class AttendanceRepository extends TenantRepository {
           ...proof,
         })
         .onConflictDoNothing();
-      return this.record(tx, workspaceId, s.sessionId, student.id);
+      return (await this.list(tx, workspaceId, s.sessionId, student.id))[0]!;
     });
   }
 
@@ -150,26 +158,38 @@ export class AttendanceRepository extends TenantRepository {
     });
   }
 
-  listForSession(workspaceId: string, sessionId: string) {
-    return this.inTenant(workspaceId, (tx) => this.list(tx, workspaceId, sessionId));
+  /**
+   * open -> closed, then every active, non-archived enrolled student without a record is absent.
+   * One transaction, so a crash never leaves a closed session with half its absences.
+   */
+  close(workspaceId: string, id: string, actorId: string, now: Date) {
+    return this.inTenant(workspaceId, async (tx) => {
+      const [closed] = await tx
+        .update(sessions)
+        .set({ status: 'closed', closedBy: actorId })
+        .where(
+          and(
+            eq(sessions.workspaceId, workspaceId),
+            eq(sessions.id, id),
+            eq(sessions.status, 'open'),
+          ),
+        )
+        .returning({ groupId: sessions.groupId });
+      if (!closed) return undefined;
+      await tx.execute(sql`
+        insert into attendance_records (workspace_id, session_id, student_id, status, method, recorded_at)
+        select ${workspaceId}, ${id}, e.student_id, 'absent', 'auto_close', ${now.toISOString()}
+        from enrollments e
+        join students st on st.workspace_id = e.workspace_id and st.id = e.student_id
+        where e.workspace_id = ${workspaceId} and e.group_id = ${closed.groupId}
+          and e.status = 'active' and st.status = 'active'
+        on conflict do nothing`);
+      return this.list(tx, workspaceId, id);
+    });
   }
 
-  private async record(tx: Tx, workspaceId: string, sessionId: string, studentId: string) {
-    const [row] = await tx
-      .select({
-        id: attendanceRecords.id,
-        status: attendanceRecords.status,
-        recordedAt: attendanceRecords.recordedAt,
-      })
-      .from(attendanceRecords)
-      .where(
-        and(
-          eq(attendanceRecords.workspaceId, workspaceId),
-          eq(attendanceRecords.sessionId, sessionId),
-          eq(attendanceRecords.studentId, studentId),
-        ),
-      );
-    return row!;
+  listForSession(workspaceId: string, sessionId: string) {
+    return this.inTenant(workspaceId, (tx) => this.list(tx, workspaceId, sessionId));
   }
 
   private async list(

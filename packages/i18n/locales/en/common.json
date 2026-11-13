@@ -151,7 +151,7 @@
     "keep": "Keep",
     "move": "Move",
     "date": "Date",
-    "start": "From",
+    "start": "Start",
     "end": "To",
     "save": "Save time",
     "close": "Close",
@@ -237,6 +237,37 @@
       "copy": "Copy link",
       "reset": "Reset phone",
       "resetConfirm": "Tap again to reset the phone"
+    }
+  },
+  "live": {
+    "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",
+    "list": "Check-ins",
+    "closed": "Session closed.",
+    "back": "Back to timetable",
+    "close": "Close session",
+    "confirmClose": "Tap again: absent students will be marked",
+    "qrAlt": "Session QR code. Scan it from the Dafter app.",
+    "status": {
+      "present": "Present",
+      "late": "Late",
+      "absent": "Absent",
+      "excused": "Excused",
+      "makeup": "Make-up"
+    }
+  },
+  "scan": {
+    "open": "Scan attendance",
+    "title": "Scan the screen",
+    "hint": "Point the camera at the QR on the teacher's screen.",
+    "cameraBlocked": "The camera is blocked. Allow it in the browser settings.",
+    "again": "The code changed. Keep the camera on the screen.",
+    "back": "Done",
+    "done": {
+      "present": "You are checked in ✓",
+      "late": "Checked in, late",
+      "makeup": "Checked in as make-up",
+      "excused": "Marked as excused",
+      "absent": "Marked absent"
     }
   }
 }
