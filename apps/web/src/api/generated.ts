@@ -1,5 +1,5 @@
 import { baseApi as api } from './base';
-export const addTagTypes = ['system', 'auth'] as const;
+export const addTagTypes = ['system', 'auth', 'workspaces'] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
     addTagTypes,
@@ -38,6 +38,22 @@ const injectedRtkApi = api
         query: () => ({ url: `/api/v1/me` }),
         providesTags: ['auth'],
       }),
+      createWorkspace: build.mutation<CreateWorkspaceApiResponse, CreateWorkspaceApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/workspaces`,
+          method: 'POST',
+          body: queryArg.createWorkspaceRequest,
+        }),
+        invalidatesTags: ['workspaces'],
+      }),
+      listWorkspaces: build.query<ListWorkspacesApiResponse, ListWorkspacesApiArg>({
+        query: () => ({ url: `/api/v1/workspaces` }),
+        providesTags: ['workspaces'],
+      }),
+      getCurrentWorkspace: build.query<GetCurrentWorkspaceApiResponse, GetCurrentWorkspaceApiArg>({
+        query: () => ({ url: `/api/v1/workspaces/current` }),
+        providesTags: ['workspaces'],
+      }),
     }),
     overrideExisting: false,
   });
@@ -58,6 +74,15 @@ export type LogoutApiResponse = unknown;
 export type LogoutApiArg = void;
 export type GetMeApiResponse = /** status 200 The signed-in user */ Me;
 export type GetMeApiArg = void;
+export type CreateWorkspaceApiResponse =
+  /** status 201 Created; the caller is its owner */ Workspace;
+export type CreateWorkspaceApiArg = {
+  createWorkspaceRequest: CreateWorkspaceRequest;
+};
+export type ListWorkspacesApiResponse = /** status 200 The caller's workspaces */ WorkspaceList;
+export type ListWorkspacesApiArg = void;
+export type GetCurrentWorkspaceApiResponse = /** status 200 The active workspace */ Workspace;
+export type GetCurrentWorkspaceApiArg = void;
 export type HealthResponse = {
   status: 'ok';
 };
@@ -71,6 +96,7 @@ export type ErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'PHONE_TAKEN'
   | 'EMAIL_TAKEN'
+  | 'WORKSPACE_NOT_FOUND'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -100,6 +126,20 @@ export type LoginRequest = {
   login: string;
   password: string;
 };
+export type Workspace = {
+  id: string;
+  type: 'center' | 'independent';
+  nameAr: string;
+  nameEn: string | null;
+  timezone: string;
+  role: 'owner' | 'teacher' | 'assistant';
+};
+export type CreateWorkspaceRequest = {
+  type: 'center' | 'independent';
+  nameAr: string;
+  nameEn?: string;
+};
+export type WorkspaceList = Workspace[];
 export const {
   useGetHealthQuery,
   useRegisterMutation,
@@ -107,4 +147,7 @@ export const {
   useRefreshMutation,
   useLogoutMutation,
   useGetMeQuery,
+  useCreateWorkspaceMutation,
+  useListWorkspacesQuery,
+  useGetCurrentWorkspaceQuery,
 } = injectedRtkApi;

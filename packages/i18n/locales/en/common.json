@@ -21,6 +21,7 @@
     "INTERNAL": "Something went wrong. Try again.",
     "INVALID_CREDENTIALS": "Wrong phone, email or password.",
     "PHONE_TAKEN": "This phone number is already registered.",
-    "EMAIL_TAKEN": "This email is already registered."
+    "EMAIL_TAKEN": "This email is already registered.",
+    "WORKSPACE_NOT_FOUND": "This workspace doesn't exist or you're not a member."
   }
 }

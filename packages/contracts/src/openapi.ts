@@ -2,6 +2,7 @@ import { createDocument } from 'zod-openapi';
 import { authResponse, loginRequest, me, registerRequest } from './auth.js';
 import { errorResponse } from './errors.js';
 import { healthResponse } from './health.js';
+import { createWorkspaceRequest, workspace, workspaceList } from './workspaces.js';
 
 const json = <T>(schema: T) => ({ 'application/json': { schema } });
 
@@ -53,6 +54,40 @@ export function buildOpenApi() {
           tags: ['auth'],
           security: [{ bearer: [] }],
           responses: { 200: { description: 'The signed-in user', content: json(me) }, ...errors },
+        },
+      },
+      '/api/v1/workspaces': {
+        post: {
+          operationId: 'createWorkspace',
+          tags: ['workspaces'],
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(createWorkspaceRequest) },
+          responses: {
+            201: { description: 'Created; the caller is its owner', content: json(workspace) },
+            ...errors,
+          },
+        },
+        get: {
+          operationId: 'listWorkspaces',
+          tags: ['workspaces'],
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: "The caller's workspaces", content: json(workspaceList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/workspaces/current': {
+        get: {
+          operationId: 'getCurrentWorkspace',
+          tags: ['workspaces'],
+          // X-Workspace-Id is sent on every tenant call by the base query, so it is not a per-endpoint arg.
+          description: 'The workspace named by the X-Workspace-Id header (the switch target).',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'The active workspace', content: json(workspace) },
+            ...errors,
+          },
         },
       },
     },

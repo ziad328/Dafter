@@ -15,6 +15,8 @@ export const ERROR_STATUS = {
   INVALID_CREDENTIALS: 401,
   PHONE_TAKEN: 409,
   EMAIL_TAKEN: 409,
+  // Unknown id, or not a member: both 404 so a workspace's existence never leaks.
+  WORKSPACE_NOT_FOUND: 404,
   INTERNAL: 500,
 } as const;
 
