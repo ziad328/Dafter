@@ -1,0 +1,42 @@
+# Render Blueprint: the API and the pg-boss worker in one free web service (docs/deploy.md).
+# Secrets marked `sync: false` are typed into the Render dashboard, never committed.
+services:
+  - type: web
+    name: dafter-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    # devDependencies are needed to build (Nest CLI, TypeScript), even with NODE_ENV=production.
+    buildCommand: npx --yes pnpm@11.5.1 install --frozen-lockfile --prod=false && npx --yes pnpm@11.5.1 turbo run build --filter=@dafter/api...
+    startCommand: node apps/api/dist/main.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: NODE_ENV
+        value: production
+      - key: MIGRATE_ON_START
+        value: '1'
+      - key: RUN_WORKER
+        value: 'true'
+      - key: TRUST_PROXY
+        value: '1'
+      - key: MAIL_PROVIDER
+        value: brevo
+      # Demo only: staff of a workspace see its sent parent messages on /dev/phone.
+      - key: DEV_FAKE_PHONE
+        value: '1'
+      - key: JWT_SECRET
+        generateValue: true
+      - key: QR_SECRET
+        generateValue: true
+      # Neon: the pooled URL (host has -pooler) for the API, the direct one for migrations and pg-boss.
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false

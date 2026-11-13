@@ -8,10 +8,8 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| Fastify `trustProxy` is off | Behind Render every request has the proxy's IP, so per-IP limits (OTP 30/15 min, a future register limit) would block everyone at once | D17 |
-| No real `Mailer` in production | Students can't get login codes; `ConsoleMailer` doesn't log codes in production, so they go nowhere | D17 |
-| Neon not checked for `CREATEROLE`/`SET ROLE` to `dafter_app`, the owner connection (workspace list, invite lookup), or `pg_trgm` | RLS role switching or Arabic search could fail on deploy | D17 |
-| CI has never run green on GitHub (remote has up to Day 9; nothing since is pushed); `oasdiff` contract check not set up | Workflow errors are unknown until the first push | D17 |
+| Neon not checked for `CREATEROLE`/`SET ROLE` to `dafter_app`, the owner connection (workspace list, invite lookup), or `pg_trgm` | RLS role switching or Arabic search could fail on deploy; `pnpm demo:seed:neon` is the first check | D17b |
+| CI has never run green on GitHub (remote has up to Day 9; nothing since is pushed); `oasdiff` contract check not set up | Workflow errors are unknown until the first push | D17b (push) |
 | Rate limits are in process memory | They reset on restart and count per instance | later (Redis at the VPS stage) |
 | The live SSE bus is in process | Check-ins only reach screens on the same API process | later (LISTEN/NOTIFY with more than one process) |
 | Every job loops over all workspaces in one pass (sessions, charges, outbox) | Slow with thousands of workspaces | later |
@@ -21,14 +19,17 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| Register has no rate limit | Sign-up spam | D17 (needs `trustProxy`) |
+| Anyone can call Render directly (bypassing the Pages proxy) with a made-up `X-Forwarded-For`, so per-IP limits can be dodged there | Weaker sign-up and OTP limits on the demo | centers (shared proxy secret, or a custom domain in front of Render) |
+| The demo's staff password is public (`dafter-dev-123`) | Anyone can change demo data; reseed with `pnpm demo:seed:neon` | — (demo only) |
+| Brevo's free tier sends from one verified address and has a daily cap | Login codes stop for the day if the cap is hit | centers (own domain) |
+| Register limit skips loopback (`127.0.0.1`) so local tools and tests can sign up freely | None in production (clients are never loopback behind Render) | — |
 | Two tabs refreshing at the same moment log the user out (reuse detection); single-flight only covers one tab | Rare surprise sign-out | later (short grace window if it bites) |
 | The audit row is written in its own transaction after the handler, also for payments | A failed audit insert returns 500 after the write committed; a crash in between loses the audit row | centers |
 | Invites: the scope check and the scope update run in separate transactions; extra workspace read on accept; duplicated token-creation code | Only matters once members can be removed | later |
 | `PATCH /members/:id` (change role, remove) not built | Staff can't be removed | centers |
 | A phone reset from center A also unbinds it at center B (one shared login) | By design, but surprising | — (documented) |
 | Anyone holding an invite link can claim that record (single use, 72 h) | Same trust model as staff invites | — (documented) |
-| `DEV_MAIL_INBOX=1` / `DEV_FAKE_PHONE=1` expose login codes / parent messages | Must never be set on a public deploy with real users | D17 (check env) |
+| `DEV_MAIL_INBOX=1` exposes login codes to anyone; `DEV_FAKE_PHONE=1` (on in the demo) shows a workspace's parent messages to its staff | Never set `DEV_MAIL_INBOX` on Render; turn `DEV_FAKE_PHONE` off with real users | centers |
 
 ## Groups, sessions and students
 
@@ -43,7 +44,6 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | No cursor pagination (groups, students: first 50) | Big centers can't see everyone | later |
 | Teachers see every student in the workspace | Privacy choice not settled | centers |
 | The UI handles one guardian per student (the API allows more) | Second parent needs the API | centers |
-| Seed has no groups or demo data | Empty demo | D17 (Arabic demo seed) |
 
 ## Attendance and student app
 
@@ -90,3 +90,4 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | `@dafter/i18n` index can't load in Node ESM (JSON imports lack `with { type: 'json' }`), so e2e imports the locale JSON directly | Small workaround | later |
 | The `run-dafter` screenshot command doesn't sign in | Only public screens can be shot | later |
 | Message e2e is skipped during Cairo quiet hours (22:00–08:00) | Night runs check less | — |
+| `student-app.spec.ts` timed out once (40 s) with the full suite on 6 workers, then passed alone | Possible flake under load | later (watch in CI) |

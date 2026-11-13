@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e:live": "playwright test tests/auth-workspace.spec.ts --retries=1"
   },
   "devDependencies": {
     "@dafter/config": "workspace:*",

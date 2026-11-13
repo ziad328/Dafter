@@ -15,7 +15,9 @@ export default function FakePhone() {
   if (isLoading) return <Skeleton />;
   if (error || !data) return <FormError message={t(errorKey(error))} />;
 
-  const byPhone = Map.groupBy(data, (m) => m.phone);
+  // Not Map.groupBy: iPhones before iOS 17.4 lack it.
+  const byPhone = new Map<string, typeof data>();
+  for (const m of data) byPhone.set(m.phone, [...(byPhone.get(m.phone) ?? []), m]);
   const time = new Intl.DateTimeFormat(intlLocale(i18n.language), {
     dateStyle: 'medium',
     timeStyle: 'short',

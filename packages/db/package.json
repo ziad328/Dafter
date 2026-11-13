@@ -19,10 +19,13 @@
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/scripts/migrate.ts",
     "seed": "tsx src/scripts/seed.ts",
-    "reset": "tsx src/scripts/reset.ts"
+    "reset": "tsx src/scripts/reset.ts",
+    "seed:demo": "tsx src/scripts/seed-demo.ts",
+    "seed:demo:neon": "tsx --env-file=../../.env.neon src/scripts/seed-demo.ts"
   },
   "devDependencies": {
     "@dafter/config": "workspace:*",
+    "@dafter/contracts": "workspace:*",
     "@opentelemetry/api": "1.10.0",
     "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^22.20.5",

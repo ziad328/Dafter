@@ -24,9 +24,10 @@ export class AuthController {
   @Post('register')
   async register(
     @Body(new ZodPipe(registerRequest)) body: RegisterRequest,
+    @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return withCookie(reply, await this.auth.register(body));
+    return withCookie(reply, await this.auth.register(body, req.ip));
   }
 
   @Post('login')

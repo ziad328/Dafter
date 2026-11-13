@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { AppError } from '../errors.js';
 
-/** Port for outgoing email. Development and tests use ConsoleMailer; Day 17 adds a real provider. */
+/** Port for outgoing email. Development and tests use ConsoleMailer; production uses BrevoMailer. */
 export abstract class Mailer {
   abstract send(to: string, text: string): Promise<void>;
 }
@@ -21,6 +21,44 @@ export class ConsoleMailer extends Mailer {
   last(to: string) {
     return this.inbox.findLast((m) => m.to === to.toLowerCase());
   }
+}
+
+/**
+ * Production (MAIL_PROVIDER=brevo): Brevo's transactional email HTTP API. The free tier sends from
+ * one verified sender address (MAIL_FROM), with no domain needed.
+ */
+export class BrevoMailer extends Mailer {
+  constructor(
+    private readonly apiKey: string,
+    private readonly from: string,
+    private readonly fetchFn: typeof fetch = fetch,
+  ) {
+    super();
+  }
+
+  async send(to: string, text: string) {
+    const res = await this.fetchFn('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': this.apiKey, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        sender: { email: this.from, name: 'دفتر Dafter' },
+        to: [{ email: to }],
+        subject: 'رمز الدخول إلى دفتر · Your Dafter code',
+        textContent: text,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    // The body may echo the recipient, never the key; enough to debug from Render's logs.
+    if (!res.ok) throw new Error(`Brevo ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  }
+}
+
+/** Brevo when configured, else the console (development, tests, or a deploy without email). */
+export function mailerFromEnv(env = process.env): Mailer {
+  if (env.MAIL_PROVIDER !== 'brevo') return new ConsoleMailer();
+  if (!env.BREVO_API_KEY || !env.MAIL_FROM)
+    throw new Error('MAIL_PROVIDER=brevo needs BREVO_API_KEY and MAIL_FROM');
+  return new BrevoMailer(env.BREVO_API_KEY, env.MAIL_FROM);
 }
 
 /**

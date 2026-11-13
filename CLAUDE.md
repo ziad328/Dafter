@@ -89,7 +89,7 @@ pnpm workspaces + Turborepo · TypeScript strict · NestJS (Fastify) · Zod cont
 11. No files on the server disk (the free-tier host wipes it). No secrets in the repo; use `.env` and GitHub secrets.
 12. Receipts are print-ready HTML pages that the browser saves as PDF. The session QR is drawn on the teacher's screen, never printed.
 13. Student login and phone binding happen inside the installed PWA, never in a browser tab: on iPhone the two have separate storage, and Safari may clear a website's storage after about 7 days without visits.
-14. The web app is React + Vite, not Next.js. Do not add server rendering, Next.js, or API routes in the frontend; all server logic lives in NestJS.
+14. The web app is React + Vite, not Next.js. Do not add server rendering, Next.js, or API routes in the frontend; all server logic lives in NestJS. The one exception is `apps/web/functions/[[path]].ts`, a pure Cloudflare Pages proxy for `/api/*` and `/health` (same origin for the refresh cookie); never put logic in it.
 
 ## Definition of Done
 

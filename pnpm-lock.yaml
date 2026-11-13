@@ -266,6 +266,9 @@ importers:
       '@dafter/config':
         specifier: workspace:*
         version: link:../config
+      '@dafter/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@opentelemetry/api':
         specifier: 1.10.0
         version: 1.10.0

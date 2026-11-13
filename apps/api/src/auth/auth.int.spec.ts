@@ -7,7 +7,7 @@ import { makeUser, useTestDb } from '@dafter/db/testing';
 import { createApp } from '../app.js';
 import { FakeClock } from '../clock.js';
 import { REFRESH_COOKIE } from './auth.controller.js';
-import { hashToken } from './auth.service.js';
+import { hashToken, REGISTER_PER_HOUR } from './auth.service.js';
 
 const testDb = useTestDb();
 const clock = new FakeClock();
@@ -24,7 +24,13 @@ let n = 0;
 const uniquePhone = () => `0120000${String(++n).padStart(4, '0')}`;
 const password = 'correct horse';
 
-const post = (url: string, payload?: object, cookie?: string, ip = '10.0.0.1') =>
+// Registrations default to loopback, which the per-IP register limit skips.
+const post = (
+  url: string,
+  payload?: object,
+  cookie?: string,
+  ip = url === 'register' ? '127.0.0.1' : '10.0.0.1',
+) =>
   app.inject({
     method: 'POST',
     url: `/api/v1/auth/${url}`,
@@ -145,6 +151,28 @@ describe('login', () => {
     expect(
       (await post('login', { login: phone, password }, undefined, '10.2.0.1')).statusCode,
     ).toBe(429);
+  });
+});
+
+describe('register rate limit', () => {
+  it('allows 10 sign-ups per IP an hour, then 429 until the hour ends', async () => {
+    const signUp = () =>
+      post('register', { name: 'سبام', phone: uniquePhone(), password }, undefined, '203.0.113.7');
+    for (let i = 0; i < REGISTER_PER_HOUR; i++) expect((await signUp()).statusCode).toBe(201);
+    const blocked = await signUp();
+    expect([blocked.statusCode, blocked.json().code]).toEqual([429, 'RATE_LIMITED']);
+    expect(
+      (
+        await post(
+          'register',
+          { name: 'آخر', phone: uniquePhone(), password },
+          undefined,
+          '203.0.113.8',
+        )
+      ).statusCode,
+    ).toBe(201);
+    clock.advance(60 * 60 * 1000);
+    expect((await signUp()).statusCode).toBe(201);
   });
 });
 

@@ -12,6 +12,10 @@ export const ACCESS_TTL_S = 15 * 60;
 export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+export const REGISTER_PER_HOUR = 10;
+// Local tools and tests register from loopback; a real client never has it (Render sets the
+// client address through X-Forwarded-For, read with TRUST_PROXY=1).
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
 // Compared against when the login matches no user, so both paths take the same argon2 time.
 const DUMMY_HASH = hash('dafter-no-such-user');
@@ -26,6 +30,7 @@ export interface Session extends AuthResponse {
 @Injectable()
 export class AuthService {
   private readonly limiter: RateLimiter;
+  private readonly registrations: RateLimiter;
 
   constructor(
     @Inject(AuthRepository) private readonly repo: AuthRepository,
@@ -33,9 +38,16 @@ export class AuthService {
     @Inject(Clock) private readonly clock: Clock,
   ) {
     this.limiter = new RateLimiter(clock, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
+    this.registrations = new RateLimiter(clock, REGISTER_PER_HOUR, 60 * 60 * 1000);
   }
 
-  async register(input: RegisterRequest): Promise<Session> {
+  async register(input: RegisterRequest, ip: string): Promise<Session> {
+    if (!LOOPBACK.has(ip)) {
+      // Every attempt counts (not only failures): this limits sign-up spam per address.
+      const keys = [`register:${ip}`];
+      if (this.registrations.isBlocked(keys)) throw new AppError('RATE_LIMITED');
+      this.registrations.fail(keys);
+    }
     const user = await this.repo
       .createUser({
         name: input.name,

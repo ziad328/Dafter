@@ -13,7 +13,7 @@ import { MoneyModule } from './money/money.module.js';
 import { MembersModule } from './members/members.module.js';
 import { SessionsModule } from './sessions/sessions.module.js';
 import { StudentAuthModule } from './student-auth/student-auth.module.js';
-import { ConsoleMailer, Mailer } from './student-auth/mailer.js';
+import { Mailer, mailerFromEnv } from './student-auth/mailer.js';
 import { StudentsModule } from './students/students.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { AuditInterceptor } from './audit.interceptor.js';
@@ -68,12 +68,12 @@ export async function createApp(
       providers: [
         { provide: DB, useValue: db },
         { provide: Clock, useValue: options.clock ?? new Clock() },
-        // shortcut: console only; Day 17 picks a real provider when MAIL_PROVIDER is set.
-        { provide: Mailer, useValue: options.mailer ?? new ConsoleMailer() },
+        { provide: Mailer, useValue: options.mailer ?? mailerFromEnv() },
       ],
       exports: [DB, Clock, Mailer],
     },
-    new FastifyAdapter(),
+    // Behind Render (and the Pages proxy) req.ip comes from X-Forwarded-For; never trust it locally.
+    new FastifyAdapter({ trustProxy: process.env.TRUST_PROXY === '1' }),
     { logger: options.logger },
   );
   app.getHttpAdapter().getInstance().addHook('onClose', closeDb);
