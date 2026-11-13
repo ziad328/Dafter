@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { Db } from '@dafter/db';
 import { createApp } from './app.js';
 
 let app: NestFastifyApplication;
 
 beforeAll(async () => {
-  app = await createApp({ logger: false });
+  app = await createApp({ logger: false, db: {} as Db }); // these routes never query;
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 });

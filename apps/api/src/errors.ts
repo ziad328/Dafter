@@ -17,8 +17,11 @@ export class AppError extends Error {
   }
 }
 
+// First code per status wins, so a bare 401 is UNAUTHENTICATED, not a feature code.
 const CODE_BY_STATUS: Partial<Record<number, ErrorCode>> = Object.fromEntries(
-  Object.entries(ERROR_STATUS).map(([code, status]) => [status, code as ErrorCode]),
+  Object.entries(ERROR_STATUS)
+    .reverse()
+    .map(([code, status]) => [status, code as ErrorCode]),
 );
 
 export function toErrorResponse(err: unknown): ErrorResponse {

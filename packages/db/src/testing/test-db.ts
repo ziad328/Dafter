@@ -5,6 +5,13 @@ import { afterAll, beforeAll, inject } from 'vitest';
 import { createDb, type Db } from '../client.js';
 import { TEMPLATE_DB } from './template.js';
 
+// Set by global-setup.ts; declared here because every consumer imports this file.
+declare module 'vitest' {
+  export interface ProvidedContext {
+    pgUrl: string;
+  }
+}
+
 export interface TestDb {
   db: Db;
   url: string;

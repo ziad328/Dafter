@@ -2,7 +2,9 @@ import { createDb } from './client.js';
 import { assistantScopes, memberships, users, workspaces } from './schema.js';
 
 // Demo center for local work and the live demo. Run on an empty database (pnpm db:reset).
-// Staff get passwords on Day 4, when argon2 hashing exists.
+// Every demo staff user signs in with the dev password `dafter-dev-123` (argon2id hash below).
+const DEV_PASSWORD_HASH =
+  '$argon2id$v=19$m=19456,t=2,p=1$LR+GnavtUhYVGmjbH/WSCA$w0qdiyn48mchv6fTtoMKPyZ3UyYlAd6A3kEWu6f/fyU';
 export async function seed(connectionString: string) {
   const { db, pool } = createDb(connectionString);
   try {
@@ -15,9 +17,24 @@ export async function seed(connectionString: string) {
       const [owner, teacher, assistant] = await tx
         .insert(users)
         .values([
-          { name: 'أحمد محمود', phone: '01000000001', email: 'owner@dafter.test' },
-          { name: 'منى حسن', phone: '01000000002', email: 'teacher@dafter.test' },
-          { name: 'يوسف علي', phone: '01000000003', email: 'assistant@dafter.test' },
+          {
+            name: 'أحمد محمود',
+            phone: '01000000001',
+            email: 'owner@dafter.test',
+            passwordHash: DEV_PASSWORD_HASH,
+          },
+          {
+            name: 'منى حسن',
+            phone: '01000000002',
+            email: 'teacher@dafter.test',
+            passwordHash: DEV_PASSWORD_HASH,
+          },
+          {
+            name: 'يوسف علي',
+            phone: '01000000003',
+            email: 'assistant@dafter.test',
+            passwordHash: DEV_PASSWORD_HASH,
+          },
         ])
         .returning();
 

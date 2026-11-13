@@ -18,6 +18,9 @@
     "NOT_FOUND": "Not found.",
     "CONFLICT": "This already exists.",
     "RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
-    "INTERNAL": "Something went wrong. Try again."
+    "INTERNAL": "Something went wrong. Try again.",
+    "INVALID_CREDENTIALS": "Wrong phone, email or password.",
+    "PHONE_TAKEN": "This phone number is already registered.",
+    "EMAIL_TAKEN": "This email is already registered."
   }
 }

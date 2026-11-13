@@ -12,9 +12,3 @@ export default async function setup(project: TestProject) {
     await container.stop();
   };
 }
-
-declare module 'vitest' {
-  export interface ProvidedContext {
-    pgUrl: string;
-  }
-}
