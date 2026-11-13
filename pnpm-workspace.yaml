@@ -1,0 +1,6 @@
+packages:
+  - apps/*
+  - packages/*
+allowBuilds:
+  # hooks are installed by the root "prepare" script instead
+  lefthook: false

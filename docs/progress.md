@@ -8,7 +8,7 @@ Tick a task when done, with a one-line note (what was done, anything left). Spli
 
 ## Week 1: foundations and accounts
 
-- [ ] **Day 1 (Nov 13):** pnpm + Turborepo monorepo, shared tsconfig/ESLint/Prettier, lefthook pre-commit, NestJS (Fastify) and Vite React skeletons, empty packages, Docker Compose with PostgreSQL 17, `.env.example`.
+- [x] **Day 1 (Nov 13):** pnpm + Turborepo monorepo, shared tsconfig/ESLint/Prettier, lefthook pre-commit, NestJS (Fastify) and Vite React skeletons, empty packages, Docker Compose with PostgreSQL 17, `.env.example`. Note: done; TypeScript pinned to ~6.0 (typescript-eslint and Nest CLI do not support TS 7 yet), `/health` + 2 tests, worker runs in-process via `RUN_WORKER`. Left: no ESLint React plugin yet (add with Day 3 lint rules).
 - [ ] **Day 2 (Nov 14):** Drizzle setup and first migration (users, refresh_tokens, workspaces, memberships, assistant_scopes, invites, audit_log), seed script, Testcontainers harness that clones a template database per worker, GitHub Actions CI (lint, typecheck, unit, integration).
 - [ ] **Day 3 (Nov 15):** `packages/contracts` with Zod, OpenAPI generation, RTK Query codegen, CI contract check, error-code format; `packages/i18n` and the web shell (Arabic default, RTL, language switch, Arabic-capable font, lint rule banning physical-direction classes). Run `/run-skill-generator` once `pnpm dev` works.
 - [ ] **Day 4 (Nov 16):** staff auth: register, login (argon2id, rate limit), 15-minute access JWT, rotating refresh token in an httpOnly cookie with family reuse detection, logout, `GET /me`, full tests. *Hard part.*
