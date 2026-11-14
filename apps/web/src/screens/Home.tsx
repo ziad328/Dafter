@@ -96,8 +96,10 @@ export default function Home() {
       </header>
       <FormError message={error && t(errorKey(error))} />
 
+      {/* Phones get one column in a different order: the next session, the shortcuts, then the
+        numbers (audit T1). The two column wrappers dissolve until xl, so `order` can do it. */}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="grid content-start gap-6">
+        <div className="contents xl:grid xl:content-start xl:gap-6">
           {next ? (
             <NextSession session={next} tz={tz} />
           ) : (
@@ -113,7 +115,7 @@ export default function Home() {
           )}
 
           {stats.data && (
-            <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <ul className="order-3 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:order-none">
               <Tile
                 icon={CalendarCheck}
                 tone="ink"
@@ -141,12 +143,22 @@ export default function Home() {
             </ul>
           )}
 
-          {list.length > 0 && <DayList sessions={list} next={next} tz={tz} />}
+          {list.length > 0 && (
+            <div className="order-4 xl:order-none">
+              <DayList sessions={list} next={next} tz={tz} />
+            </div>
+          )}
         </div>
 
-        <div className="grid content-start gap-6">
-          {stats.data && <WeekChart week={stats.data.week} />}
-          <QuickActions role={current.data?.role} />
+        <div className="contents xl:grid xl:content-start xl:gap-6">
+          {stats.data && (
+            <div className="order-5 xl:order-none">
+              <WeekChart week={stats.data.week} />
+            </div>
+          )}
+          <div className="order-2 xl:order-none">
+            <QuickActions role={current.data?.role} />
+          </div>
         </div>
       </div>
     </div>
