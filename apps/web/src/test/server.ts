@@ -1,0 +1,204 @@
+import type {
+  AttendanceRecord,
+  MyAttendanceRecord,
+  MySession,
+  OpenSession,
+} from '@dafter/contracts';
+import { delay, http, HttpResponse, type JsonBodyType } from 'msw';
+import { setupServer } from 'msw/node';
+import captured from './fixtures.json';
+
+/**
+ * Fixtures captured from the dev API (owner of «سنتر النور»), plus the few the owner can't read
+ * (the student app, live records). Tests copy and change them; they never edit these.
+ */
+const open = captured.sessions.find((s) => s.status === 'open')!;
+const [first, second] = captured.roster;
+const record = (studentId: string, status: AttendanceRecord['status']): AttendanceRecord => ({
+  id: crypto.randomUUID(),
+  studentId,
+  nameAr: captured.roster.find((r) => r.studentId === studentId)!.nameAr,
+  nameEn: null,
+  status,
+  method: 'manual',
+  recordedAt: new Date().toISOString(),
+});
+const mySession = (startsInMin: number, status: MySession['status'] = 'scheduled'): MySession => ({
+  id: crypto.randomUUID(),
+  center: { nameAr: 'سنتر النور', nameEn: 'Al-Nour Center' },
+  subject: captured.subjects[0]!,
+  gradeLevel: captured.gradeLevels[0]!,
+  teacherName: 'أحمد محمود',
+  startsAt: new Date(Date.now() + startsInMin * 60_000).toISOString(),
+  endsAt: new Date(Date.now() + (startsInMin + 90) * 60_000).toISOString(),
+  status,
+  timezone: 'Africa/Cairo',
+});
+
+export const fx = {
+  ...captured,
+  openSession: {
+    sessionId: open.id,
+    qrKey: 'dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXk',
+    serverTime: new Date().toISOString(),
+    windowMs: 10_000,
+  } satisfies OpenSession,
+  record,
+  liveRecords: [record(first!.studentId, 'present')],
+  closeRecords: [record(first!.studentId, 'present'), record(second!.studentId, 'absent')],
+  mySchedule: [mySession(30), mySession(60 * 24, 'cancelled'), mySession(60 * 48)],
+  myAttendance: [
+    { status: 'present' },
+    { status: 'late' },
+    { status: 'excused' },
+    { status: 'absent' },
+  ].map((r, i): MyAttendanceRecord => ({
+    sessionId: crypto.randomUUID(),
+    center: { nameAr: 'سنتر النور', nameEn: null },
+    subject: captured.subjects[0]!,
+    startsAt: new Date(Date.now() - (i + 1) * 86_400_000).toISOString(),
+    timezone: 'Africa/Cairo',
+    status: r.status as MyAttendanceRecord['status'],
+  })),
+};
+
+/** Every request the app sent in this test, newest last: "METHOD /path?query" and its body. */
+export const sent: { call: string; body: unknown }[] = [];
+
+const ok = (body: JsonBodyType, status = 200) => HttpResponse.json(body, { status });
+const api = (path: string) => `*/api/v1/${path}`;
+const log =
+  (
+    body: JsonBodyType | ((req: Request, params: Record<string, unknown>) => JsonBodyType),
+    status = 200,
+  ) =>
+  async ({ request, params }: { request: Request; params: Record<string, unknown> }) => {
+    const url = new URL(request.url);
+    const text = request.method === 'GET' ? '' : await request.text();
+    sent.push({
+      call: `${request.method} ${url.pathname}${url.search}`,
+      body: text ? JSON.parse(text) : undefined,
+    });
+    if (status === 204) return new HttpResponse(null, { status });
+    return ok(typeof body === 'function' ? body(request, params) : body, status);
+  };
+
+export const handlers = [
+  http.get('*/health', log({ status: 'ok' })),
+  http.post(api('auth/refresh'), log(fx.auth)),
+  http.post(api('auth/login'), log(fx.auth)),
+  http.post(api('auth/register'), log(fx.auth, 201)),
+  http.post(api('auth/logout'), log(null, 204)),
+  http.post(api('auth/otp/request'), log(null, 204)),
+  http.post(api('auth/otp/verify'), log(fx.auth)),
+  http.get(api('me'), log(fx.me)),
+  http.get(api('me/schedule'), log(fx.mySchedule)),
+  http.get(api('me/attendance'), log(fx.myAttendance)),
+  http.post(
+    api('devices/bind'),
+    log({ id: crypto.randomUUID(), boundAt: new Date().toISOString() }, 201),
+  ),
+  http.post(
+    api('check-ins'),
+    log(
+      {
+        id: crypto.randomUUID(),
+        sessionId: open.id,
+        status: 'present',
+        recordedAt: new Date().toISOString(),
+      },
+      201,
+    ),
+  ),
+  http.get(api('workspaces'), log(fx.workspaces)),
+  http.post(api('workspaces'), log(fx.workspaces[0]!, 201)),
+  http.get(api('workspaces/current'), log(fx.currentWorkspace)),
+  http.post(
+    api('invites'),
+    log(
+      {
+        id: crypto.randomUUID(),
+        token: 'staff-invite-token',
+        role: 'assistant',
+        expiresAt: new Date().toISOString(),
+      },
+      201,
+    ),
+  ),
+  http.post(api('invites/:token/accept'), log(fx.currentWorkspace)),
+  http.get(api('members'), log(fx.members)),
+  http.put(
+    api('members/:id/scopes'),
+    log((_r, p) => fx.members.find((m) => m.id === p.id)!),
+  ),
+  http.get(api('subjects'), log(fx.subjects)),
+  http.get(api('grade-levels'), log(fx.gradeLevels)),
+  http.get(api('groups'), log(fx.groups)),
+  http.post(api('groups'), log(fx.group, 201)),
+  http.get(api('groups/:id'), log(fx.group)),
+  http.patch(api('groups/:id'), log(fx.group)),
+  http.get(api('sessions'), log(fx.sessions)),
+  http.patch(api('sessions/:id'), log(fx.sessions[1]!)),
+  http.post(api('sessions/:id/cancel'), log({ ...fx.sessions[1]!, status: 'cancelled' })),
+  http.post(api('sessions/:id/open'), log(fx.openSession)),
+  http.get(api('sessions/:id/attendance'), log(fx.liveRecords)),
+  http.get(api('sessions/:id/roster'), log(fx.roster)),
+  http.put(
+    api('sessions/:id/attendance/:studentId'),
+    log(async (req, p) =>
+      record(
+        p.studentId as string,
+        ((await req.clone().json()) as { status: AttendanceRecord['status'] }).status,
+      ),
+    ),
+  ),
+  http.post(api('sessions/:id/close'), log(fx.closeRecords)),
+  http.get(api('sessions/:id/live'), async () => {
+    await delay('infinite');
+    return new HttpResponse(null);
+  }),
+  http.get(api('stats/today'), log(fx.stats)),
+  http.get(api('students'), log(fx.students)),
+  http.post(api('students'), log(fx.student, 201)),
+  http.get(api('students/:id'), log(fx.student)),
+  http.patch(api('students/:id'), log(fx.student)),
+  http.get(api('students/:id/enrollments'), log(fx.enrollments)),
+  http.post(api('students/:id/enrollments'), log(fx.enrollments[0]!, 201)),
+  http.delete(
+    api('students/:id/enrollments/:enrollmentId'),
+    log({ ...fx.enrollments[0]!, status: 'left' }),
+  ),
+  http.post(
+    api('students/:id/invite'),
+    log({ token: 'student-invite-token', expiresAt: new Date().toISOString() }, 201),
+  ),
+  http.delete(api('students/:id/device'), log(null, 204)),
+  http.get(api('students/:id/ledger'), log(fx.ledger)),
+  http.post(
+    api('payments'),
+    log(
+      fx.ledger.entries.find((e) => e.type === 'payment')!,
+      201,
+    ),
+  ),
+  http.post(api('ledger/:id/reverse'), log(fx.ledger.entries[0]!, 201)),
+  http.get(api('ledger/:id/receipt'), log(fx.receipt)),
+  http.get(api('messages'), log(fx.messages)),
+  http.get(api('message-settings'), log(fx.messageSettings)),
+  http.put(
+    api('message-settings'),
+    log(async (req) => (await req.clone().json()) as JsonBodyType),
+  ),
+  http.get(api('dev/phone'), log(fx.phone)),
+];
+
+export const server = setupServer(...handlers);
+
+/** An API error the way the server sends it: a code, never a sentence (rule 3). */
+export const fail =
+  (code: string, status = 400) =>
+  async () =>
+    ok({ code }, status);
+
+export { http };
+export const route = api;

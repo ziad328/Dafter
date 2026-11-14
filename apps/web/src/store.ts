@@ -17,9 +17,12 @@ api.enhanceEndpoints({
   },
 });
 
-export const store = configureStore({
-  reducer: { [api.reducerPath]: api.reducer },
-  middleware: (getDefault) => getDefault().concat(api.middleware),
-});
+export const makeStore = () =>
+  configureStore({
+    reducer: { [api.reducerPath]: api.reducer },
+    middleware: (getDefault) => getDefault().concat(api.middleware),
+  });
+
+export const store = makeStore();
 
 export type AppDispatch = typeof store.dispatch;

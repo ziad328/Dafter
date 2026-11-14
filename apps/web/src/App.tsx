@@ -1,6 +1,13 @@
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router';
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  type RouteObject,
+  RouterProvider,
+  useLocation,
+} from 'react-router';
 import { useGetMeQuery } from './api/generated';
 import { AppShell } from './components/AppShell';
 import { FormError, Skeleton } from './components/Field';
@@ -81,7 +88,8 @@ function RequireAuth({ loginPath = '/login' }: { loginPath?: string }) {
   return <Outlet />;
 }
 
-const router = createBrowserRouter([
+/** The route table; tests mount it in a memory router. */
+export const routes: RouteObject[] = [
   {
     element: <Layout />,
     children: [
@@ -126,7 +134,9 @@ const router = createBrowserRouter([
       },
     ],
   },
-]);
+];
+
+const router = createBrowserRouter(routes);
 
 export function App() {
   return <RouterProvider router={router} />;

@@ -1,0 +1,618 @@
+{
+  "auth": {
+    "accessToken": "test-token",
+    "user": {
+      "id": "aa5bbdef-1000-404a-9578-1f2e8ad0bd93",
+      "name": "أحمد محمود",
+      "phone": "01000000001",
+      "email": "owner@dafter.test",
+      "locale": "ar"
+    }
+  },
+  "me": {
+    "id": "aa5bbdef-1000-404a-9578-1f2e8ad0bd93",
+    "name": "أحمد محمود",
+    "phone": "01000000001",
+    "email": "owner@dafter.test",
+    "locale": "ar"
+  },
+  "workspaces": [
+    {
+      "id": "0bc9f693-23e9-4f3f-bef0-1e9c67b67af1",
+      "type": "center",
+      "nameAr": "سنتر النور",
+      "nameEn": "Al-Nour Center",
+      "timezone": "Africa/Cairo",
+      "role": "owner"
+    }
+  ],
+  "currentWorkspace": {
+    "id": "0bc9f693-23e9-4f3f-bef0-1e9c67b67af1",
+    "type": "center",
+    "nameAr": "سنتر النور",
+    "nameEn": "Al-Nour Center",
+    "timezone": "Africa/Cairo",
+    "role": "owner"
+  },
+  "members": [
+    {
+      "id": "991caef0-ff97-4e23-b46f-fc7011ce0ae9",
+      "userId": "aa5bbdef-1000-404a-9578-1f2e8ad0bd93",
+      "name": "أحمد محمود",
+      "phone": "01000000001",
+      "role": "owner",
+      "teacherMembershipIds": []
+    },
+    {
+      "id": "c7533f6f-4f19-4059-a752-da38696269ad",
+      "userId": "e3f37a0f-45a3-4a8f-9a63-2cbb670d1ace",
+      "name": "منى حسن",
+      "phone": "01000000002",
+      "role": "teacher",
+      "teacherMembershipIds": []
+    },
+    {
+      "id": "7bede68f-d07d-4f40-b8de-2870df02837f",
+      "userId": "f7600d86-7d3c-4c59-81d8-c2a9bff5c1da",
+      "name": "يوسف علي",
+      "phone": "01000000003",
+      "role": "assistant",
+      "teacherMembershipIds": ["c7533f6f-4f19-4059-a752-da38696269ad"]
+    },
+    {
+      "id": "42fd502d-f9c2-4bac-aeaa-8374e66a3a99",
+      "userId": "c578f3f7-0067-4907-8557-ae15d69eee1c",
+      "name": "هاني 18984461",
+      "phone": "01018984461",
+      "role": "assistant",
+      "teacherMembershipIds": ["c7533f6f-4f19-4059-a752-da38696269ad"]
+    }
+  ],
+  "subjects": [
+    {
+      "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+      "nameAr": "اللغة العربية",
+      "nameEn": "Arabic"
+    },
+    {
+      "id": "f54f84e4-5e0c-4741-b913-6a1ba93011dd",
+      "nameAr": "اللغة الإنجليزية",
+      "nameEn": "English"
+    },
+    {
+      "id": "75bb905d-8c43-4e98-ac88-b513d164c861",
+      "nameAr": "الرياضيات",
+      "nameEn": "Mathematics"
+    },
+    {
+      "id": "e769a777-0930-4a5e-a043-2a1dfb8ebc9f",
+      "nameAr": "العلوم",
+      "nameEn": "Science"
+    }
+  ],
+  "gradeLevels": [
+    {
+      "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+      "nameAr": "الصف الأول الابتدائي",
+      "nameEn": "Primary 1"
+    },
+    {
+      "id": "3bee700e-7b29-424d-b1e3-839c30e95855",
+      "nameAr": "الصف الثاني الابتدائي",
+      "nameEn": "Primary 2"
+    },
+    {
+      "id": "d4acaf89-a1e3-480a-8eda-38fcaf336693",
+      "nameAr": "الصف الثالث الابتدائي",
+      "nameEn": "Primary 3"
+    },
+    {
+      "id": "c6a0282a-2f61-43b8-8f15-71fbc5e165a9",
+      "nameAr": "الصف الرابع الابتدائي",
+      "nameEn": "Primary 4"
+    }
+  ],
+  "groups": [
+    {
+      "id": "cc79a96d-28de-4839-9988-fff9fa5a9afd",
+      "teacherMembershipId": "991caef0-ff97-4e23-b46f-fc7011ce0ae9",
+      "teacherName": "أحمد محمود",
+      "subject": {
+        "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+        "nameAr": "اللغة العربية",
+        "nameEn": "Arabic"
+      },
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      },
+      "capacity": null,
+      "monthlyFeePiastres": 50000,
+      "status": "active",
+      "slots": [
+        {
+          "weekday": 1,
+          "startTime": "18:00",
+          "endTime": "19:30"
+        }
+      ]
+    },
+    {
+      "id": "74167ef0-a5b5-4616-9a80-2ee7f1ed9447",
+      "teacherMembershipId": "991caef0-ff97-4e23-b46f-fc7011ce0ae9",
+      "teacherName": "أحمد محمود",
+      "subject": {
+        "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+        "nameAr": "اللغة العربية",
+        "nameEn": "Arabic"
+      },
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      },
+      "capacity": null,
+      "monthlyFeePiastres": null,
+      "status": "active",
+      "slots": [
+        {
+          "weekday": 0,
+          "startTime": "10:00",
+          "endTime": "11:00"
+        }
+      ]
+    },
+    {
+      "id": "9ec9385c-822f-46e0-98e9-615b77f9e1f7",
+      "teacherMembershipId": "991caef0-ff97-4e23-b46f-fc7011ce0ae9",
+      "teacherName": "أحمد محمود",
+      "subject": {
+        "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+        "nameAr": "اللغة العربية",
+        "nameEn": "Arabic"
+      },
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      },
+      "capacity": null,
+      "monthlyFeePiastres": null,
+      "status": "active",
+      "slots": [
+        {
+          "weekday": 6,
+          "startTime": "03:18",
+          "endTime": "23:59"
+        }
+      ]
+    }
+  ],
+  "group": {
+    "id": "cc79a96d-28de-4839-9988-fff9fa5a9afd",
+    "teacherMembershipId": "991caef0-ff97-4e23-b46f-fc7011ce0ae9",
+    "teacherName": "أحمد محمود",
+    "subject": {
+      "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+      "nameAr": "اللغة العربية",
+      "nameEn": "Arabic"
+    },
+    "gradeLevel": {
+      "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+      "nameAr": "الصف الأول الابتدائي",
+      "nameEn": "Primary 1"
+    },
+    "capacity": null,
+    "monthlyFeePiastres": 50000,
+    "status": "active",
+    "slots": [
+      {
+        "weekday": 1,
+        "startTime": "18:00",
+        "endTime": "19:30"
+      }
+    ]
+  },
+  "sessions": [
+    {
+      "id": "812ea7fb-60c4-4fbf-b439-55983f68a70a",
+      "groupId": "3cd1eb90-062f-44f4-902d-af571703f13f",
+      "startsAt": "2026-11-14T02:42:00.000Z",
+      "endsAt": "2026-11-14T21:59:00.000Z",
+      "status": "open",
+      "moved": false,
+      "teacherMembershipId": "991caef0-ff97-4e23-b46f-fc7011ce0ae9",
+      "teacherName": "أحمد محمود",
+      "subject": {
+        "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+        "nameAr": "اللغة العربية",
+        "nameEn": "Arabic"
+      },
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      }
+    },
+    {
+      "id": "9ddd7671-111c-4c2e-84a7-152fb6e04f60",
+      "groupId": "b0f94d78-1b9a-4dcd-92f8-91e62916de81",
+      "startsAt": "2026-11-14T14:00:00.000Z",
+      "endsAt": "2026-11-14T15:30:00.000Z",
+      "status": "scheduled",
+      "moved": false,
+      "teacherMembershipId": "c7533f6f-4f19-4059-a752-da38696269ad",
+      "teacherName": "منى حسن",
+      "subject": {
+        "id": "dac6b16f-8ac0-470b-ae96-a96f56fe20c2",
+        "nameAr": "الفيزياء",
+        "nameEn": "Physics"
+      },
+      "gradeLevel": {
+        "id": "6e798fb0-71a1-448b-bd87-8aafc05c7835",
+        "nameAr": "الصف الثالث الثانوي",
+        "nameEn": "Secondary 3"
+      }
+    },
+    {
+      "id": "eae2baeb-db4c-45a5-978a-32a62755d91a",
+      "groupId": "9ec9385c-822f-46e0-98e9-615b77f9e1f7",
+      "startsAt": "2026-11-14T01:18:00.000Z",
+      "endsAt": "2026-11-14T21:59:00.000Z",
+      "status": "closed",
+      "moved": false,
+      "teacherMembershipId": "991caef0-ff97-4e23-b46f-fc7011ce0ae9",
+      "teacherName": "أحمد محمود",
+      "subject": {
+        "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+        "nameAr": "اللغة العربية",
+        "nameEn": "Arabic"
+      },
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      }
+    }
+  ],
+  "stats": {
+    "sessionsToday": 111,
+    "expectedToday": 109,
+    "checkedInToday": 72,
+    "activeStudents": 260,
+    "week": [
+      {
+        "date": "2026-11-08",
+        "present": 8,
+        "total": 8
+      },
+      {
+        "date": "2026-11-09",
+        "present": 6,
+        "total": 6
+      },
+      {
+        "date": "2026-11-10",
+        "present": 7,
+        "total": 7
+      },
+      {
+        "date": "2026-11-11",
+        "present": 7,
+        "total": 8
+      },
+      {
+        "date": "2026-11-12",
+        "present": 5,
+        "total": 6
+      },
+      {
+        "date": "2026-11-13",
+        "present": 7,
+        "total": 7
+      },
+      {
+        "date": "2026-11-14",
+        "present": 72,
+        "total": 72
+      }
+    ]
+  },
+  "roster": [
+    {
+      "studentId": "dcdc2104-eec7-406f-b1fa-004ae3e54c83",
+      "nameAr": "مريم 41330473",
+      "nameEn": null
+    },
+    {
+      "studentId": "5c619f40-0617-4615-b115-7242118169a8",
+      "nameAr": "يوسف 41330473",
+      "nameEn": null
+    }
+  ],
+  "attendance": [],
+  "students": [
+    {
+      "id": "38e8d95d-9dc5-46d3-b7e9-6384629e9951",
+      "nameAr": "نور 10847998",
+      "nameEn": null,
+      "phone": null,
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      },
+      "school": null,
+      "status": "active",
+      "activated": false,
+      "deviceBound": false,
+      "guardians": [
+        {
+          "id": "56f63d43-a508-4738-a112-87849a2a8507",
+          "name": null,
+          "phone": "01110847998",
+          "relation": "father",
+          "preferredLocale": "ar",
+          "whatsappOptIn": false,
+          "isPrimary": true
+        }
+      ]
+    },
+    {
+      "id": "b30307d0-23da-4d84-8a7f-e578a2d5ab22",
+      "nameAr": "نور 12665937",
+      "nameEn": null,
+      "phone": null,
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      },
+      "school": null,
+      "status": "active",
+      "activated": false,
+      "deviceBound": false,
+      "guardians": [
+        {
+          "id": "032ddd83-ec22-462f-9e7d-df6e6f5ba313",
+          "name": null,
+          "phone": "01112665937",
+          "relation": "father",
+          "preferredLocale": "ar",
+          "whatsappOptIn": false,
+          "isPrimary": true
+        }
+      ]
+    },
+    {
+      "id": "9163dcbd-f0a6-4397-85b0-da9ab41fad87",
+      "nameAr": "نور 13783681",
+      "nameEn": null,
+      "phone": null,
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      },
+      "school": null,
+      "status": "active",
+      "activated": false,
+      "deviceBound": false,
+      "guardians": [
+        {
+          "id": "4ec363bf-4c61-4272-875c-4d8c7f6df098",
+          "name": null,
+          "phone": "01113783681",
+          "relation": "father",
+          "preferredLocale": "ar",
+          "whatsappOptIn": false,
+          "isPrimary": true
+        }
+      ]
+    }
+  ],
+  "student": {
+    "id": "38e8d95d-9dc5-46d3-b7e9-6384629e9951",
+    "nameAr": "نور 10847998",
+    "nameEn": null,
+    "phone": null,
+    "gradeLevel": {
+      "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+      "nameAr": "الصف الأول الابتدائي",
+      "nameEn": "Primary 1"
+    },
+    "school": null,
+    "status": "active",
+    "activated": false,
+    "deviceBound": false,
+    "guardians": [
+      {
+        "id": "56f63d43-a508-4738-a112-87849a2a8507",
+        "name": null,
+        "phone": "01110847998",
+        "relation": "father",
+        "preferredLocale": "ar",
+        "whatsappOptIn": false,
+        "isPrimary": true
+      }
+    ]
+  },
+  "enrollments": [
+    {
+      "id": "7d257a5b-8119-40ab-aec1-303f6906f424",
+      "groupId": "79fc11b3-4fa6-49c9-ba90-5425c372b855",
+      "subject": {
+        "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+        "nameAr": "اللغة العربية",
+        "nameEn": "Arabic"
+      },
+      "gradeLevel": {
+        "id": "5d4ad38a-dca4-4252-b5d0-3382592c61c6",
+        "nameAr": "الصف الأول الابتدائي",
+        "nameEn": "Primary 1"
+      },
+      "teacherName": "أحمد محمود",
+      "discountPct": 0,
+      "status": "active",
+      "joinedAt": "2026-11-14T02:59:16.763Z",
+      "leftAt": null
+    }
+  ],
+  "ledger": {
+    "balancePiastres": 50000,
+    "entries": [
+      {
+        "id": "909f16dd-70a3-4142-886a-a5e184ee66ee",
+        "type": "reversal",
+        "amountPiastres": 20000,
+        "method": null,
+        "receiptNo": null,
+        "period": null,
+        "groupId": "79fc11b3-4fa6-49c9-ba90-5425c372b855",
+        "subject": {
+          "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+          "nameAr": "اللغة العربية",
+          "nameEn": "Arabic"
+        },
+        "reversesEntryId": "76a0c47b-2959-44e5-b598-443bf0f003ea",
+        "reversedById": null,
+        "note": null,
+        "createdByName": "أحمد محمود",
+        "createdAt": "2026-11-14T02:59:27.544Z"
+      },
+      {
+        "id": "76a0c47b-2959-44e5-b598-443bf0f003ea",
+        "type": "payment",
+        "amountPiastres": -20000,
+        "method": "vodafone_cash",
+        "receiptNo": 21,
+        "period": null,
+        "groupId": "79fc11b3-4fa6-49c9-ba90-5425c372b855",
+        "subject": {
+          "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+          "nameAr": "اللغة العربية",
+          "nameEn": "Arabic"
+        },
+        "reversesEntryId": null,
+        "reversedById": "909f16dd-70a3-4142-886a-a5e184ee66ee",
+        "note": null,
+        "createdByName": "أحمد محمود",
+        "createdAt": "2026-11-14T02:59:24.809Z"
+      },
+      {
+        "id": "c53c66da-416d-4743-9658-03d663018004",
+        "type": "charge",
+        "amountPiastres": 50000,
+        "method": null,
+        "receiptNo": null,
+        "period": "2026-11",
+        "groupId": "79fc11b3-4fa6-49c9-ba90-5425c372b855",
+        "subject": {
+          "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+          "nameAr": "اللغة العربية",
+          "nameEn": "Arabic"
+        },
+        "reversesEntryId": null,
+        "reversedById": null,
+        "note": null,
+        "createdByName": null,
+        "createdAt": "2026-11-14T02:59:16.764Z"
+      }
+    ]
+  },
+  "receipt": {
+    "entry": {
+      "id": "76a0c47b-2959-44e5-b598-443bf0f003ea",
+      "type": "payment",
+      "amountPiastres": -20000,
+      "method": "vodafone_cash",
+      "receiptNo": 21,
+      "period": null,
+      "groupId": "79fc11b3-4fa6-49c9-ba90-5425c372b855",
+      "subject": {
+        "id": "6c4b0bec-053b-4bc3-952b-daa4f1a7164a",
+        "nameAr": "اللغة العربية",
+        "nameEn": "Arabic"
+      },
+      "reversesEntryId": null,
+      "reversedById": "909f16dd-70a3-4142-886a-a5e184ee66ee",
+      "note": null,
+      "createdByName": "أحمد محمود",
+      "createdAt": "2026-11-14T02:59:24.809Z"
+    },
+    "studentName": "نور 10847998",
+    "center": {
+      "nameAr": "سنتر النور",
+      "nameEn": "Al-Nour Center"
+    },
+    "timezone": "Africa/Cairo"
+  },
+  "messages": [
+    {
+      "id": "b4fe8f2d-351f-46ef-bbae-169df733a510",
+      "trigger": "absence",
+      "status": "queued",
+      "phone": "01570952542",
+      "guardianName": null,
+      "students": ["يوسف 70952542"],
+      "locale": null,
+      "attempts": 0,
+      "sendAfter": "2026-11-14T06:00:00.000Z",
+      "sentAt": null,
+      "body": null,
+      "lastError": null,
+      "createdAt": "2026-11-14T03:50:35.842Z"
+    },
+    {
+      "id": "d98a3e47-ce0a-4339-990f-21c51a8028d3",
+      "trigger": "absence",
+      "status": "queued",
+      "phone": "01533871574",
+      "guardianName": null,
+      "students": ["يوسف 33871574"],
+      "locale": null,
+      "attempts": 0,
+      "sendAfter": "2026-11-14T06:00:00.000Z",
+      "sentAt": null,
+      "body": null,
+      "lastError": null,
+      "createdAt": "2026-11-14T03:50:35.749Z"
+    },
+    {
+      "id": "9329608d-8720-4a59-95f8-31d5916b0e35",
+      "trigger": "session_cancelled",
+      "status": "queued",
+      "phone": "01112547201",
+      "guardianName": null,
+      "students": ["سلمى 12547201"],
+      "locale": null,
+      "attempts": 0,
+      "sendAfter": "2026-11-14T06:00:00.000Z",
+      "sentAt": null,
+      "body": null,
+      "lastError": null,
+      "createdAt": "2026-11-14T03:41:32.312Z"
+    },
+    {
+      "id": "65f07634-5744-438b-9647-6725f24f18b8",
+      "trigger": "absence",
+      "status": "queued",
+      "phone": "01540288343",
+      "guardianName": null,
+      "students": ["يوسف 40288343"],
+      "locale": null,
+      "attempts": 0,
+      "sendAfter": "2026-11-14T06:00:00.000Z",
+      "sentAt": null,
+      "body": null,
+      "lastError": null,
+      "createdAt": "2026-11-14T03:41:30.148Z"
+    }
+  ],
+  "messageSettings": {
+    "absence": true,
+    "sessionChange": true
+  },
+  "phone": []
+}
