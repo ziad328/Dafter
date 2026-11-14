@@ -1,4 +1,4 @@
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { Select as SelectPrimitive } from 'radix-ui';
 import {
   Children,
@@ -17,14 +17,41 @@ import { cn } from '@/lib/utils';
 
 type Props = ComponentProps<typeof Input> & { label: string; error?: string; hint?: string };
 
-/** Label, input and its translated error, wired for screen readers. */
+/** Label, input and its translated error, wired for screen readers. Passwords get a show toggle. */
 export function Field({ label, error, hint, ...input }: Props) {
+  const { t } = useTranslation();
   const id = useId();
+  const [shown, setShown] = useState(false);
+  const secret = input.type === 'password';
   const note = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className="grid gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} aria-invalid={!!error} aria-describedby={note} {...input} />
+      <div className="relative">
+        <Input
+          id={id}
+          aria-invalid={!!error}
+          aria-describedby={note}
+          {...input}
+          type={secret && shown ? 'text' : input.type}
+          className={cn(secret && 'pe-11', input.className)}
+        />
+        {secret && (
+          <button
+            type="button"
+            aria-pressed={shown}
+            aria-label={t('form.showPassword')}
+            onClick={() => setShown((s) => !s)}
+            className="absolute inset-y-0 end-0 grid w-11 place-items-center rounded-e-xl text-muted-foreground hover:text-foreground focus-visible:outline-2"
+          >
+            {shown ? (
+              <EyeOff className="size-4" aria-hidden />
+            ) : (
+              <Eye className="size-4" aria-hidden />
+            )}
+          </button>
+        )}
+      </div>
       {error ? (
         <p id={`${id}-error`} className="text-sm text-destructive">
           {error}

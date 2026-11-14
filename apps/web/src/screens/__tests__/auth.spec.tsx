@@ -27,4 +27,18 @@ describe('sign in', () => {
     await user.click(screen.getByRole('button', { name: tr('auth.login.submit') }));
     expect(await screen.findByText(tr('errors.INVALID_CREDENTIALS'))).toBeInTheDocument();
   });
+
+  it('shows the password on demand', async () => {
+    server.use(http.post(route('auth/refresh'), fail('UNAUTHENTICATED', 401)));
+    const { user } = await renderAt('/login', { workspace: null, lang: 'en' });
+    const password = await screen.findByLabelText(tr('auth.login.password'));
+    await user.type(password, 'secret-123');
+    expect(password).toHaveAttribute('type', 'password');
+    const eye = screen.getByRole('button', { name: tr('form.showPassword') });
+    await user.click(eye);
+    expect(password).toHaveAttribute('type', 'text');
+    expect(eye).toHaveAttribute('aria-pressed', 'true');
+    await user.click(eye);
+    expect(password).toHaveAttribute('type', 'password');
+  });
 });
