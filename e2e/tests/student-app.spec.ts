@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test } from './fixtures';
+import { expect, signIn, STAFF, test, openNav } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -19,7 +19,7 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await page.getByRole('button', { name: CENTER[lang] }).click();
 
   // A group to enroll into (a fresh dev database has none).
-  await page.getByRole('link', { name: t.home.groups }).click();
+  await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
   await page.getByLabel(t.groups.subject).selectOption({ label: PHYSICS[lang] });
   await page.getByLabel(t.groups.gradeLevel).selectOption({ label: SEC3[lang] });
@@ -34,9 +34,8 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await page.getByLabel(t.students.gradeLevel).selectOption({ label: SEC3[lang] });
   await page.getByLabel(t.students.guardianPhone, { exact: true }).fill(`012${n}`);
   await page.getByRole('button', { name: t.students.create }).click();
-  await expect(page).toHaveURL(/\/students$/);
-  await page.getByRole('searchbox', { name: t.students.search }).fill(n);
-  await page.getByRole('heading', { name }).click();
+  await expect(page).toHaveURL(/\/students\/[\w-]+$/);
+  await expect(page.getByRole('heading', { name })).toBeVisible();
 
   // Enroll with a discount.
   await page.getByLabel(t.enrollments.group).selectOption({ index: 1 });

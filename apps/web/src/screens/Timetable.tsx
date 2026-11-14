@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { type MoveSessionRequest, moveSessionRequest, type Session } from '@dafter/contracts';
 import {
@@ -11,11 +12,12 @@ import {
   useMoveSessionMutation,
 } from '@/api/generated';
 import { Field, FormError, Skeleton } from '@/components/Field';
+import { PageHeader } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
 import { errorKey } from '@/lib/session';
-import { addDays, dayLabel, localDate, localTime, weekStart } from '@/lib/time';
+import { addDays, dayLabel, displayTime, localDate, localTime, weekStart } from '@/lib/time';
 
 /** One week (Saturday first) of the workspace's sessions, in the workspace timezone. */
 export default function Timetable() {
@@ -25,10 +27,15 @@ export default function Timetable() {
   const tz = workspace.data?.timezone ?? 'Africa/Cairo';
   const canWrite = workspace.data?.role === 'owner' || workspace.data?.role === 'teacher';
   const [params, setParams] = useSearchParams();
-  const thisWeek = weekStart(localDate(new Date(), tz));
+  const today = localDate(new Date(), tz);
+  const thisWeek = weekStart(today);
   const from = params.get('week') ?? thisWeek;
   const to = addDays(from, 6);
   const list = useListSessionsQuery({ from, to }, { skip: !workspace.data });
+  // Stable, so it runs when today's section mounts, not on every refetch.
+  const scrollToToday = useCallback((el: HTMLElement | null) => {
+    el?.scrollIntoView({ block: 'start' });
+  }, []);
   const goTo = (week: string) => setParams(week === thisWeek ? {} : { week }, { replace: true });
 
   // Sessions come sorted by start, so days come out in order. (Map.groupBy needs iOS 17.4.)
@@ -40,9 +47,13 @@ export default function Timetable() {
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-xl font-bold">{t('timetable.title')}</h1>
-      <nav className="flex items-center justify-between gap-2" aria-label={t('timetable.title')}>
-        <Button variant="outline" size="sm" onClick={() => goTo(addDays(from, -7))}>
+      <PageHeader title={t('timetable.title')} />
+      <nav
+        className="flex items-center justify-between gap-2 rounded-2xl border bg-card p-2 shadow-card"
+        aria-label={t('timetable.title')}
+      >
+        <Button variant="ghost" size="sm" onClick={() => goTo(addDays(from, -7))}>
+          <ChevronRight aria-hidden className="ltr:-scale-x-100" />
           {t('timetable.prevWeek')}
         </Button>
         {from !== thisWeek && (
@@ -50,8 +61,9 @@ export default function Timetable() {
             {t('timetable.thisWeek')}
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={() => goTo(addDays(from, 7))}>
+        <Button variant="ghost" size="sm" onClick={() => goTo(addDays(from, 7))}>
           {t('timetable.nextWeek')}
+          <ChevronLeft aria-hidden className="ltr:-scale-x-100" />
         </Button>
       </nav>
       <FormError message={list.error && t(errorKey(list.error))} />
@@ -61,8 +73,20 @@ export default function Timetable() {
         <p className="text-sm text-muted-foreground">{t('timetable.empty')}</p>
       ) : (
         [...days].map(([date, sessions]) => (
-          <section key={date} className="grid gap-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">{dayLabel(date, lang)}</h2>
+          <section
+            key={date}
+            className="grid scroll-mt-4 gap-2"
+            // Today's sessions are what staff open the timetable for, so start there.
+            ref={date === today ? scrollToToday : undefined}
+          >
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              {dayLabel(date, lang)}
+              {date === today && (
+                <span className="rounded-full bg-ink px-2 py-0.5 text-xs text-white">
+                  {t('nav.today')}
+                </span>
+              )}
+            </h2>
             {sessions.map((s) => (
               <SessionCard key={s.id} session={s} tz={tz} canWrite={canWrite} />
             ))}
@@ -93,8 +117,8 @@ function SessionCard({
       <CardHeader className="px-4">
         <CardTitle className="flex flex-wrap items-baseline justify-between gap-2">
           <h3>{`${itemName(s.subject, lang)} · ${itemName(s.gradeLevel, lang)}`}</h3>
-          <bdi dir="ltr" className="text-sm font-normal">
-            {`${localTime(s.startsAt, tz)}–${localTime(s.endsAt, tz)}`}
+          <bdi className="text-sm font-normal text-muted-foreground">
+            {`${displayTime(s.startsAt, tz, lang)} – ${displayTime(s.endsAt, tz, lang)}`}
           </bdi>
         </CardTitle>
         <CardDescription>

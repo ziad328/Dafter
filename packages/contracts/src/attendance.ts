@@ -54,8 +54,15 @@ export const attendanceRecord = z
 
 export const attendanceList = z.array(attendanceRecord).meta({ id: 'AttendanceList' });
 
+/** The students expected in a session: active, non-archived enrollments of its group. */
+export const rosterEntry = z
+  .object({ studentId: z.uuid(), nameAr: z.string(), nameEn: z.string().nullable() })
+  .meta({ id: 'RosterEntry' });
+export const roster = z.array(rosterEntry).meta({ id: 'Roster' });
+
 export type OpenSession = z.infer<typeof openSession>;
 export type CheckInRequest = z.infer<typeof checkInRequest>;
 export type CheckIn = z.infer<typeof checkIn>;
 export type MarkAttendanceRequest = z.infer<typeof markAttendanceRequest>;
+export type RosterEntry = z.infer<typeof rosterEntry>;
 export type AttendanceRecord = z.infer<typeof attendanceRecord>;

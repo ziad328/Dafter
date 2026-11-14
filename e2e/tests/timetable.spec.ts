@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test } from './fixtures';
+import { expect, signIn, STAFF, test, openNav } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -10,6 +10,12 @@ const cairoDate = (d: Date) =>
 const addDays = (date: string, n: number) =>
   new Date(Date.parse(date) + n * 86_400_000).toISOString().slice(0, 10);
 const weekStart = (date: string) => addDays(date, -((new Date(date).getUTCDay() + 1) % 7));
+// The timetable shows 12-hour times ("4:05 PM" / "4:05 م"); \s covers the narrow space Intl uses.
+const twelve = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number) as [number, number];
+  return `${h % 12 || 12}:${pad(m)}\\s(${h < 12 ? 'AM|ص' : 'PM|م'})`;
+};
+const range = (a: string, b: string) => new RegExp(`${twelve(a)} – ${twelve(b)}`);
 
 test('owner sees generated sessions, then moves and cancels one', async ({ page, lang, t }) => {
   // The dev database is not reset between runs, so this run's group gets a random time.
@@ -20,7 +26,7 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
 
   await signIn(page, t, STAFF.owner);
   await page.getByRole('button', { name: CENTER[lang] }).click();
-  await page.getByRole('link', { name: t.home.groups }).click();
+  await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
   await page.getByLabel(t.groups.subject).selectOption({ label: PHYSICS[lang] });
   await page.getByLabel(t.groups.gradeLevel).selectOption({ label: SEC3[lang] });
@@ -31,13 +37,13 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   await expect(page).toHaveURL(/\/groups$/);
 
   await page.goto('/');
-  await page.getByRole('link', { name: t.home.timetable }).click();
+  await openNav(page, t, t.nav.timetable);
   await expect(page.getByRole('heading', { name: t.timetable.title })).toBeVisible();
   // Tomorrow can fall in next week (the week starts on Saturday).
   if (weekStart(tomorrow) !== weekStart(cairoDate(new Date())))
     await page.getByRole('button', { name: t.timetable.nextWeek }).click();
 
-  const card = page.locator('[data-slot="card"]', { hasText: `${start}–${end}` });
+  const card = page.locator('[data-slot="card"]', { hasText: range(start, end) });
   await expect(
     card.getByRole('heading', { name: `${PHYSICS[lang]} · ${SEC3[lang]}` }),
   ).toBeVisible();
@@ -49,7 +55,7 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   await card.getByLabel(t.timetable.start).fill(later);
   await card.getByLabel(t.timetable.end).fill(latest);
   await card.getByRole('button', { name: t.timetable.save }).click();
-  const moved = page.locator('[data-slot="card"]', { hasText: `${later}–${latest}` });
+  const moved = page.locator('[data-slot="card"]', { hasText: range(later, latest) });
   await expect(moved.getByText(t.timetable.moved)).toBeVisible();
 
   // Cancel takes a second tap to confirm.

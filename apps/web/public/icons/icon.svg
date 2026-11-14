@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#111111"/>
-  <text x="256" y="350" font-family="'IBM Plex Sans Arabic', 'Segoe UI', sans-serif" font-size="300" font-weight="700" text-anchor="middle" fill="#ffffff">د</text>
+  <rect width="512" height="512" rx="96" fill="#2f5bea"/>
+  <g stroke="#ffffff" stroke-opacity="0.16" stroke-width="6">
+    <line x1="0" y1="150" x2="512" y2="150"/>
+    <line x1="0" y1="230" x2="512" y2="230"/>
+    <line x1="0" y1="310" x2="512" y2="310"/>
+    <line x1="0" y1="390" x2="512" y2="390"/>
+  </g>
+  <line x1="404" y1="0" x2="404" y2="512" stroke="#ff8a8e" stroke-width="12"/>
+  <text x="236" y="360" font-family="'IBM Plex Sans Arabic', 'Segoe UI', sans-serif" font-size="300" font-weight="700" text-anchor="middle" fill="#ffffff">د</text>
 </svg>

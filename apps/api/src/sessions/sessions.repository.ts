@@ -67,6 +67,19 @@ export class SessionsRepository extends TenantRepository {
   /** Moves a scheduled session to a future local time and tells the parents; false when the new start has passed. */
   move(workspaceId: string, id: string, to: MoveSessionRequest, now: Date) {
     return this.inTenant(workspaceId, async (tx) => {
+      // Saving the same time again is a no-op: no update, no "session moved" message to parents.
+      const [same] = await tx
+        .select({ id: sessions.id })
+        .from(sessions)
+        .innerJoin(workspaces, eq(workspaces.id, sessions.workspaceId))
+        .where(
+          and(
+            this.scheduled(workspaceId, id),
+            sql`${sessions.startsAt} = ${local(to.date, to.startTime)}`,
+            sql`${sessions.endsAt} = ${local(to.date, to.endTime)}`,
+          ),
+        );
+      if (same) return true;
       const rows = await tx
         .update(sessions)
         .set({

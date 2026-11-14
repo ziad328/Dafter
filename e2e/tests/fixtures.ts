@@ -46,3 +46,21 @@ export async function signIn(page: Page, t: typeof ar, login: string) {
   await page.getByLabel(t.auth.login.password).fill(PASSWORD);
   await page.getByRole('button', { name: t.auth.login.submit }).click();
 }
+
+/**
+ * Opens a staff screen from the navigation: a bottom tab on a phone, or through "More" for the
+ * screens that live there (messages, staff, the fake phone).
+ */
+export async function openNav(page: Page, t: typeof ar, label: string) {
+  const nav = page.getByRole('navigation', { name: t.nav.label });
+  // The bar renders once the workspace has loaded; wait for it before asking what it holds.
+  await nav.getByRole('link', { name: t.nav.more, exact: true }).waitFor();
+  const link = nav.getByRole('link', { name: label, exact: true });
+  if (await link.count()) return link.click();
+  await nav.getByRole('link', { name: t.nav.more, exact: true }).click();
+  await page.getByRole('main').getByRole('link', { name: label, exact: true }).click();
+}
+
+/** The header's workspace chip: its accessible name is "Switch workspace"; it shows the name. */
+export const workspaceChip = (page: Page, t: typeof ar) =>
+  page.getByRole('link', { name: t.nav.switchWorkspace });

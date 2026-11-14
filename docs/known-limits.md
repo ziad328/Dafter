@@ -29,6 +29,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | The audit row is written in its own transaction after the handler, also for payments | A failed audit insert returns 500 after the write committed; a crash in between loses the audit row | centers |
 | Invites: the scope check and the scope update run in separate transactions; extra workspace read on accept; duplicated token-creation code | Only matters once members can be removed | later |
 | `PATCH /members/:id` (change role, remove) not built | Staff can't be removed | centers |
+| A staff invite carries only the role; the owner ticks an assistant's teachers after they join | One extra step for the owner | later |
 | A phone reset from center A also unbinds it at center B (one shared login) | By design, but surprising | — (documented) |
 | Anyone holding an invite link can claim that record (single use, 72 h) | Same trust model as staff invites | — (documented) |
 | `DEV_MAIL_INBOX=1` exposes login codes to anyone; `DEV_FAKE_PHONE=1` (on in the demo) shows a workspace's parent messages to its staff | Never set `DEV_MAIL_INBOX` on Render; turn `DEV_FAKE_PHONE` off with real users | centers |
@@ -55,7 +56,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | No "too early to open" check on opening a session | A session can be opened days ahead | centers |
 | `POST /check-ins` has no rate limit | Abuse by a bound device | centers |
 | No UI for the late threshold (`settings.lateAfterMinutes`, default 15) | Fixed 15 minutes | centers |
-| No manual-mark buttons on the live screen (the API supports it) | Teacher must use another screen | v0 if time |
+| The live screen marks only "present" by one tap; late or excused need the API | Rare cases need a workaround | centers |
 | No wake-lock or brightness handling on the QR screen | The screen may dim during class | v0 if time |
 | A student on a video call can relay the QR | Known weakness of rotating QR (architecture.md) | — (documented) |
 | No offline screen when the API is unreachable | The PWA shows errors | later |

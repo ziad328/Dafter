@@ -24,7 +24,8 @@ const TZ = 'Africa/Cairo';
 
 // [subject, weekday (0 = Sunday), start, end, monthly fee in piastres]
 const GROUPS: [string, number[], string, string, number][] = [
-  ['الفيزياء', [6, 2], '16:00', '17:30', 25000],
+  // Physics also meets on Friday, so every day of the week has a session to start in the demo.
+  ['الفيزياء', [6, 2, 5], '16:00', '17:30', 25000],
   ['الرياضيات', [0, 3], '18:00', '19:30', 30000],
   ['الكيمياء', [1, 4], '15:00', '16:30', 25000],
 ];

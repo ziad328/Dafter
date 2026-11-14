@@ -1,3 +1,4 @@
+import { StatsModule } from './stats/stats.controller.js';
 import fastifyCookie from '@fastify/cookie';
 import { Controller, Get, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, NestFactory } from '@nestjs/core';
@@ -46,6 +47,7 @@ class HealthController {
     MoneyModule,
     MessagesModule,
     JobsModule,
+    StatsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],

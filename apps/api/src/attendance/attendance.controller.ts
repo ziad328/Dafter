@@ -24,6 +24,7 @@ import {
   type MarkAttendanceRequest,
   markAttendanceRequest,
   type OpenSession,
+  type RosterEntry,
 } from '@dafter/contracts';
 import { AuthGuard, type AuthedRequest } from '../auth/auth.guard.js';
 import { TenantGuard, type TenantedRequest } from '../workspaces/tenant.guard.js';
@@ -82,6 +83,14 @@ export class SessionAttendanceController {
       this.attendance.liveFeed(req, id).pipe(map((data) => ({ data }))),
       interval(25_000).pipe(map(() => ({ type: 'ping', data: '' }))),
     );
+  }
+
+  @Get(':id/roster')
+  roster(
+    @Req() req: TenantedRequest,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+  ): Promise<RosterEntry[]> {
+    return this.attendance.roster(req, id);
   }
 
   @Get(':id/attendance')

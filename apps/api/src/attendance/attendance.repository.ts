@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
-import type { AttendanceRecord, MarkAttendanceRequest } from '@dafter/contracts';
+import type { AttendanceRecord, MarkAttendanceRequest, RosterEntry } from '@dafter/contracts';
 import {
   attendanceRecords,
   enrollments,
@@ -189,6 +189,31 @@ export class AttendanceRepository extends TenantRepository {
       await enqueueAbsences(tx, workspaceId, id, now);
       return this.list(tx, workspaceId, id);
     });
+  }
+
+  /** Active, non-archived students of a group, by name: the same set close marks absent. */
+  roster(workspaceId: string, groupId: string): Promise<RosterEntry[]> {
+    return this.inTenant(workspaceId, (tx) =>
+      tx
+        .select({ studentId: students.id, nameAr: students.nameAr, nameEn: students.nameEn })
+        .from(enrollments)
+        .innerJoin(
+          students,
+          and(
+            eq(students.workspaceId, enrollments.workspaceId),
+            eq(students.id, enrollments.studentId),
+          ),
+        )
+        .where(
+          and(
+            eq(enrollments.workspaceId, workspaceId),
+            eq(enrollments.groupId, groupId),
+            eq(enrollments.status, 'active'),
+            eq(students.status, 'active'),
+          ),
+        )
+        .orderBy(asc(students.nameAr)),
+    );
   }
 
   listForSession(workspaceId: string, sessionId: string) {

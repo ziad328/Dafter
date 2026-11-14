@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/600.css';
 @import '@fontsource/ibm-plex-sans-arabic/700.css';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -9,6 +10,55 @@
 /* One family with both scripts, so mixed Arabic/English lines align. */
 @theme {
   --font-sans: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-margin-red: var(--margin-red);
+  --color-present: var(--present);
+  --color-present-soft: var(--present-soft);
+  --color-late: var(--late);
+  --color-late-soft: var(--late-soft);
+  --color-absent-soft: var(--absent-soft);
+  --color-navy: var(--navy);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-rose: var(--rose);
+  --color-rose-soft: var(--rose-soft);
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 10px 30px -14px rgb(16 24 40 / 0.18);
+  --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-flash: flash 1.6s ease-out both;
+  --animate-live: live 1.8s ease-out infinite;
+  --animate-countdown: countdown 10s linear both;
+
+  @keyframes countdown {
+    to {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+  @keyframes flash {
+    from {
+      background-color: var(--present-soft);
+    }
+  }
+  @keyframes live {
+    0% {
+      box-shadow: 0 0 0 0 rgb(255 255 255 / 0.55);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 10px rgb(255 255 255 / 0);
+    }
+  }
 }
 
 @theme inline {
@@ -52,39 +102,64 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/*
+ * Dafter's palette: a vivid blue for actions on pale blue-grey, a navy sidebar, and four soft
+ * accents (violet, teal, amber, rose) kept for stat tiles and charts. Red stays for absence.
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.75rem;
+  --ink: #2f5bea;
+  --ink-soft: #eaf0ff;
+  --paper: #f4f6fb;
+  --rule: #e4e9f2;
+  --graphite: #18213a;
+  --margin-red: #e5484d;
+  --present: #12a150;
+  --present-soft: #e2f6ea;
+  --late: #b45309;
+  --late-soft: #fef3dc;
+  --absent-soft: #fdecec;
+  --navy: #0f1b3d;
+  --violet: #7c5cfc;
+  --violet-soft: #f0ebff;
+  --teal: #0e9f9b;
+  --teal-soft: #dff5f3;
+  --amber: #e08a00;
+  --amber-soft: #fff1d6;
+  --rose: #e5484d;
+  --rose-soft: #ffe8e9;
+
+  --background: var(--paper);
+  --foreground: var(--graphite);
+  --card: #ffffff;
+  --card-foreground: var(--graphite);
+  --popover: #ffffff;
+  --popover-foreground: var(--graphite);
+  --primary: var(--ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--ink-soft);
+  --secondary-foreground: var(--ink);
+  --muted: #eef2f8;
+  --muted-foreground: #5b6578;
+  --accent: var(--ink-soft);
+  --accent-foreground: var(--ink);
+  --destructive: var(--margin-red);
+  --border: var(--rule);
+  --input: #d3dbea;
+  --ring: #8aa4f5;
+  --chart-1: var(--ink);
+  --chart-2: var(--present);
+  --chart-3: var(--late);
+  --chart-4: var(--margin-red);
+  --chart-5: #5b6578;
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--graphite);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--ink-soft);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: #8aa4f5;
 }
 
 .dark {
@@ -127,5 +202,15 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
   }
 }

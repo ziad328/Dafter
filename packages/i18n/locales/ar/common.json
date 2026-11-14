@@ -5,13 +5,10 @@
   },
   "shell": {
     "switchLanguage": "English",
-    "api": {
-      "checking": "جارٍ الاتصال بالخادم…",
-      "ok": "الخادم متصل",
-      "down": "الخادم غير متاح الآن"
-    },
     "logout": "تسجيل الخروج",
-    "loading": "جارٍ التحميل…"
+    "loading": "جارٍ التحميل…",
+    "morning": "صباح الخير يا {name}",
+    "evening": "مساء الخير يا {name}"
   },
   "form": {
     "optional": "(اختياري)",
@@ -107,7 +104,8 @@
     "timetable": "الجدول",
     "students": "الطلاب",
     "phone": "الهاتف التجريبي",
-    "messages": "رسائل أولياء الأمور"
+    "messages": "رسائل أولياء الأمور",
+    "members": "فريق العمل"
   },
   "errors": {
     "VALIDATION_FAILED": "البيانات غير صحيحة، راجعها وحاول مرة أخرى.",
@@ -207,7 +205,8 @@
     "create": "إضافة الطالب",
     "save": "حفظ",
     "duplicatePhone": "هذا الرقم مسجّل بالفعل لـ:",
-    "sharedGuardian": "رقم ولي الأمر مسجّل لطلاب آخرين، وسيُربط الطالب بنفس ولي الأمر:"
+    "sharedGuardian": "رقم ولي الأمر مسجّل لطلاب آخرين، وسيُربط الطالب بنفس ولي الأمر:",
+    "cancelEdit": "إلغاء"
   },
   "enrollments": {
     "title": "المجموعات",
@@ -265,7 +264,10 @@
       "absent": "غائب",
       "excused": "بعذر",
       "makeup": "تعويض"
-    }
+    },
+    "expected": "من {count} مسجّلين",
+    "present": "حاضر",
+    "markPresent": "تسجيل {name} حاضرًا"
   },
   "scan": {
     "open": "تسجيل الحضور",
@@ -351,5 +353,52 @@
       "session_moved": "تغيير موعد"
     },
     "attempts": "{count, plural, one {محاولة واحدة} two {محاولتان} few {# محاولات} many {# محاولة} other {# محاولة}}"
+  },
+  "members": {
+    "title": "فريق العمل",
+    "invite": "دعوة مدرّس أو مساعد",
+    "inviteHint": "أنشئ رابطًا وأرسله له. يعمل مرة واحدة خلال 72 ساعة.",
+    "role": "الدور",
+    "createLink": "إنشاء رابط الدعوة",
+    "linkHint": "رابط دعوة {role} جديد:",
+    "worksFor": "يعمل مع"
+  },
+  "nav": {
+    "label": "القائمة",
+    "today": "اليوم",
+    "timetable": "الجدول",
+    "students": "الطلاب",
+    "groups": "المجموعات",
+    "messages": "رسائل أولياء الأمور",
+    "staff": "فريق العمل",
+    "phone": "الهاتف التجريبي",
+    "more": "المزيد",
+    "switchWorkspace": "تغيير مساحة العمل"
+  },
+  "today": {
+    "next": "الحصة التالية",
+    "inProgress": "حصة جارية الآن",
+    "start": "ابدأ",
+    "continue": "متابعة",
+    "none": "لا توجد حصص اليوم.",
+    "allDone": "انتهت كل حصص اليوم.",
+    "openTimetable": "افتح الجدول",
+    "allSessions": "حصص اليوم",
+    "addStudent": "إضافة طالب",
+    "count": "{count, plural, =0 {لا توجد حصص اليوم} one {حصة واحدة اليوم} two {حصتان اليوم} few {# حصص اليوم} other {# حصة اليوم}}",
+    "enrolled": "{count, plural, =0 {لا يوجد طلاب مسجّلون بعد} one {طالب واحد مسجّل} two {طالبان مسجّلان} few {# طلاب مسجّلين} other {# طالبًا مسجّلًا}}",
+    "startsIn": "تبدأ {when}",
+    "started": "بدأت {when}",
+    "startQr": "ابدأ واعرض الكود",
+    "findStudent": "البحث عن طالب",
+    "recordPayment": "تسجيل دفعة",
+    "quick": "اختصارات"
+  },
+  "stats": {
+    "sessions": "حصص اليوم",
+    "expected": "طلاب متوقعون",
+    "checkedIn": "سجّلوا حضورهم",
+    "students": "طلاب نشطون",
+    "week": "الحضور هذا الأسبوع"
   }
 }

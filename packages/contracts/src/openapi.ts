@@ -11,6 +11,7 @@ import {
 } from './groups.js';
 import {
   attendanceList,
+  roster,
   attendanceRecord,
   checkIn,
   checkInRequest,
@@ -42,6 +43,7 @@ import {
   updateStudentRequest,
 } from './students.js';
 import { listSessionsQuery, moveSessionRequest, session, sessionList } from './sessions.js';
+import { todayStats } from './stats.js';
 import {
   createInviteRequest,
   createWorkspaceRequest,
@@ -319,6 +321,25 @@ export function buildOpenApi() {
             200: { description: 'Records so far', content: json(attendanceList) },
             ...errors,
           },
+        },
+      },
+      '/api/v1/stats/today': {
+        get: {
+          operationId: 'getTodayStats',
+          tags: ['attendance'],
+          description: 'Numbers for the Today dashboard, for the groups the caller can see.',
+          security: [{ bearer: [] }],
+          responses: { 200: { description: 'Stats', content: json(todayStats) }, ...errors },
+        },
+      },
+      '/api/v1/sessions/{id}/roster': {
+        get: {
+          operationId: 'getSessionRoster',
+          tags: ['attendance'],
+          description: 'Students enrolled in the session group, for manual marking.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 200: { description: 'Roster', content: json(roster) }, ...errors },
         },
       },
       '/api/v1/sessions/{id}/attendance/{studentId}': {

@@ -81,6 +81,12 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await page.goto(`/sessions/${sessionId}/live`);
   const qr = page.getByTestId('session-qr');
   await expect(qr).toBeVisible();
+  // The class list shows every enrolled student before anyone scans, each with a one-tap "present".
+  const list = page.getByTestId('live-list');
+  const mark = (name: string) =>
+    list.getByRole('button', { name: t.live.markPresent.replace('{name}', name) });
+  await expect(mark(scanner)).toBeVisible();
+  await expect(mark(absent)).toBeVisible();
 
   // The student's phone: activate, bind, scan.
   const phone = await browser.newContext({
@@ -118,7 +124,7 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await phone.close();
 
   // Live: the teacher sees the scan without reloading.
-  const list = page.getByTestId('live-list');
+  await expect(mark(scanner)).toBeHidden();
   await expect(list.getByRole('listitem').filter({ hasText: scanner })).toContainText(
     t.live.status.present,
   );
@@ -131,6 +137,12 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await page.getByRole('button', { name: t.live.confirmClose }).click();
   await expect(page.getByText(t.live.closed)).toBeVisible();
   await expect(list.getByRole('listitem').filter({ hasText: absent })).toContainText(
+    t.live.status.absent,
+  );
+  // The assistant can still fix it after class: one tap marks the absent student present.
+  await mark(absent).click();
+  await expect(mark(absent)).toBeHidden();
+  await expect(list.getByRole('listitem').filter({ hasText: absent })).not.toContainText(
     t.live.status.absent,
   );
 

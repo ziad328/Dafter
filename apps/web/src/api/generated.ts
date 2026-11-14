@@ -162,6 +162,14 @@ const injectedRtkApi = api
         query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/attendance` }),
         providesTags: ['attendance'],
       }),
+      getTodayStats: build.query<GetTodayStatsApiResponse, GetTodayStatsApiArg>({
+        query: () => ({ url: `/api/v1/stats/today` }),
+        providesTags: ['attendance'],
+      }),
+      getSessionRoster: build.query<GetSessionRosterApiResponse, GetSessionRosterApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/roster` }),
+        providesTags: ['attendance'],
+      }),
       markAttendance: build.mutation<MarkAttendanceApiResponse, MarkAttendanceApiArg>({
         query: (queryArg) => ({
           url: `/api/v1/sessions/${queryArg.id}/attendance/${queryArg.studentId}`,
@@ -419,6 +427,12 @@ export type OpenSessionApiArg = {
 };
 export type ListAttendanceApiResponse = /** status 200 Records so far */ AttendanceList;
 export type ListAttendanceApiArg = {
+  id: string;
+};
+export type GetTodayStatsApiResponse = /** status 200 Stats */ TodayStats;
+export type GetTodayStatsApiArg = void;
+export type GetSessionRosterApiResponse = /** status 200 Roster */ Roster;
+export type GetSessionRosterApiArg = {
   id: string;
 };
 export type MarkAttendanceApiResponse = /** status 200 Recorded */ AttendanceRecord;
@@ -733,6 +747,24 @@ export type AttendanceRecord = {
   recordedAt: string;
 };
 export type AttendanceList = AttendanceRecord[];
+export type StatsDay = {
+  date: string;
+  present: number;
+  total: number;
+};
+export type TodayStats = {
+  sessionsToday: number;
+  expectedToday: number;
+  checkedInToday: number;
+  activeStudents: number;
+  week: StatsDay[];
+};
+export type RosterEntry = {
+  studentId: string;
+  nameAr: string;
+  nameEn: string | null;
+};
+export type Roster = RosterEntry[];
 export type MarkAttendanceRequest = {
   status: 'present' | 'late' | 'absent' | 'excused' | 'makeup';
 };
@@ -924,6 +956,8 @@ export const {
   useCancelSessionMutation,
   useOpenSessionMutation,
   useListAttendanceQuery,
+  useGetTodayStatsQuery,
+  useGetSessionRosterQuery,
   useMarkAttendanceMutation,
   useCloseSessionMutation,
   useLiveAttendanceQuery,

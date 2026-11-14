@@ -165,6 +165,28 @@ describe('check-ins', () => {
   });
 });
 
+describe('roster', () => {
+  it('lists active enrolled students only, and hides foreign sessions', async () => {
+    const enrolled = await c.newStudent();
+    await c.owner('POST', `students/${enrolled}/enrollments`, { groupId: c.groupId });
+    const archived = await c.newStudent();
+    await c.owner('POST', `students/${archived}/enrollments`, { groupId: c.groupId });
+    await c.owner('PATCH', `students/${archived}`, { status: 'archived' });
+    const outsider = await c.newStudent();
+
+    const ids = (await c.teacher('GET', `sessions/${sessionId}/roster`))
+      .json()
+      .map((r: { studentId: string }) => r.studentId);
+    expect(ids).toContain(enrolled);
+    expect(ids).not.toContain(archived);
+    expect(ids).not.toContain(outsider);
+
+    const other = await f.center();
+    const res = await other.owner('GET', `sessions/${sessionId}/roster`);
+    expect([res.statusCode, res.json().code]).toEqual([404, 'SESSION_NOT_FOUND']);
+  });
+});
+
 describe('manual marking', () => {
   it('overrides a scan, records who marked, and works after close but not before open', async () => {
     const p = await phone();

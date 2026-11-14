@@ -17,6 +17,19 @@ export const localTime = (at: string | Date, timeZone: string) =>
     hourCycle: 'h23',
   }).format(new Date(at));
 
+/** "4:00 م" / "4:00 PM" for people; `localTime` stays 24-hour for form values. */
+export const displayTime = (at: string | Date, timeZone: string, lang: string) =>
+  new Intl.DateTimeFormat(intlLocale(lang), {
+    timeZone,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(at));
+
+/** A weekly slot's "HH:MM" (no date) shown the same way. */
+export const clockLabel = (hhmm: string, lang: string) =>
+  displayTime(`1970-01-01T${hhmm}:00Z`, 'UTC', lang);
+
 export const addDays = (date: string, n: number) =>
   new Date(Date.parse(date) + n * DAY_MS).toISOString().slice(0, 10);
 

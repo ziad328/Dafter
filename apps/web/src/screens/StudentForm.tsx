@@ -5,6 +5,7 @@ import {
   studentStatus,
 } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -60,24 +61,88 @@ export default function StudentForm() {
   const { t } = useTranslation();
   const { id } = useParams();
   const existing = useGetStudentQuery({ id: id! }, { skip: !id });
-  if (id && existing.isLoading) return <Skeleton />;
+  const grades = useListGradeLevelsQuery();
+  // The id being edited, so moving to a sibling's page opens their summary, not the form.
+  const [editing, setEditing] = useState<string>();
+  // Wait for the grades too: a <select> mounted before its options shows the saved grade as empty.
+  if ((id && existing.isLoading) || grades.isLoading) return <Skeleton />;
   if (id && existing.error) return <FormError message={t(errorKey(existing.error))} />;
+  if (!id || !existing.data) return <StudentFormBody />;
   // Mounted once the student is loaded, so the form's default values are the student's.
   return (
     <>
-      <StudentFormBody key={id} id={id} student={existing.data} />
-      {id && existing.data && (
-        <>
-          <Enrollments studentId={id} />
-          <StudentFees studentId={id} />
-          <AppAccess student={existing.data} />
-        </>
+      {editing === id ? (
+        <StudentFormBody
+          key={id}
+          id={id}
+          student={existing.data}
+          onDone={() => setEditing(undefined)}
+        />
+      ) : (
+        <StudentSummary student={existing.data} onEdit={() => setEditing(id)} />
       )}
+      <Enrollments studentId={id} />
+      <StudentFees studentId={id} />
+      <AppAccess student={existing.data} />
     </>
   );
 }
 
-function StudentFormBody({ id, student }: { id?: string; student?: Student }) {
+/** The student at a glance; the edit form opens on demand. */
+function StudentSummary({ student, onEdit }: { student: Student; onEdit: () => void }) {
+  const { t, i18n } = useTranslation();
+  const g = student.guardians.find((x) => x.isPrimary) ?? student.guardians[0];
+  const name = i18n.language === 'en' && student.nameEn ? student.nameEn : student.nameAr;
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-2">
+        <div className="grid gap-1">
+          <CardTitle>
+            <h1 className="text-xl">{name}</h1>
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {itemName(student.gradeLevel, i18n.language)}
+            {student.status === 'archived' && ` · ${t('students.statuses.archived')}`}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          {t('students.edit')}
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          {student.phone && (
+            <>
+              <dt className="text-muted-foreground">{t('students.phone')}</dt>
+              <dd>
+                <bdi>{student.phone}</bdi>
+              </dd>
+            </>
+          )}
+          {g && (
+            <>
+              <dt className="text-muted-foreground">{t('students.guardian')}</dt>
+              <dd>
+                {g.name && `${g.name} · `}
+                <bdi>{g.phone}</bdi>
+              </dd>
+            </>
+          )}
+        </dl>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StudentFormBody({
+  id,
+  student,
+  onDone,
+}: {
+  id?: string;
+  student?: Student;
+  onDone?: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const grades = useListGradeLevelsQuery();
@@ -105,7 +170,11 @@ function StudentFormBody({ id, student }: { id?: string; student?: Student }) {
           },
         })
       : await create({ createStudentRequest: body });
-    if (res.data) void navigate('/students');
+    // A new student opens on their page, ready to enroll; an edit goes back to the summary.
+    if (res.data) {
+      if (id) onDone?.();
+      else void navigate(`/students/${res.data.id}`);
+    }
   });
 
   return (
@@ -213,6 +282,11 @@ function StudentFormBody({ id, student }: { id?: string; student?: Student }) {
           <Button type="submit" disabled={saving}>
             {t(id ? 'students.save' : 'students.create')}
           </Button>
+          {onDone && (
+            <Button type="button" variant="ghost" onClick={onDone}>
+              {t('students.cancelEdit')}
+            </Button>
+          )}
         </CardContent>
       </form>
     </Card>

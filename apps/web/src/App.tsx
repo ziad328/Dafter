@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router';
-import { useGetHealthQuery, useGetMeQuery } from './api/generated';
+import { useGetMeQuery } from './api/generated';
+import { AppShell } from './components/AppShell';
 import { FormError, Skeleton } from './components/Field';
 import { Button } from './components/ui/button';
 import { errorKey, useSignOut } from './lib/session';
@@ -10,6 +11,7 @@ const Login = lazy(() => import('./screens/Login'));
 const Register = lazy(() => import('./screens/Register'));
 const AcceptInvite = lazy(() => import('./screens/AcceptInvite'));
 const Workspaces = lazy(() => import('./screens/Workspaces'));
+const Members = lazy(() => import('./screens/Members'));
 const Home = lazy(() => import('./screens/Home'));
 const Groups = lazy(() => import('./screens/Groups'));
 const GroupForm = lazy(() => import('./screens/GroupForm'));
@@ -23,24 +25,19 @@ const SessionLive = lazy(() => import('./screens/SessionLive'));
 const Receipt = lazy(() => import('./screens/Receipt'));
 const FakePhone = lazy(() => import('./screens/FakePhone'));
 const Messages = lazy(() => import('./screens/Messages'));
+const More = lazy(() => import('./screens/More'));
 
+/** Signed-out screens and the student app: the wordmark, the notebook's red line, one column. */
 function Layout() {
   const { t, i18n } = useTranslation();
-  const health = useGetHealthQuery();
   const me = useGetMeQuery();
   const signOut = useSignOut();
   const other = i18n.language === 'ar' ? 'en' : 'ar';
 
-  const apiStatus = health.isLoading
-    ? t('shell.api.checking')
-    : health.isSuccess
-      ? t('shell.api.ok')
-      : t('shell.api.down');
-
   return (
-    <div className="min-h-dvh bg-muted/40 font-sans text-foreground">
-      <header className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 print:hidden">
-        <span className="text-xl font-bold">{t('app.name')}</span>
+    <div className="min-h-dvh bg-background font-sans text-foreground">
+      <header className="flex items-center justify-between gap-2 border-b-2 border-margin-red bg-card px-4 py-3 print:hidden">
+        <span className="text-2xl font-bold tracking-tight text-ink">{t('app.name')}</span>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -57,13 +54,10 @@ function Layout() {
           )}
         </div>
       </header>
-      <main className="mx-auto grid max-w-sm gap-4 px-4 py-8">
+      <main className="mx-auto grid max-w-md gap-4 px-4 py-8">
         <Suspense fallback={<Skeleton />}>
           <Outlet />
         </Suspense>
-        <p role="status" className="text-center text-xs text-muted-foreground print:hidden">
-          {apiStatus}
-        </p>
       </main>
     </div>
   );
@@ -99,11 +93,18 @@ const router = createBrowserRouter([
           { path: '/s/scan', element: <StudentScan /> },
         ],
       },
+      { path: '*', element: <Navigate to="/" replace /> },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
       {
-        element: <RequireAuth />,
+        element: <AppShell />,
         children: [
           { path: '/', element: <Home /> },
           { path: '/workspaces', element: <Workspaces /> },
+          { path: '/members', element: <Members /> },
           { path: '/groups', element: <Groups /> },
           { path: '/groups/new', element: <GroupForm /> },
           { path: '/groups/:id', element: <GroupForm /> },
@@ -115,9 +116,9 @@ const router = createBrowserRouter([
           { path: '/students', element: <Students /> },
           { path: '/students/new', element: <StudentForm /> },
           { path: '/students/:id', element: <StudentForm /> },
+          { path: '/more', element: <More /> },
         ],
       },
-      { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ]);

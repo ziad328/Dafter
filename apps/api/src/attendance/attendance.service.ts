@@ -7,6 +7,7 @@ import type {
   CheckInRequest,
   MarkAttendanceRequest,
   OpenSession,
+  RosterEntry,
 } from '@dafter/contracts';
 import { Clock } from '../clock.js';
 import { OutboxSender } from '../messages/outbox-sender.js';
@@ -50,6 +51,11 @@ export class AttendanceService {
       serverTime: now.toISOString(),
       windowMs: WINDOW_MS,
     };
+  }
+
+  async roster(ctx: Ctx, id: string): Promise<RosterEntry[]> {
+    const session = await this.sessions.get(ctx, id);
+    return this.repo.roster(ctx.workspaceId, session.groupId);
   }
 
   async list(ctx: Ctx, id: string): Promise<AttendanceRecord[]> {

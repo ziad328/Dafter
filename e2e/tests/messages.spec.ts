@@ -1,4 +1,4 @@
-import { expect, PASSWORD, signIn, STAFF, test } from './fixtures';
+import { expect, PASSWORD, signIn, STAFF, test, openNav, workspaceChip } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const MONA = { ar: 'دروس منى حسن', en: 'Mona Hassan Lessons' };
@@ -58,7 +58,7 @@ test('a cancelled session shows in the message log; the owner switches messages 
   // The owner's log, reached from Home.
   await signIn(page, t, STAFF.owner);
   await page.getByRole('button', { name: CENTER[lang] }).click();
-  await page.getByRole('link', { name: t.home.messages }).click();
+  await openNav(page, t, t.nav.messages);
   const item = page.getByTestId('message-log').getByRole('listitem').filter({ hasText: name });
   await expect(item).toContainText(t.messages.triggers.session_cancelled);
   await expect(item).toContainText(`011${n}`);
@@ -67,7 +67,7 @@ test('a cancelled session shows in the message log; the owner switches messages 
   if (lang !== 'ar') return;
   await page.context().clearCookies(); // signs out: the refresh cookie is gone
   await signIn(page, t, STAFF.teacher);
-  await expect(page.getByRole('link', { name: t.home.switch })).toBeVisible();
+  await expect(workspaceChip(page, t)).toBeVisible();
   await page.goto('/workspaces');
   await page.getByRole('button', { name: MONA[lang] }).click();
   await page.goto('/messages');

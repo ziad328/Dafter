@@ -1,8 +1,9 @@
-import { expect, signIn, STAFF, test } from './fixtures';
+import { expect, signIn, STAFF, test, openNav } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
+const SLOT = { ar: /4:00\sم – 5:30\sم/, en: /4:00\sPM – 5:30\sPM/ };
 
 test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   // The dev database is not reset between runs, so find this run's group by its capacity.
@@ -10,7 +11,7 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
 
   await signIn(page, t, STAFF.owner);
   await page.getByRole('button', { name: CENTER[lang] }).click();
-  await page.getByRole('link', { name: t.home.groups }).click();
+  await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
 
   await page.getByLabel(t.groups.subject).selectOption({ label: PHYSICS[lang] });
@@ -23,9 +24,9 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
 
   await expect(page).toHaveURL(/\/groups$/);
   const card = page.getByRole('link').filter({ hasText: capacity });
-  await expect(
-    card.getByRole('heading', { name: `${PHYSICS[lang]} · ${SEC3[lang]}` }),
-  ).toBeVisible();
+  await expect(card.getByRole('heading', { name: PHYSICS[lang] })).toBeVisible();
   await expect(card.getByText('منى حسن')).toBeVisible();
-  await expect(card.getByText('16:00–17:30')).toBeVisible();
+  await expect(card.getByText(SEC3[lang])).toBeVisible();
+  // Slots read in 12-hour time.
+  await expect(card.getByText(SLOT[lang])).toBeVisible();
 });

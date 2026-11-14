@@ -65,6 +65,18 @@ describe('session cancelled and moved messages', () => {
     ]);
   });
 
+  it('saving a session at its current time changes nothing and messages nobody', async () => {
+    const id = await sessionOn('2026-12-12');
+    const res = await c.teacher('PATCH', `sessions/${id}`, {
+      date: '2026-12-12',
+      startTime: '16:00',
+      endTime: '17:30',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().moved).toBe(false);
+    expect(await ofSession(id, 'session_moved')).toHaveLength(0);
+  });
+
   it('a move to a new time messages again; repeating the same move does not', async () => {
     const id = await sessionOn('2026-12-05');
     const to = { date: '2026-12-06', startTime: '17:00', endTime: '18:30' };

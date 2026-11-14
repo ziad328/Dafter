@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test } from './fixtures';
+import { expect, signIn, STAFF, test, workspaceChip } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PRIVATE = { ar: 'دروس منى حسن', en: 'Mona Hassan Lessons' };
@@ -11,15 +11,15 @@ test('staff signs in and switches workspace', async ({ page, lang, t }) => {
   // No workspace chosen yet, so home sends her to the list.
   await expect(page).toHaveURL(/\/workspaces$/);
   await page.getByRole('button', { name: CENTER[lang] }).click();
-  await expect(page.getByRole('heading', { level: 1, name: CENTER[lang] })).toBeVisible();
-  await expect(page.getByText(t.roles.teacher, { exact: true })).toBeVisible();
+  await expect(workspaceChip(page, t)).toContainText(CENTER[lang]);
+  await expect(workspaceChip(page, t)).toContainText(t.roles.teacher);
 
-  await page.getByRole('link', { name: t.home.switch }).click();
+  await workspaceChip(page, t).click();
   await page.getByRole('button', { name: PRIVATE[lang] }).click();
-  await expect(page.getByRole('heading', { level: 1, name: PRIVATE[lang] })).toBeVisible();
-  await expect(page.getByText(t.roles.owner, { exact: true })).toBeVisible();
+  await expect(workspaceChip(page, t)).toContainText(PRIVATE[lang]);
+  await expect(workspaceChip(page, t)).toContainText(t.roles.owner);
 
   // The session (refresh cookie) and the chosen workspace survive a reload.
   await page.reload();
-  await expect(page.getByRole('heading', { level: 1, name: PRIVATE[lang] })).toBeVisible();
+  await expect(workspaceChip(page, t)).toContainText(PRIVATE[lang]);
 });
