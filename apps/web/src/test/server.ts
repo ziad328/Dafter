@@ -69,18 +69,20 @@ const ok = (body: JsonBodyType, status = 200) => HttpResponse.json(body, { statu
 const api = (path: string) => `*/api/v1/${path}`;
 const log =
   (
-    body: JsonBodyType | ((req: Request, params: Record<string, unknown>) => JsonBodyType),
+    body:
+      | JsonBodyType
+      | ((req: Request, params: Record<string, unknown>) => JsonBodyType | Promise<JsonBodyType>),
     status = 200,
   ) =>
   async ({ request, params }: { request: Request; params: Record<string, unknown> }) => {
     const url = new URL(request.url);
-    const text = request.method === 'GET' ? '' : await request.text();
+    const text = request.method === 'GET' ? '' : await request.clone().text();
     sent.push({
       call: `${request.method} ${url.pathname}${url.search}`,
       body: text ? JSON.parse(text) : undefined,
     });
     if (status === 204) return new HttpResponse(null, { status });
-    return ok(typeof body === 'function' ? body(request, params) : body, status);
+    return ok(typeof body === 'function' ? await body(request, params) : body, status);
   };
 
 export const handlers = [
