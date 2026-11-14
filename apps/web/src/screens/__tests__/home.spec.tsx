@@ -1,8 +1,9 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getWorkspaceId } from '@/api/base';
+import { formatEgp } from '@/lib/money';
 import { fail, fx, http, route, sent, server } from '@/test/server';
-import { renderAt, tr } from '@/test/render';
+import { renderAt, seen, tr } from '@/test/render';
 
 const at = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
 const session = (status: string, startsInMin: number) => ({
@@ -113,6 +114,11 @@ describe('record a payment from today', () => {
     const { user } = await renderAt('/');
     await user.click(await screen.findByRole('button', { name: tr('today.recordPayment') }));
     const sheet = screen.getByRole('dialog', { name: tr('fees.record') });
+    // Before typing, who owes is listed, with what they owe.
+    expect(await within(sheet).findByText(tr('payments.owing'))).toBeVisible();
+    expect(within(sheet).getAllByRole('button', { name: name })[0]).toHaveTextContent(
+      seen(formatEgp(50000, 'ar')),
+    );
     await user.type(within(sheet).getByRole('searchbox'), 'نور');
     await user.click(await within(sheet).findByRole('button', { name }));
     await user.click(await within(sheet).findByRole('button', { name: tr('payments.change') }));

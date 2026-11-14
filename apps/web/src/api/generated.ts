@@ -259,6 +259,9 @@ const injectedRtkApi = api
           url: `/api/v1/students`,
           params: {
             q: queryArg.q,
+            groupId: queryArg.groupId,
+            gradeLevelId: queryArg.gradeLevelId,
+            owes: queryArg.owes,
           },
         }),
         providesTags: ['students'],
@@ -486,6 +489,9 @@ export type CheckInApiArg = {
 export type ListStudentsApiResponse = /** status 200 Students */ StudentList;
 export type ListStudentsApiArg = {
   q?: string;
+  groupId?: string;
+  gradeLevelId?: string;
+  owes?: 'true';
 };
 export type CreateStudentApiResponse = /** status 201 Created */ Student;
 export type CreateStudentApiArg = {
@@ -867,6 +873,7 @@ export type Student = {
   guardians: Guardian[];
   activated: boolean;
   deviceBound: boolean;
+  balancePiastres: number;
 };
 export type StudentList = Student[];
 export type GuardianInput = {

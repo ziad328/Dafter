@@ -45,3 +45,6 @@ export async function pick(
   await user.click(screen.getByRole('combobox', { name: label }));
   await user.click((await screen.findAllByRole('option', { name: option }))[0]!);
 }
+
+/** Text the way Testing Library compares it: currency's no-break spaces become plain spaces. */
+export const seen = (text: string) => text.replace(/\s+/g, ' ');

@@ -361,7 +361,8 @@
           "whatsappOptIn": false,
           "isPrimary": true
         }
-      ]
+      ],
+      "balancePiastres": 50000
     },
     {
       "id": "b30307d0-23da-4d84-8a7f-e578a2d5ab22",
@@ -387,7 +388,8 @@
           "whatsappOptIn": false,
           "isPrimary": true
         }
-      ]
+      ],
+      "balancePiastres": 0
     },
     {
       "id": "9163dcbd-f0a6-4397-85b0-da9ab41fad87",
@@ -413,7 +415,8 @@
           "whatsappOptIn": false,
           "isPrimary": true
         }
-      ]
+      ],
+      "balancePiastres": -1000
     }
   ],
   "student": {
@@ -440,7 +443,8 @@
         "whatsappOptIn": false,
         "isPrimary": true
       }
-    ]
+    ],
+    "balancePiastres": 50000
   },
   "enrollments": [
     {

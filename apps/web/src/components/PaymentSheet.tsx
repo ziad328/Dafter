@@ -13,6 +13,7 @@ import { Avatar, Sheet } from '@/components/Page';
 import { Balance, PaymentForm } from '@/components/StudentFees';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
+import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
 
 const studentName = (s: Student, lang: string) => (lang === 'en' && s.nameEn ? s.nameEn : s.nameAr);
@@ -69,6 +70,9 @@ function StudentSearch({ onPick }: { onPick: (s: Student) => void }) {
     return () => clearTimeout(timer);
   }, [text]);
   const list = useListStudentsQuery({ q }, { skip: !q });
+  // Before typing: who owes, most first, since they are who usually comes to pay (audit F5).
+  const owing = useListStudentsQuery({ owes: 'true' }, { skip: !!q });
+  const shown = q ? list.data : owing.data?.slice(0, 8);
 
   return (
     <div className="grid gap-3">
@@ -92,8 +96,11 @@ function StudentSearch({ onPick }: { onPick: (s: Student) => void }) {
       {q && list.data?.length === 0 && (
         <p className="text-center text-muted-foreground">{t('students.noResults')}</p>
       )}
+      {!q && !!shown?.length && (
+        <p className="text-sm font-medium text-muted-foreground">{t('payments.owing')}</p>
+      )}
       <ul className="grid divide-y">
-        {list.data?.map((s) => {
+        {shown?.map((s) => {
           const name = studentName(s, i18n.language);
           return (
             <li key={s.id}>
@@ -103,12 +110,17 @@ function StudentSearch({ onPick }: { onPick: (s: Student) => void }) {
                 className="flex w-full items-center gap-3 py-2 text-start hover:bg-ink-soft/50 focus-visible:bg-ink-soft"
               >
                 <Avatar name={name} />
-                <span className="grid min-w-0">
+                <span className="grid min-w-0 flex-1">
                   <span className="truncate font-semibold">{name}</span>
                   <span className="truncate text-sm text-muted-foreground">
                     {itemName(s.gradeLevel, i18n.language)}
                   </span>
                 </span>
+                {s.balancePiastres > 0 && (
+                  <bdi className="shrink-0 rounded-full bg-rose-soft px-2 py-0.5 text-xs font-medium text-rose">
+                    {formatEgp(s.balancePiastres, i18n.language)}
+                  </bdi>
+                )}
               </button>
             </li>
           );

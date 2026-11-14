@@ -1,7 +1,8 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { fail, fx, http, route, sent, server } from '@/test/server';
-import { pick, renderAt, tr } from '@/test/render';
+import { formatEgp } from '@/lib/money';
+import { pick, renderAt, seen, tr } from '@/test/render';
 
 const student = fx.student;
 const page = `/students/${student.id}`;
@@ -27,6 +28,34 @@ describe('students list', () => {
     expect(screen.getByText(tr('students.statuses.archived'))).toBeInTheDocument();
     await user.type(screen.getAllByRole('searchbox', { name: tr('students.search') })[1]!, 'نور');
     await expect.poll(() => asked).toContain('نور');
+  });
+
+  it('narrows to who owes, a group or a grade, and badges what is owed', async () => {
+    const asked: string[] = [];
+    server.use(
+      http.get(route('students'), ({ request }) => {
+        asked.push(new URL(request.url).search);
+        return Response.json(fx.students);
+      }),
+      http.get(route('groups'), () =>
+        Response.json([
+          fx.groups[0],
+          { ...fx.groups[1]!, gradeLevel: fx.gradeLevels[1]!, teacherName: 'منى حسن' },
+        ]),
+      ),
+    );
+    const { user } = await renderAt('/students');
+    expect(await screen.findByText(seen(formatEgp(50000, 'ar')))).toBeVisible();
+    await user.click(screen.getByRole('button', { name: tr('students.owes') }));
+    await expect.poll(() => asked.at(-1)).toBe('?owes=true');
+    await user.click(screen.getByRole('button', { name: tr('students.owes') }));
+    const groups = screen.getByRole('group', { name: tr('enrollments.group') });
+    await user.click(within(groups).getByRole('button', { name: /منى حسن/ }));
+    await expect.poll(() => asked.at(-1)).toBe(`?groupId=${fx.groups[1]!.id}`);
+    await user.click(within(groups).getByRole('button', { name: tr('filters.all') }));
+    const grades = screen.getByRole('group', { name: tr('students.gradeLevel') });
+    await user.click(within(grades).getByRole('button', { name: fx.gradeLevels[1]!.nameAr }));
+    await expect.poll(() => asked.at(-1)).toBe(`?gradeLevelId=${fx.gradeLevels[1]!.id}`);
   });
 
   it('takes the search from the top bar, and says when nothing matches', async () => {

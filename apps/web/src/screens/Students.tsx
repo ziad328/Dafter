@@ -2,13 +2,16 @@ import { ChevronLeft, Search, UserPlus, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
-import { useListStudentsQuery } from '@/api/generated';
+import { useListGroupsQuery, useListStudentsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
+import { FilterChips, uniqueOptions } from '@/components/FilterChips';
 import { Avatar, PageHeader, Panel } from '@/components/Page';
 import { PaymentSheet } from '@/components/PaymentSheet';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
+import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
+import { cn } from '@/lib/utils';
 
 export default function Students() {
   const { t, i18n } = useTranslation();
@@ -21,7 +24,18 @@ export default function Students() {
     const timer = setTimeout(() => setQ(text.trim()), 300);
     return () => clearTimeout(timer);
   }, [text]);
-  const list = useListStudentsQuery({ q: q || undefined });
+  // Narrow by group, grade, or who owes (audit ST4); groups name the choices.
+  const [groupId, setGroupId] = useState('');
+  const [gradeLevelId, setGradeLevelId] = useState('');
+  const [owes, setOwes] = useState(false);
+  const groups = useListGroupsQuery().data ?? [];
+  const list = useListStudentsQuery({
+    q: q || undefined,
+    groupId: groupId || undefined,
+    gradeLevelId: gradeLevelId || undefined,
+    owes: owes ? 'true' : undefined,
+  });
+  const filtered = !!(q || groupId || gradeLevelId || owes);
   const [paying, setPaying] = useState(false);
 
   return (
@@ -58,11 +72,44 @@ export default function Students() {
           className="h-12 w-full rounded-2xl border bg-card ps-10 pe-4 text-base shadow-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
+      <div className="grid gap-2">
+        <button
+          type="button"
+          aria-pressed={owes}
+          onClick={() => setOwes(!owes)}
+          className={cn(
+            'h-9 justify-self-start rounded-full border px-4 text-sm font-medium transition-colors',
+            owes ? 'border-rose bg-rose text-white' : 'bg-card hover:bg-rose-soft',
+          )}
+        >
+          {t('students.owes')}
+        </button>
+        <FilterChips
+          label={t('enrollments.group')}
+          value={groupId}
+          onChange={setGroupId}
+          options={groups.map((g) => ({
+            value: g.id,
+            label: `${itemName(g.subject, i18n.language)} · ${g.teacherName}`,
+          }))}
+        />
+        <FilterChips
+          label={t('students.gradeLevel')}
+          value={gradeLevelId}
+          onChange={setGradeLevelId}
+          options={uniqueOptions(
+            groups.map((g) => ({
+              value: g.gradeLevel.id,
+              label: itemName(g.gradeLevel, i18n.language),
+            })),
+          )}
+        />
+      </div>
       <FormError message={list.error && t(errorKey(list.error))} />
       {list.isLoading && <Skeleton />}
       {list.data?.length === 0 && (
         <Panel className="p-8 text-center text-muted-foreground">
-          {t(q ? 'students.noResults' : 'students.empty')}
+          {t(filtered ? 'students.noResults' : 'students.empty')}
         </Panel>
       )}
       {!!list.data?.length && (
@@ -93,6 +140,11 @@ export default function Students() {
                         )}
                       </span>
                     </span>
+                    {s.balancePiastres > 0 && (
+                      <bdi className="shrink-0 rounded-full bg-rose-soft px-2 py-0.5 text-xs font-medium text-rose">
+                        {formatEgp(s.balancePiastres, i18n.language)}
+                      </bdi>
+                    )}
                     {s.status === 'archived' && (
                       <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                         {t('students.statuses.archived')}

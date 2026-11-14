@@ -240,3 +240,34 @@ describe('review fixes', () => {
     );
   });
 });
+
+describe('who owes', () => {
+  it('lists balances, and narrows to debtors (most owed first), a group or a grade', async () => {
+    const d = await f.center();
+    await d.teacher('PATCH', `groups/${d.groupId}`, { monthlyFeePiastres: FEE });
+    const join = async (discountPct: number) => {
+      const id = await d.newStudent();
+      await d.owner('POST', `students/${id}/enrollments`, { groupId: d.groupId, discountPct });
+      return id;
+    };
+    const half = await join(50);
+    const full = await join(0);
+    const none = await d.newStudent();
+    const list = async (query: string) =>
+      (await d.assistant('GET', `students?${query}`))
+        .json()
+        .map((s: { id: string; balancePiastres: number }) => [s.id, s.balancePiastres]);
+
+    expect(await list('owes=true')).toEqual([
+      [full, FEE],
+      [half, FEE / 2],
+    ]);
+    expect((await list('')).find(([id]: [string]) => id === none)).toEqual([none, 0]);
+    expect((await list(`groupId=${d.groupId}`)).map(([id]: [string]) => id).sort()).toEqual(
+      [half, full].sort(),
+    );
+    const grade = (await d.owner('GET', `students/${none}`)).json().gradeLevel.id as string;
+    expect(await list(`gradeLevelId=${grade}`)).toHaveLength(3);
+    expect(await list(`owes=true&q=${encodeURIComponent('zzz')}`)).toEqual([]);
+  });
+});

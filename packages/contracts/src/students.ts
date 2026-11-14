@@ -47,6 +47,10 @@ export const listStudentsQuery = z
   .object({
     // A name (Arabic or English, normalized) or the start of a student or parent phone.
     q: z.string().trim().max(100).optional(),
+    // Narrow to one group's active students, one grade, or those who owe (most owed first).
+    groupId: z.uuid().optional(),
+    gradeLevelId: z.uuid().optional(),
+    owes: z.enum(['true']).optional(),
   })
   .meta({ id: 'ListStudentsQuery' });
 
@@ -75,6 +79,8 @@ export const student = z
     // The student has activated the app (linked to a login) / has a bound phone.
     activated: z.boolean(),
     deviceBound: z.boolean(),
+    // Sum of the ledger, in piastres: positive owes, negative is credit.
+    balancePiastres: z.int(),
   })
   .meta({ id: 'Student' });
 

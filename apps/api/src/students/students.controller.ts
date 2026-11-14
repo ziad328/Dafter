@@ -42,7 +42,7 @@ export class StudentsController {
     @Req() req: TenantedRequest,
     @Query(new ZodPipe(listStudentsQuery)) q: ListStudentsQuery,
   ): Promise<Student[]> {
-    return this.students.list(req, q.q);
+    return this.students.list(req, q);
   }
 
   @Post()

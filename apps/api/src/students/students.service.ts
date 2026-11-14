@@ -4,6 +4,7 @@ import {
   type CreateEnrollmentRequest,
   type CreateStudentRequest,
   type Enrollment,
+  type ListStudentsQuery,
   normalizeArabic,
   type Student,
   type StudentInvite,
@@ -34,8 +35,13 @@ export class StudentsService {
     @Inject(Clock) private readonly clock: Clock,
   ) {}
 
-  list(ctx: Ctx, q?: string): Promise<Student[]> {
-    return this.repo.search(ctx.workspaceId, q ? normalizeArabic(q) : '');
+  list(ctx: Ctx, query: ListStudentsQuery = {}): Promise<Student[]> {
+    const { q, groupId, gradeLevelId, owes } = query;
+    return this.repo.search(ctx.workspaceId, q ? normalizeArabic(q) : '', {
+      groupId,
+      gradeLevelId,
+      owes: owes === 'true',
+    });
   }
 
   async get(ctx: Ctx, id: string): Promise<Student> {

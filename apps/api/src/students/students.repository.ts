@@ -20,6 +20,7 @@ import {
   gradeLevels,
   groups,
   guardians,
+  ledgerEntries,
   memberships,
   refreshTokens,
   studentDevices,
@@ -40,6 +41,12 @@ const LIMIT = 50;
 
 const groupGrade = aliasedTable(gradeLevels, 'eg');
 
+/** The student's ledger sum (positive owes), for the list and the "who owes" filter. */
+const balance = sql<number>`coalesce((select sum(${ledgerEntries.amountPiastres}) from ${ledgerEntries}
+  where ${ledgerEntries.studentId} = ${students.id}), 0)`;
+
+export type StudentFilters = { groupId?: string; gradeLevelId?: string; owes?: boolean };
+
 @Injectable()
 export class StudentsRepository extends TenantRepository {
   async gradeExists(workspaceId: string, id: string) {
@@ -56,25 +63,41 @@ export class StudentsRepository extends TenantRepository {
    * `q` is already normalized. Digits: prefix of the student's or a parent's phone. Text: the
    * normalized name contains it, or is close by trigram word similarity (typos).
    */
-  search(workspaceId: string, q: string): Promise<Student[]> {
+  search(workspaceId: string, q: string, f: StudentFilters = {}): Promise<Student[]> {
+    const narrow = and(
+      f.gradeLevelId ? eq(students.gradeLevelId, f.gradeLevelId) : undefined,
+      f.groupId
+        ? sql`exists (select 1 from ${enrollments} where ${enrollments.studentId} = ${students.id}
+            and ${enrollments.groupId} = ${f.groupId} and ${enrollments.status} = 'active')`
+        : undefined,
+      f.owes ? sql`${balance} > 0` : undefined,
+    );
+    const first = f.owes ? [desc(balance)] : [];
     return this.inTenant(workspaceId, (tx) => {
-      if (!q) return this.select(tx, workspaceId, undefined, [desc(students.createdAt)]);
+      if (!q) return this.select(tx, workspaceId, narrow, [...first, desc(students.createdAt)]);
       if (/^\d+$/.test(q)) {
         const parent = tx
           .select({ one: sql`1` })
           .from(studentGuardians)
           .innerJoin(guardians, eq(guardians.id, studentGuardians.guardianId))
           .where(and(eq(studentGuardians.studentId, students.id), like(guardians.phone, `${q}%`)));
-        return this.select(tx, workspaceId, or(like(students.phone, `${q}%`), exists(parent)), [
-          asc(students.nameSearch),
-        ]);
+        return this.select(
+          tx,
+          workspaceId,
+          and(or(like(students.phone, `${q}%`), exists(parent)), narrow),
+          [...first, asc(students.nameSearch)],
+        );
       }
       const contains = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
       return this.select(
         tx,
         workspaceId,
-        or(ilike(students.nameSearch, contains), sql`${q} <% ${students.nameSearch}`),
-        [desc(sql`word_similarity(${q}, ${students.nameSearch})`), asc(students.nameSearch)],
+        and(or(ilike(students.nameSearch, contains), sql`${q} <% ${students.nameSearch}`), narrow),
+        [
+          ...first,
+          desc(sql`word_similarity(${q}, ${students.nameSearch})`),
+          asc(students.nameSearch),
+        ],
       );
     });
   }
@@ -288,6 +311,7 @@ export class StudentsRepository extends TenantRepository {
         status: students.status,
         activated: sql<boolean>`${students.userId} is not null`,
         deviceBound: sql<boolean>`exists (select 1 from ${studentDevices} where ${studentDevices.userId} = ${students.userId} and ${studentDevices.revokedAt} is null)`,
+        balancePiastres: balance.mapWith(Number),
       })
       .from(students)
       .innerJoin(gradeLevels, eq(gradeLevels.id, students.gradeLevelId))

@@ -193,6 +193,7 @@
     "title": "Students",
     "new": "New student",
     "edit": "Edit student",
+    "owes": "Owes fees",
     "search": "Search by name or mobile",
     "empty": "No students yet.",
     "noResults": "No results.",
@@ -452,6 +453,7 @@
   },
   "payments": {
     "close": "Close",
+    "owing": "Owing fees",
     "done": "Payment recorded for {name}.",
     "another": "Another payment",
     "change": "Change"
