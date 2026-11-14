@@ -248,7 +248,8 @@
     "schedule": "My schedule",
     "noSessions": "No sessions in the next two weeks.",
     "history": "My attendance",
-    "noHistory": "No attendance yet."
+    "noHistory": "No attendance yet.",
+    "checkSpam": "No email after a minute? Check your spam (junk) folder, and move the Dafter email to your inbox."
   },
   "live": {
     "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",
@@ -266,7 +267,7 @@
       "makeup": "Make-up"
     },
     "expected": "of {count} enrolled",
-    "present": "Present",
+    "present": "Mark present",
     "markPresent": "Mark {name} present"
   },
   "scan": {

@@ -59,7 +59,13 @@ function SignIn({ token }: { token?: string }) {
         </CardDescription>
       </CardHeader>
       {email ? (
-        <CodeStep email={email} inviteToken={token} onBack={() => setEmail(undefined)} />
+        <>
+          {/* Brevo's free sender often lands in spam; say so before the student gives up. */}
+          <p role="note" className="mx-6 rounded-xl bg-amber-soft px-4 py-3 text-sm text-late">
+            {t('studentApp.checkSpam')}
+          </p>
+          <CodeStep email={email} inviteToken={token} onBack={() => setEmail(undefined)} />
+        </>
       ) : (
         <EmailStep inviteToken={token} onSent={setEmail} />
       )}
