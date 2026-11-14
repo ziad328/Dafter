@@ -23,6 +23,11 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
   lang,
   t,
 }) => {
+  // "Send" hands the receipt as text to the share sheet. Stubbed before load: Chrome on Linux has
+  // no navigator.share, and the button picks Send or Copy when it renders.
+  await page.addInitScript(() => {
+    navigator.share = async (d) => void ((window as { shared?: ShareData }).shared = d);
+  });
   // Data through the API: a 500 EGP monthly group and an enrolled student (billed on enroll).
   const login = await request.post('/api/v1/auth/login', {
     data: { login: STAFF.owner, password: PASSWORD },
@@ -70,14 +75,11 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
 
   await page.getByRole('link', { name: new RegExp(t.fees.receipt) }).click();
   await expect(page).toHaveURL(/\/receipts\//);
+  // The student page can stay on screen while the receipt screen loads; wait for the receipt.
+  await expect(page.getByRole('button', { name: t.receipt.print })).toBeVisible();
   await expect(page.getByText(`نور ${n}`)).toBeVisible();
   await expect(page.getByText(egp(lang, 200))).toBeVisible();
   await expect(page.getByText(t.fees.methods.vodafone_cash)).toBeVisible();
-  await expect(page.getByRole('button', { name: t.receipt.print })).toBeVisible();
-  // "Send" hands the receipt as text to the share sheet (stubbed: no native sheet in tests).
-  await page.evaluate(() => {
-    navigator.share = async (d) => void ((window as { shared?: ShareData }).shared = d);
-  });
   await page.getByRole('button', { name: t.share.send }).click();
   const shared = await page.evaluate(() => (window as { shared?: ShareData }).shared?.text);
   expect(shared).toContain(`نور ${n}`);

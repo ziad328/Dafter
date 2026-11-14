@@ -11,8 +11,10 @@ export default defineConfig({
   testDir: 'tests',
   fullyParallel: true,
   // One dev server (Vite + API + PostgreSQL) serves every worker; more than 6 at once makes the
-  // first sign-ins of a cold run time out.
-  workers: 6,
+  // first sign-ins of a cold run time out. GitHub's 4-core runner also runs that server, so it
+  // gets 2 workers and twice the test time (the long flows timed out at 30 s there).
+  workers: CI ? 2 : 6,
+  timeout: CI ? 60_000 : 30_000,
   forbidOnly: CI,
   retries: CI ? 1 : 0,
   reporter: CI ? [['list'], ['html', { open: 'never' }]] : 'list',
