@@ -29,4 +29,14 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   await expect(card.getByText(SEC3[lang])).toBeVisible();
   // Slots read in 12-hour time.
   await expect(card.getByText(SLOT[lang])).toBeVisible();
+
+  // Editing opens with the saved subject and grade, even on a fresh load (lists arrive late).
+  await card.click();
+  await page.reload();
+  await expect(page.getByRole('combobox', { name: t.groups.subject, exact: true })).toContainText(
+    PHYSICS[lang],
+  );
+  await expect(
+    page.getByRole('combobox', { name: t.groups.gradeLevel, exact: true }),
+  ).toContainText(SEC3[lang]);
 });

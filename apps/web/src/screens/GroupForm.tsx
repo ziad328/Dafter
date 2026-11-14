@@ -35,7 +35,15 @@ export default function GroupForm() {
   const { t } = useTranslation();
   const { id } = useParams();
   const existing = useGetGroupQuery({ id: id! }, { skip: !id });
-  if (id && existing.isLoading) return <Skeleton />;
+  const isOwner = useGetCurrentWorkspaceQuery().data?.role === 'owner';
+  // Wait for the option lists too: a <select> mounted before its options shows the saved value
+  // as empty, and saving would then send it empty.
+  const lists = [
+    useListSubjectsQuery(),
+    useListGradeLevelsQuery(),
+    useListMembersQuery(undefined, { skip: !isOwner }),
+  ];
+  if ((id && existing.isLoading) || lists.some((l) => l.isLoading)) return <Skeleton />;
   if (id && existing.error) return <FormError message={t(errorKey(existing.error))} />;
   // Mounted once the group is loaded, so the form's default values are the group's.
   return <GroupFormBody id={id} group={existing.data} />;
