@@ -98,20 +98,44 @@ const OTHER_STEPS = [
   { icon: ClipboardPaste, key: 'open' },
 ] as const;
 
-/** One step: a small phone drawing with the button to look for, and what to do. */
-function InstallStep({ n, icon: Icon, text }: { n: number; icon: LucideIcon; text: string }) {
+/**
+ * One step of a vertical stepper: the number on a line joining the steps, what to do, and the
+ * button to look for on the screen, drawn as it looks there.
+ */
+function InstallStep({
+  n,
+  icon: Icon,
+  text,
+  last,
+}: {
+  n: number;
+  icon: LucideIcon;
+  text: string;
+  last: boolean;
+}) {
   return (
-    <li className="flex items-center gap-3">
+    <li className="relative flex gap-3 pb-5 last:pb-0">
+      {!last && (
+        <span
+          aria-hidden
+          className="absolute start-4 top-9 bottom-1 w-px -translate-x-1/2 bg-border rtl:translate-x-1/2"
+        />
+      )}
       <span
         aria-hidden
-        className="grid h-20 w-12 shrink-0 grid-rows-[1fr_auto] overflow-hidden rounded-xl border-2 border-foreground/25 bg-muted"
+        className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
       >
-        <span className="grid place-items-center text-xs font-bold text-muted-foreground">{n}</span>
-        <span className="grid place-items-center bg-ink-soft py-1.5 text-ink">
+        <bdi>{n}</bdi>
+      </span>
+      <span className="flex min-w-0 flex-1 items-start justify-between gap-3 pt-1">
+        <span className="leading-relaxed">{text}</span>
+        <span
+          aria-hidden
+          className="grid size-9 shrink-0 place-items-center rounded-lg border bg-card text-ink shadow-xs"
+        >
           <Icon className="size-5" />
         </span>
       </span>
-      <span>{text}</span>
     </li>
   );
 }
@@ -134,9 +158,15 @@ function InstallGate() {
       <CardContent className="grid gap-4 text-sm">
         {install && <Button onClick={install}>{t('install.button')}</Button>}
         {/* Three pictures, one per tap: the hardest step for a 15-year-old (audit S7). */}
-        <ol className="grid gap-3" data-testid="install-steps">
-          {(ios ? IOS_STEPS : OTHER_STEPS).map(({ icon, key }, i) => (
-            <InstallStep key={key} n={i + 1} icon={icon} text={t(`install.steps.${key}`)} />
+        <ol className="rounded-xl bg-muted/50 p-4" data-testid="install-steps">
+          {(ios ? IOS_STEPS : OTHER_STEPS).map(({ icon, key }, i, all) => (
+            <InstallStep
+              key={key}
+              n={i + 1}
+              icon={icon}
+              text={t(`install.steps.${key}`)}
+              last={i === all.length - 1}
+            />
           ))}
         </ol>
         {/* The installed app on iPhone can't see this tab's link, so keep it ready to paste. */}
