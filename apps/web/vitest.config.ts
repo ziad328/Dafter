@@ -13,7 +13,16 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.spec.{ts,tsx}', 'src/test/**', 'src/**/*.d.ts'],
+      exclude: [
+        'src/**/*.spec.{ts,tsx}',
+        'src/test/**',
+        'src/**/*.d.ts',
+        // Generated from the contracts by RTK codegen; CI checks it is up to date.
+        'src/api/generated.ts',
+        // Copied in by the shadcn CLI, not written here.
+        'src/components/ui/**',
+      ],
+      thresholds: { lines: 100 },
       reporter: ['text-summary', 'text'],
     },
   },

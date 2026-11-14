@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "codegen": "rtk-query-codegen-openapi openapi-config.cjs",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@dafter/contracts": "workspace:*",
