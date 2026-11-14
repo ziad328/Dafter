@@ -140,7 +140,8 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
               dir="ltr"
               error={errors.capacity && t('form.invalid.capacity')}
               {...register('capacity', {
-                setValueAs: (v: string) => (v === '' ? null : Number(v)),
+                // The form also passes the saved null through here; Number(null) would be 0.
+                setValueAs: (v: string | null) => (v === '' || v === null ? null : Number(v)),
               })}
             />
             <Field
@@ -186,7 +187,10 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
                       />
                     </div>
                     <FormError
-                      message={slotError((e?.root ?? e?.endTime ?? e?.startTime) as FieldError)}
+                      // SLOT_OVERLAP sits on the slot itself (path [i]), not on one of its fields.
+                      message={slotError(
+                        (e?.root ?? e?.endTime ?? e?.startTime ?? e) as FieldError,
+                      )}
                     />
                     {slots.fields.length > 1 && (
                       <Button
