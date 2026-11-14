@@ -50,7 +50,7 @@ import {
   updateStudentRequest,
 } from './students.js';
 import { listSessionsQuery, moveSessionRequest, session, sessionList } from './sessions.js';
-import { todayStats } from './stats.js';
+import { collectionStats, todayStats } from './stats.js';
 import {
   createInviteRequest,
   createWorkspaceRequest,
@@ -356,6 +356,19 @@ export function buildOpenApi() {
           description: 'Numbers for the Today dashboard, for the groups the caller can see.',
           security: [{ bearer: [] }],
           responses: { 200: { description: 'Stats', content: json(todayStats) }, ...errors },
+        },
+      },
+      '/api/v1/stats/collections': {
+        get: {
+          operationId: 'getCollectionStats',
+          tags: ['money'],
+          description:
+            'Owner and assistant: payments minus their reversals, today and this month, by method, for the whole workspace.',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'Collected', content: json(collectionStats) },
+            ...errors,
+          },
         },
       },
       '/api/v1/sessions/{id}/roster': {

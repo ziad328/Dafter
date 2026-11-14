@@ -23,5 +23,17 @@ export const todayStats = z
   })
   .meta({ id: 'TodayStats' });
 
+/** Money in for one period, in integer piastres: payments minus their reversals. */
+export const methodTotals = z
+  .object({ cash: z.int(), vodafone_cash: z.int(), instapay: z.int(), total: z.int() })
+  .meta({ id: 'MethodTotals' });
+
+/** Owner and assistant: money collected today and this month, in the workspace timezone. */
+export const collectionStats = z
+  .object({ today: methodTotals, month: methodTotals })
+  .meta({ id: 'CollectionStats' });
+
 export type StatsDay = z.infer<typeof statsDay>;
+export type MethodTotals = z.infer<typeof methodTotals>;
+export type CollectionStats = z.infer<typeof collectionStats>;
 export type TodayStats = z.infer<typeof todayStats>;

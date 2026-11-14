@@ -162,6 +162,13 @@ export const handlers = [
     return new HttpResponse(null);
   }),
   http.get(api('stats/today'), log(fx.stats)),
+  http.get(
+    api('stats/collections'),
+    log({
+      today: { cash: 30000, vodafone_cash: 15050, instapay: 0, total: 45050 },
+      month: { cash: 120000, vodafone_cash: 15050, instapay: 50000, total: 185050 },
+    }),
+  ),
   http.get(api('students'), log(fx.students)),
   http.post(api('students'), log(fx.student, 201)),
   http.get(api('students/:id'), log(fx.student)),

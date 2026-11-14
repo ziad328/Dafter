@@ -1125,6 +1125,40 @@
         }
       }
     },
+    "/api/v1/stats/collections": {
+      "get": {
+        "operationId": "getCollectionStats",
+        "tags": ["money"],
+        "description": "Owner and assistant: payments minus their reversals, today and this month, by method, for the whole workspace.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionStats"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sessions/{id}/roster": {
       "get": {
         "operationId": "getSessionRoster",
@@ -3463,6 +3497,46 @@
           }
         },
         "required": ["date", "present", "total"],
+        "additionalProperties": false
+      },
+      "CollectionStats": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "$ref": "#/components/schemas/MethodTotals"
+          },
+          "month": {
+            "$ref": "#/components/schemas/MethodTotals"
+          }
+        },
+        "required": ["today", "month"],
+        "additionalProperties": false
+      },
+      "MethodTotals": {
+        "type": "object",
+        "properties": {
+          "cash": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "vodafone_cash": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "instapay": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["cash", "vodafone_cash", "instapay", "total"],
         "additionalProperties": false
       },
       "Roster": {

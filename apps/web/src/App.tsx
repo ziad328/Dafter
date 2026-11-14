@@ -36,6 +36,7 @@ const Receipt = lazy(() => import('./screens/Receipt'));
 const FakePhone = lazy(() => import('./screens/FakePhone'));
 const Messages = lazy(() => import('./screens/Messages'));
 const More = lazy(() => import('./screens/More'));
+const Fees = lazy(() => import('./screens/Fees'));
 
 /** Signed-out screens and the student app: the wordmark, the notebook's red line, one column. */
 function Layout() {
@@ -134,6 +135,7 @@ export const routes: RouteObject[] = [
           { path: '/students/new', element: <StudentForm /> },
           { path: '/students/:id', element: <StudentForm /> },
           { path: '/more', element: <More /> },
+          { path: '/fees', element: <Fees /> },
         ],
       },
     ],

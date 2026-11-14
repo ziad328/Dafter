@@ -443,7 +443,8 @@
     "switchWorkspace": "Switch workspace",
     "live": "Live session",
     "receipt": "Receipt",
-    "breadcrumbs": "You are here"
+    "breadcrumbs": "You are here",
+    "fees": "Fees"
   },
   "today": {
     "next": "Next session",
@@ -484,5 +485,12 @@
     "copied": "Copied",
     "staffInvite": "Join our workspace on Dafter:",
     "studentInvite": "Activate the Dafter app with this link (works once, within 72 hours):"
+  },
+  "feesView": {
+    "title": "Fees",
+    "today": "Collected today",
+    "month": "Collected this month",
+    "owing": "{count, plural, =0 {Who owes} one {Who owes · # student} other {Who owes · # students}}",
+    "noneOwe": "Nobody owes anything. Every account is settled."
   }
 }

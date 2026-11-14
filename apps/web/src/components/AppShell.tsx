@@ -11,6 +11,7 @@ import {
   Smartphone,
   UserCog,
   Users,
+  Wallet,
 } from 'lucide-react';
 import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +39,10 @@ export function useNavItems() {
   ];
   const more: Item[] = [
     ...(role && role !== 'teacher'
-      ? [{ to: '/messages', label: t('nav.messages'), icon: MessageSquareText }]
+      ? [
+          { to: '/fees', label: t('nav.fees'), icon: Wallet },
+          { to: '/messages', label: t('nav.messages'), icon: MessageSquareText },
+        ]
       : []),
     { to: '/members', label: t('nav.staff'), icon: UserCog },
     // shortcut: dev builds only; the demo deploy opens /dev/phone directly (docs/demo-script.md).

@@ -182,6 +182,10 @@ const injectedRtkApi = api
         query: () => ({ url: `/api/v1/stats/today` }),
         providesTags: ['attendance'],
       }),
+      getCollectionStats: build.query<GetCollectionStatsApiResponse, GetCollectionStatsApiArg>({
+        query: () => ({ url: `/api/v1/stats/collections` }),
+        providesTags: ['money'],
+      }),
       getSessionRoster: build.query<GetSessionRosterApiResponse, GetSessionRosterApiArg>({
         query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/roster` }),
         providesTags: ['attendance'],
@@ -458,6 +462,8 @@ export type ListAttendanceApiArg = {
 };
 export type GetTodayStatsApiResponse = /** status 200 Stats */ TodayStats;
 export type GetTodayStatsApiArg = void;
+export type GetCollectionStatsApiResponse = /** status 200 Collected */ CollectionStats;
+export type GetCollectionStatsApiArg = void;
 export type GetSessionRosterApiResponse = /** status 200 Roster */ Roster;
 export type GetSessionRosterApiArg = {
   id: string;
@@ -802,6 +808,16 @@ export type TodayStats = {
   activeStudents: number;
   week: StatsDay[];
 };
+export type MethodTotals = {
+  cash: number;
+  vodafone_cash: number;
+  instapay: number;
+  total: number;
+};
+export type CollectionStats = {
+  today: MethodTotals;
+  month: MethodTotals;
+};
 export type RosterEntry = {
   studentId: string;
   nameAr: string;
@@ -1003,6 +1019,7 @@ export const {
   useOpenSessionMutation,
   useListAttendanceQuery,
   useGetTodayStatsQuery,
+  useGetCollectionStatsQuery,
   useGetSessionRosterQuery,
   useMarkAttendanceMutation,
   useCloseSessionMutation,
