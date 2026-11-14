@@ -9,6 +9,7 @@ import {
 } from '@/api/generated';
 import { FormError, SelectField, Skeleton } from '@/components/Field';
 import { ShareButton } from '@/components/ShareButton';
+import { PageHeader } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { errorKey } from '@/lib/session';
@@ -22,8 +23,8 @@ export default function Members() {
   const teachers = (members.data ?? []).filter((m) => m.role !== 'assistant');
 
   return (
-    <div className="grid gap-4">
-      <h1 className="text-xl font-bold">{t('members.title')}</h1>
+    <div className="grid gap-5">
+      <PageHeader title={t('members.title')} />
       {isOwner && <InviteCard />}
       <FormError message={members.error && t(errorKey(members.error))} />
       <ul className="grid gap-2">

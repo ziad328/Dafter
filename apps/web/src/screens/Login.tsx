@@ -1,3 +1,4 @@
+import { LogIn } from 'lucide-react';
 import { loginRequest, type LoginRequest } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -5,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useLoginMutation } from '@/api/generated';
 import { Field, FormError } from '@/components/Field';
+import { IconBadge } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { errorKey, safeNext } from '@/lib/session';
@@ -26,6 +28,7 @@ export default function Login() {
   return (
     <Card>
       <CardHeader>
+        <IconBadge icon={LogIn} />
         <CardTitle>
           <h1>{t('auth.login.title')}</h1>
         </CardTitle>

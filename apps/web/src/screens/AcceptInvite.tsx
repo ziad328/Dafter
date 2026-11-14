@@ -1,7 +1,9 @@
+import { MailOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { useAcceptInviteMutation, useGetMeQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
+import { IconBadge } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { errorKey, useSelectWorkspace } from '@/lib/session';
@@ -19,6 +21,7 @@ export default function AcceptInvite() {
   return (
     <Card>
       <CardHeader>
+        <IconBadge icon={MailOpen} />
         <CardTitle>
           <h1>{t('invite.title')}</h1>
         </CardTitle>

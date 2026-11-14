@@ -1,3 +1,4 @@
+import { Download, Smartphone } from 'lucide-react';
 import { normalizeArabic, otpRequest, otpVerifyRequest } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
@@ -7,6 +8,7 @@ import { useNavigate, useParams } from 'react-router';
 import * as z from 'zod';
 import { useRequestOtpMutation, useVerifyOtpMutation } from '@/api/generated';
 import { Field, FormError } from '@/components/Field';
+import { IconBadge } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -45,6 +47,7 @@ function SignIn({ token }: { token?: string }) {
   return (
     <Card>
       <CardHeader>
+        <IconBadge icon={Smartphone} />
         <CardTitle>
           <h1>{t(token ? 'studentApp.activateTitle' : 'studentApp.loginTitle')}</h1>
         </CardTitle>
@@ -81,6 +84,7 @@ function InstallGate() {
   return (
     <Card>
       <CardHeader>
+        <IconBadge icon={Download} />
         <CardTitle>
           <h1>{t('install.title')}</h1>
         </CardTitle>

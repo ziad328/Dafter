@@ -1,6 +1,6 @@
 import type { LedgerEntry, Student } from '@dafter/contracts';
-import { Search, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import {
@@ -9,7 +9,7 @@ import {
   useListStudentsQuery,
 } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
-import { Avatar } from '@/components/Page';
+import { Avatar, Sheet } from '@/components/Page';
 import { Balance, PaymentForm } from '@/components/StudentFees';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
@@ -20,28 +20,11 @@ const studentName = (s: Student, lang: string) => (lang === 'en' && s.nameEn ? s
 /** Record a payment from anywhere: find the student, see what they owe, pay, open the receipt. */
 export function PaymentSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    if (open) ref.current?.showModal();
-    else ref.current?.close();
-  }, [open]);
-
   return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      aria-label={t('fees.record')}
-      className="mx-auto mb-0 mt-auto max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-card p-5 text-foreground shadow-card backdrop:bg-black/40 sm:mb-auto sm:rounded-3xl"
-    >
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">{t('fees.record')}</h2>
-        <Button size="icon" variant="ghost" aria-label={t('payments.close')} onClick={onClose}>
-          <X aria-hidden />
-        </Button>
-      </div>
+    <Sheet open={open} onClose={onClose} title={t('fees.record')}>
       {/* Mounted only while open, so each opening starts from an empty search. */}
-      {open && <SheetBody />}
-    </dialog>
+      <SheetBody />
+    </Sheet>
   );
 }
 

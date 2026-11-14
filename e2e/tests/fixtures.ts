@@ -95,7 +95,8 @@ export async function choose(
 export async function enterWorkspace(page: Page, t: typeof ar, name: string) {
   const button = page.getByRole('button', { name });
   const chip = workspaceChip(page, t);
-  await expect(button.or(chip).first()).toBeVisible();
+  // The first sign-ins of a full parallel run wait on a cold dev server: 5 s is too tight there.
+  await expect(button.or(chip).first()).toBeVisible({ timeout: 15_000 });
   if (await button.isVisible()) await button.click();
   await expect(chip).toContainText(name);
 }

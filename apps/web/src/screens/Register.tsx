@@ -1,3 +1,4 @@
+import { UserPlus } from 'lucide-react';
 import { registerRequest, type RegisterRequest } from '@dafter/contracts';
 import { isLocale } from '@dafter/i18n';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useRegisterMutation } from '@/api/generated';
 import { Field, FormError } from '@/components/Field';
+import { IconBadge } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { errorKey, safeNext } from '@/lib/session';
@@ -32,6 +34,7 @@ export default function Register() {
   return (
     <Card>
       <CardHeader>
+        <IconBadge icon={UserPlus} />
         <CardTitle>
           <h1>{t('auth.register.title')}</h1>
         </CardTitle>

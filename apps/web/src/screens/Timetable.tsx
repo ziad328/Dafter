@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { type MoveSessionRequest, moveSessionRequest, type Session } from '@dafter/contracts';
 import {
@@ -108,7 +108,7 @@ function SessionCard({
 }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const [mode, setMode] = useState<'view' | 'confirm' | 'move'>('view');
+  const [mode, setMode] = useState<'view' | 'menu' | 'confirm' | 'move'>('view');
   const [cancel, cancelled] = useCancelSessionMutation();
   const editable = canWrite && s.status === 'scheduled';
 
@@ -117,9 +117,23 @@ function SessionCard({
       <CardHeader className="px-4">
         <CardTitle className="flex flex-wrap items-baseline justify-between gap-2">
           <h3>{`${itemName(s.subject, lang)} · ${itemName(s.gradeLevel, lang)}`}</h3>
-          <bdi className="text-sm font-normal text-muted-foreground">
-            {`${displayTime(s.startsAt, tz, lang)} – ${displayTime(s.endsAt, tz, lang)}`}
-          </bdi>
+          <span className="flex items-center gap-1">
+            <bdi className="text-sm font-normal text-muted-foreground">
+              {`${displayTime(s.startsAt, tz, lang)} – ${displayTime(s.endsAt, tz, lang)}`}
+            </bdi>
+            {/* Move and cancel wait behind one menu, so a busy card has no stray "cancel" tap. */}
+            {editable && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('timetable.actions')}
+                aria-expanded={mode === 'menu'}
+                onClick={() => setMode(mode === 'menu' ? 'view' : 'menu')}
+              >
+                <MoreHorizontal aria-hidden />
+              </Button>
+            )}
+          </span>
         </CardTitle>
         <CardDescription>
           {s.teacherName}
@@ -134,10 +148,10 @@ function SessionCard({
           </Button>
         </CardContent>
       )}
-      {editable && (
+      {editable && mode !== 'view' && (
         <CardContent className="grid gap-3 px-4">
           <FormError message={cancelled.error && t(errorKey(cancelled.error))} />
-          {mode === 'view' && (
+          {mode === 'menu' && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setMode('move')}>
                 {t('timetable.move')}

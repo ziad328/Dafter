@@ -168,7 +168,8 @@
       "closed": "Ended",
       "cancelled": "Cancelled"
     },
-    "moved": "Rescheduled"
+    "moved": "Rescheduled",
+    "actions": "Session actions"
   },
   "students": {
     "title": "Students",

@@ -53,6 +53,7 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   ).toBeVisible();
 
   // Move it one hour later on the same day.
+  await card.getByRole('button', { name: t.timetable.actions }).click();
   await card.getByRole('button', { name: t.timetable.move }).click();
   const later = `${pad(hour + 1)}:${minute}`;
   const latest = `${pad(hour + 2)}:${minute}`;
@@ -63,8 +64,9 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   await expect(moved.getByText(t.timetable.moved)).toBeVisible();
 
   // Cancel takes a second tap to confirm.
+  await moved.getByRole('button', { name: t.timetable.actions }).click();
   await moved.getByRole('button', { name: t.timetable.cancel }).click();
   await moved.getByRole('button', { name: t.timetable.confirmCancel }).click();
   await expect(moved.getByText(t.timetable.status.cancelled)).toBeVisible();
-  await expect(moved.getByRole('button', { name: t.timetable.move })).toHaveCount(0);
+  await expect(moved.getByRole('button', { name: t.timetable.actions })).toHaveCount(0);
 });
