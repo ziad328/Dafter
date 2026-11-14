@@ -1,7 +1,7 @@
 import type { MethodTotals } from '@dafter/contracts';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useGetCollectionStatsQuery, useListStudentsQuery } from '@/api/generated';
+import { useGetCollectionStatsQuery, useGetOwingStudentsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { Avatar, PageHeader, Panel } from '@/components/Page';
 import { itemName } from '@/lib/groups';
@@ -34,7 +34,7 @@ function Totals({ title, totals }: { title: string; totals: MethodTotals }) {
 export default function Fees() {
   const { t, i18n } = useTranslation();
   const stats = useGetCollectionStatsQuery();
-  const owing = useListStudentsQuery({ owes: 'true' });
+  const owing = useGetOwingStudentsQuery();
   const error = stats.error ?? owing.error;
 
   return (

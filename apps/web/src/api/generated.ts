@@ -182,6 +182,10 @@ const injectedRtkApi = api
         query: () => ({ url: `/api/v1/stats/today` }),
         providesTags: ['attendance'],
       }),
+      getOwingStudents: build.query<GetOwingStudentsApiResponse, GetOwingStudentsApiArg>({
+        query: () => ({ url: `/api/v1/stats/owing` }),
+        providesTags: ['money'],
+      }),
       getCollectionStats: build.query<GetCollectionStatsApiResponse, GetCollectionStatsApiArg>({
         query: () => ({ url: `/api/v1/stats/collections` }),
         providesTags: ['money'],
@@ -462,6 +466,8 @@ export type ListAttendanceApiArg = {
 };
 export type GetTodayStatsApiResponse = /** status 200 Stats */ TodayStats;
 export type GetTodayStatsApiArg = void;
+export type GetOwingStudentsApiResponse = /** status 200 Who owes */ OwingList;
+export type GetOwingStudentsApiArg = void;
 export type GetCollectionStatsApiResponse = /** status 200 Collected */ CollectionStats;
 export type GetCollectionStatsApiArg = void;
 export type GetSessionRosterApiResponse = /** status 200 Roster */ Roster;
@@ -809,6 +815,14 @@ export type TodayStats = {
   activeStudents: number;
   week: StatsDay[];
 };
+export type OwingStudent = {
+  id: string;
+  nameAr: string;
+  nameEn: string | null;
+  gradeLevel: CurriculumItem;
+  balancePiastres: number;
+};
+export type OwingList = OwingStudent[];
 export type MethodTotals = {
   cash: number;
   vodafone_cash: number;
@@ -1020,6 +1034,7 @@ export const {
   useOpenSessionMutation,
   useListAttendanceQuery,
   useGetTodayStatsQuery,
+  useGetOwingStudentsQuery,
   useGetCollectionStatsQuery,
   useGetSessionRosterQuery,
   useMarkAttendanceMutation,

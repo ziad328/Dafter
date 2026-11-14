@@ -164,6 +164,20 @@ export const handlers = [
   }),
   http.get(api('stats/today'), log(fx.stats)),
   http.get(
+    api('stats/owing'),
+    log(
+      fx.students
+        .filter((s) => s.balancePiastres > 0)
+        .map(({ id, nameAr, nameEn, gradeLevel, balancePiastres }) => ({
+          id,
+          nameAr,
+          nameEn,
+          gradeLevel,
+          balancePiastres,
+        })),
+    ),
+  ),
+  http.get(
     api('stats/collections'),
     log({
       today: { cash: 30000, vodafone_cash: 15050, instapay: 0, total: 45050 },

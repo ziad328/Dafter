@@ -1,6 +1,7 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ledgerEntries } from '@dafter/db';
+import { and, eq } from 'drizzle-orm';
+import { assistantScopes, ledgerEntries, memberships, students as studentsTable } from '@dafter/db';
 import { useTestDb } from '@dafter/db/testing';
 import { createApp } from '../app.js';
 import { FakeClock } from '../clock.js';
@@ -126,5 +127,92 @@ describe('GET /stats/collections', () => {
       today: { cash: 0, vodafone_cash: 0, instapay: 0, total: 0 },
       month: { cash: 0, vodafone_cash: 0, instapay: 0, total: 0 },
     });
+  });
+});
+
+describe('GET /stats/owing', () => {
+  it("lists every debtor biggest first, past 50, and an assistant sees only their teachers' groups", async () => {
+    const c = await f.center();
+    const db = testDb().db;
+    const [teacher] = await db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.workspaceId, c.workspaceId), eq(memberships.role, 'teacher')));
+    const [assistant] = await db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.workspaceId, c.workspaceId), eq(memberships.role, 'assistant')));
+    const [grade] = (await c.owner('GET', 'grade-levels')).json();
+    const [subject] = (await c.owner('GET', 'subjects')).json();
+    // A second group the owner teaches, outside the assistant's scope.
+    const ownGroup = (
+      await c.owner('POST', 'groups', {
+        subjectId: subject.id,
+        gradeLevelId: grade.id,
+        slots: [{ weekday: 1, startTime: '10:00', endTime: '11:00' }],
+      })
+    ).json().id as string;
+
+    const students = await db
+      .insert(studentsTable)
+      .values(
+        Array.from({ length: 55 }, (_, i) => ({
+          workspaceId: c.workspaceId,
+          nameAr: `مدين ${i}`,
+          nameSearch: `مدين ${i}`,
+          gradeLevelId: grade.id,
+        })),
+      )
+      .returning({ id: studentsTable.id });
+    const charge = (studentId: string, groupId: string, piastres: number, period: string) => ({
+      workspaceId: c.workspaceId,
+      studentId,
+      groupId,
+      type: 'charge' as const,
+      amountPiastres: piastres,
+      period,
+    });
+    // Student i owes (i + 1) pounds in the teacher's group; student 0 also owes 1000 in the owner's.
+    await db
+      .insert(ledgerEntries)
+      .values([
+        ...students.map((s, i) => charge(s.id, c.groupId, (i + 1) * 100, '2026-11')),
+        charge(students[0]!.id, ownGroup, 100_000, '2026-11'),
+      ]);
+    // Student 1 paid in full: off the list.
+    await db.insert(ledgerEntries).values({
+      workspaceId: c.workspaceId,
+      studentId: students[1]!.id,
+      groupId: c.groupId,
+      type: 'payment',
+      amountPiastres: -200,
+      method: 'cash',
+      receiptNo: 1,
+    });
+
+    const all = (await c.owner('GET', 'stats/owing')).json() as {
+      id: string;
+      balancePiastres: number;
+      gradeLevel: { id: string };
+    }[];
+    expect(all).toHaveLength(54);
+    expect(all[0]).toMatchObject({ id: students[0]!.id, balancePiastres: 100_100 });
+    expect(all[0]!.gradeLevel.id).toBe(grade.id);
+    expect(all[1]).toMatchObject({ id: students[54]!.id, balancePiastres: 5500 });
+    expect(all.some((s) => s.id === students[1]!.id)).toBe(false);
+
+    // Unscoped, the assistant sees nobody; scoped to the teacher, only that group's balances.
+    expect((await c.assistant('GET', 'stats/owing')).json()).toEqual([]);
+    await db.insert(assistantScopes).values({
+      workspaceId: c.workspaceId,
+      membershipId: assistant!.id,
+      teacherMembershipId: teacher!.id,
+    });
+    const scoped = (await c.assistant('GET', 'stats/owing')).json();
+    expect(scoped).toHaveLength(54);
+    expect(scoped.find((s: { id: string }) => s.id === students[0]!.id).balancePiastres).toBe(100);
+
+    expect((await c.teacher('GET', 'stats/owing')).json().code).toBe('FORBIDDEN');
+    expect((await (await f.center()).owner('GET', 'stats/owing')).json()).toEqual([]);
   });
 });

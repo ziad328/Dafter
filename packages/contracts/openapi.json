@@ -1125,6 +1125,40 @@
         }
       }
     },
+    "/api/v1/stats/owing": {
+      "get": {
+        "operationId": "getOwingStudents",
+        "tags": ["money"],
+        "description": "Owner and assistant: every student whose balance in the groups the caller can see is above zero, biggest first.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Who owes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwingList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/stats/collections": {
       "get": {
         "operationId": "getCollectionStats",
@@ -3501,6 +3535,38 @@
           }
         },
         "required": ["date", "present", "total"],
+        "additionalProperties": false
+      },
+      "OwingList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/OwingStudent"
+        }
+      },
+      "OwingStudent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": ["string", "null"]
+          },
+          "gradeLevel": {
+            "$ref": "#/components/schemas/CurriculumItem"
+          },
+          "balancePiastres": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["id", "nameAr", "nameEn", "gradeLevel", "balancePiastres"],
         "additionalProperties": false
       },
       "CollectionStats": {

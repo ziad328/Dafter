@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Module, Req, UseGuards } from '@nestjs/common';
-import type { CollectionStats, TodayStats } from '@dafter/contracts';
+import type { CollectionStats, OwingStudent, TodayStats } from '@dafter/contracts';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { Clock } from '../clock.js';
@@ -27,6 +27,13 @@ export class StatsController {
   }
 
   /** Policy: the center's money is for the owner and assistants (who take payments), not teachers. */
+  /** Same money policy as collections; assistants see only their teachers' groups. */
+  @Get('owing')
+  async owing(@Req() req: TenantedRequest): Promise<OwingStudent[]> {
+    if (req.role === 'teacher') throw new AppError('FORBIDDEN');
+    return this.repo.owing(req.workspaceId, await this.groups.visibleTeachers(req));
+  }
+
   @Get('collections')
   collections(@Req() req: TenantedRequest): Promise<CollectionStats> {
     if (req.role === 'teacher') throw new AppError('FORBIDDEN');

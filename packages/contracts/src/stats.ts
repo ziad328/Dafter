@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { curriculumItem } from './groups.js';
 import { localDate } from './sessions.js';
 
 /** One day of the attendance chart: records of that day's closed or open sessions. */
@@ -33,7 +34,21 @@ export const collectionStats = z
   .object({ today: methodTotals, month: methodTotals })
   .meta({ id: 'CollectionStats' });
 
+/** A student who owes, with the balance of the ledger entries of the caller's groups. */
+export const owingStudent = z
+  .object({
+    id: z.uuid(),
+    nameAr: z.string(),
+    nameEn: z.string().nullable(),
+    gradeLevel: curriculumItem,
+    balancePiastres: z.int().min(1),
+  })
+  .meta({ id: 'OwingStudent' });
+
+export const owingList = z.array(owingStudent).meta({ id: 'OwingList' });
+
 export type StatsDay = z.infer<typeof statsDay>;
+export type OwingStudent = z.infer<typeof owingStudent>;
 export type MethodTotals = z.infer<typeof methodTotals>;
 export type CollectionStats = z.infer<typeof collectionStats>;
 export type TodayStats = z.infer<typeof todayStats>;

@@ -2,21 +2,19 @@ import { enterWorkspace, expect, openNav, ownerApi, signIn, STAFF, test } from '
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 
-test('owner opens the fees view and sees who owes, biggest debt first', async ({
+test('owner opens the fees view and finds a student who owes', async ({
   page,
   request,
   lang,
   t,
 }) => {
-  // shortcut: the top fee puts this student in the first 50 debtors; ties grow with reruns
-  // on one database, so reset it (pnpm db:reset) if this ever fails after many runs.
   const api = await ownerApi(request, CENTER.ar);
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   const group = await api.post('groups', {
     subjectId: subject.id,
     gradeLevelId: grade.id,
-    monthlyFeePiastres: 10_000_000,
+    monthlyFeePiastres: 50_000,
     slots: [{ weekday: 3, startTime: '20:00', endTime: '21:00' }],
   });
   const n = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');

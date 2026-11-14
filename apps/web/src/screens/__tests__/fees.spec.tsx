@@ -1,20 +1,11 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { formatEgp } from '@/lib/money';
-import { fail, fx, http, route, server } from '@/test/server';
+import { fail, http, route, server } from '@/test/server';
 import { renderAt, seen, tr } from '@/test/render';
 
 describe('fees view', () => {
   it('shows money collected today and this month by method, and who owes', async () => {
-    server.use(
-      http.get(route('students'), ({ request }) =>
-        Response.json(
-          new URL(request.url).searchParams.get('owes') === 'true'
-            ? fx.students.filter((s) => s.balancePiastres > 0)
-            : [],
-        ),
-      ),
-    );
     await renderAt('/fees');
     expect(await screen.findByText(tr('feesView.today'))).toBeVisible();
     expect(screen.getByText(seen(formatEgp(45050, 'ar')))).toBeVisible();
@@ -30,7 +21,7 @@ describe('fees view', () => {
 
   it('says when nobody owes, and shows a failed request', async () => {
     server.use(
-      http.get(route('students'), () => Response.json([])),
+      http.get(route('stats/owing'), () => Response.json([])),
       http.get(route('stats/collections'), fail('FORBIDDEN', 403)),
     );
     await renderAt('/fees', { lang: 'en' });

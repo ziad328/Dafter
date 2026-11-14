@@ -50,7 +50,7 @@ import {
   updateStudentRequest,
 } from './students.js';
 import { listSessionsQuery, moveSessionRequest, session, sessionList } from './sessions.js';
-import { collectionStats, todayStats } from './stats.js';
+import { collectionStats, owingList, todayStats } from './stats.js';
 import {
   createInviteRequest,
   createWorkspaceRequest,
@@ -356,6 +356,16 @@ export function buildOpenApi() {
           description: 'Numbers for the Today dashboard, for the groups the caller can see.',
           security: [{ bearer: [] }],
           responses: { 200: { description: 'Stats', content: json(todayStats) }, ...errors },
+        },
+      },
+      '/api/v1/stats/owing': {
+        get: {
+          operationId: 'getOwingStudents',
+          tags: ['money'],
+          description:
+            'Owner and assistant: every student whose balance in the groups the caller can see is above zero, biggest first.',
+          security: [{ bearer: [] }],
+          responses: { 200: { description: 'Who owes', content: json(owingList) }, ...errors },
         },
       },
       '/api/v1/stats/collections': {
