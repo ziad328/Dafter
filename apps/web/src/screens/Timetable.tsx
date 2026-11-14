@@ -13,11 +13,11 @@ import {
 } from '@/api/generated';
 import { Field, FormError, Skeleton } from '@/components/Field';
 import { FilterChips, uniqueOptions } from '@/components/FilterChips';
-import { PageHeader } from '@/components/Page';
+import { PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
 import { errorKey } from '@/lib/session';
+import { cn } from '@/lib/utils';
 import { addDays, dayLabel, displayTime, localDate, localTime, weekStart } from '@/lib/time';
 
 /** One week (Saturday first) of the workspace's sessions, in the workspace timezone. */
@@ -110,9 +110,14 @@ export default function Timetable() {
                 </span>
               )}
             </h2>
-            {sessions.map((s) => (
-              <SessionCard key={s.id} session={s} tz={tz} canWrite={canWrite} />
-            ))}
+            {/* Compact rows: a busy day fits on a phone screen (audit TT1). */}
+            <Panel className="overflow-hidden">
+              <ul className="divide-y">
+                {sessions.map((s) => (
+                  <SessionRow key={s.id} session={s} tz={tz} canWrite={canWrite} />
+                ))}
+              </ul>
+            </Panel>
           </section>
         ))
       )}
@@ -120,7 +125,14 @@ export default function Timetable() {
   );
 }
 
-function SessionCard({
+const DOT: Record<Session['status'], string> = {
+  scheduled: 'bg-ink/40',
+  open: 'bg-present animate-live',
+  closed: 'bg-muted-foreground/40',
+  cancelled: 'bg-rose',
+};
+
+function SessionRow({
   session: s,
   tz,
   canWrite,
@@ -136,43 +148,43 @@ function SessionCard({
   const editable = canWrite && s.status === 'scheduled';
 
   return (
-    <Card className="gap-3 py-4">
-      <CardHeader className="px-4">
-        <CardTitle className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3>{`${itemName(s.subject, lang)} · ${itemName(s.gradeLevel, lang)}`}</h3>
-          <span className="flex items-center gap-1">
-            <bdi className="text-sm font-normal text-muted-foreground">
-              {`${displayTime(s.startsAt, tz, lang)} – ${displayTime(s.endsAt, tz, lang)}`}
-            </bdi>
-            {/* Move and cancel wait behind one menu, so a busy card has no stray "cancel" tap. */}
-            {editable && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('timetable.actions')}
-                aria-expanded={mode === 'menu'}
-                onClick={() => setMode(mode === 'menu' ? 'view' : 'menu')}
-              >
-                <MoreHorizontal aria-hidden />
-              </Button>
-            )}
-          </span>
-        </CardTitle>
-        <CardDescription>
-          {s.teacherName}
-          {s.status !== 'scheduled' && ` · ${t(`timetable.status.${s.status}`)}`}
-          {s.moved && ` · ${t('timetable.moved')}`}
-        </CardDescription>
-      </CardHeader>
-      {startable(s, tz) && (
-        <CardContent className="px-4">
+    <li className="grid gap-3 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="grid w-16 shrink-0 text-sm">
+          <bdi className="font-semibold">{displayTime(s.startsAt, tz, lang)}</bdi>
+          <bdi className="text-xs text-muted-foreground">{displayTime(s.endsAt, tz, lang)}</bdi>
+        </div>
+        <span aria-hidden className={cn('size-2.5 shrink-0 rounded-full', DOT[s.status])} />
+        <div className="grid min-w-0 flex-1">
+          <h3 className="truncate font-semibold">
+            {`${itemName(s.subject, lang)} · ${itemName(s.gradeLevel, lang)}`}
+          </h3>
+          <p className="truncate text-sm text-muted-foreground">
+            {s.teacherName}
+            {s.status !== 'scheduled' && ` · ${t(`timetable.status.${s.status}`)}`}
+            {s.moved && ` · ${t('timetable.moved')}`}
+          </p>
+        </div>
+        {startable(s, tz) && (
           <Button asChild size="sm">
             <Link to={`/sessions/${s.id}/live`}>{t('timetable.start')}</Link>
           </Button>
-        </CardContent>
-      )}
+        )}
+        {/* Move and cancel wait behind one menu, so a busy row has no stray "cancel" tap. */}
+        {editable && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('timetable.actions')}
+            aria-expanded={mode === 'menu'}
+            onClick={() => setMode(mode === 'menu' ? 'view' : 'menu')}
+          >
+            <MoreHorizontal aria-hidden />
+          </Button>
+        )}
+      </div>
       {editable && mode !== 'view' && (
-        <CardContent className="grid gap-3 px-4">
+        <div className="grid gap-3">
           <FormError message={cancelled.error && t(errorKey(cancelled.error))} />
           {mode === 'menu' && (
             <div className="flex gap-2">
@@ -200,9 +212,9 @@ function SessionCard({
             </div>
           )}
           {mode === 'move' && <MoveForm session={s} tz={tz} onDone={() => setMode('view')} />}
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </li>
   );
 }
 
