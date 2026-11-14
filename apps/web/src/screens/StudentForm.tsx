@@ -75,6 +75,7 @@ export default function StudentForm() {
   // Mounted once the student is loaded, so the form's default values are the student's.
   return (
     <>
+      <SectionChips />
       {editing === id ? (
         <StudentFormBody
           key={id}
@@ -85,10 +86,39 @@ export default function StudentForm() {
       ) : (
         <StudentSummary student={existing.data} onEdit={() => setEditing(id)} />
       )}
-      <Enrollments studentId={id} />
-      <StudentFees studentId={id} />
-      <AppAccess student={existing.data} />
+      <div id="student-groups" className="scroll-mt-4">
+        <Enrollments studentId={id} />
+      </div>
+      <div id="student-fees" className="scroll-mt-4">
+        <StudentFees studentId={id} />
+      </div>
+      <div id="student-app" className="scroll-mt-4">
+        <AppAccess student={existing.data} />
+      </div>
     </>
+  );
+}
+
+const SECTIONS = ['groups', 'fees', 'app'] as const;
+
+/** Jumps down to a card: on a phone the fees sit three screens below (audit ST3). */
+function SectionChips() {
+  const { t } = useTranslation();
+  return (
+    <nav aria-label={t('students.sections.label')} className="flex flex-wrap gap-2 print:hidden">
+      {SECTIONS.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() =>
+            document.getElementById(`student-${s}`)?.scrollIntoView({ behavior: 'smooth' })
+          }
+          className="h-9 rounded-full border bg-card px-4 text-sm font-medium transition-colors hover:bg-ink-soft"
+        >
+          {t(`students.sections.${s}`)}
+        </button>
+      ))}
+    </nav>
   );
 }
 

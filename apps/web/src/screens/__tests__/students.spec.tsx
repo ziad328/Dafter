@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fail, fx, http, route, sent, server } from '@/test/server';
 import { pick, renderAt, tr } from '@/test/render';
 
@@ -181,6 +181,15 @@ describe('student page', () => {
     expect(screen.queryByText(tr('students.guardian'))).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: tr('students.edit') }));
     expect(screen.getByLabelText(tr('students.guardianPhone'))).toHaveValue('');
+  });
+
+  it('jumps to a section from the chips', async () => {
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    const { user } = await renderAt(page);
+    const chips = await screen.findByRole('navigation', { name: tr('students.sections.label') });
+    await user.click(within(chips).getByRole('button', { name: tr('students.sections.fees') }));
+    expect(scroll.mock.contexts.at(-1)).toBe(document.getElementById('student-fees'));
+    scroll.mockRestore();
   });
 
   it('says when the student cannot be loaded', async () => {

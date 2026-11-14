@@ -176,6 +176,12 @@
     "actions": "Session actions"
   },
   "students": {
+    "sections": {
+      "label": "Student page sections",
+      "groups": "Groups",
+      "fees": "Fees",
+      "app": "App"
+    },
     "title": "Students",
     "new": "New student",
     "edit": "Edit student",
