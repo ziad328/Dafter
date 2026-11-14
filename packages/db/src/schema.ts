@@ -195,6 +195,7 @@ export const groups = pgTable(
     teacherMembershipId: uuid('teacher_membership_id').notNull(),
     subjectId: uuid('subject_id').notNull(),
     gradeLevelId: uuid('grade_level_id').notNull(),
+    label: text('label'),
     capacity: integer('capacity'),
     // Integer piastres; null = no monthly charge (fees stretch, Day 14).
     monthlyFeePiastres: integer('monthly_fee_piastres'),

@@ -121,6 +121,7 @@ export class SessionsRepository extends TenantRepository {
         teacherName: users.name,
         subject: item(subject),
         gradeLevel: item(grade),
+        groupLabel: groups.label,
       })
       .from(sessions)
       .innerJoin(workspaces, eq(workspaces.id, sessions.workspaceId))

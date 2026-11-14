@@ -24,6 +24,7 @@ const toForm = (g: Group): CreateGroupRequest => ({
   teacherMembershipId: g.teacherMembershipId,
   subjectId: g.subject.id,
   gradeLevelId: g.gradeLevel.id,
+  label: g.label,
   capacity: g.capacity,
   slots: g.slots,
 });
@@ -133,6 +134,13 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
                   ))}
               </SelectField>
             )}
+            <Field
+              label={`${t('groups.label')} ${t('form.optional')}`}
+              hint={t('groups.labelHint')}
+              maxLength={40}
+              error={errors.label && t('form.invalid.label')}
+              {...register('label', { setValueAs: (v: string | null) => v?.trim() || null })}
+            />
             <Field
               label={`${t('groups.capacity')} ${t('form.optional')}`}
               type="number"

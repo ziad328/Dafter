@@ -78,6 +78,13 @@
       "when": 1794642219072,
       "tag": "0010_password_resets",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794642792599,
+      "tag": "0011_group_label",
+      "breakpoints": true
     }
   ]
 }

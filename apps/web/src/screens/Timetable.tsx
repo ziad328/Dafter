@@ -158,6 +158,7 @@ function SessionRow({
         <div className="grid min-w-0 flex-1">
           <h3 className="truncate font-semibold">
             {`${itemName(s.subject, lang)} · ${itemName(s.gradeLevel, lang)}`}
+            {s.groupLabel && ` · ${s.groupLabel}`}
           </h3>
           <p className="truncate text-sm text-muted-foreground">
             {s.teacherName}

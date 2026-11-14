@@ -35,6 +35,8 @@ export const session = z
     teacherName: z.string(),
     subject: curriculumItem,
     gradeLevel: curriculumItem,
+    // The group's optional short label.
+    groupLabel: z.string().nullable(),
   })
   .meta({ id: 'Session' });
 

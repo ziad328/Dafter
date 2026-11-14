@@ -21,6 +21,7 @@ describe('groups', () => {
           {
             ...fx.group,
             id: crypto.randomUUID(),
+            label: 'مجموعة أ',
             slots: [
               { weekday: 2, startTime: '10:00', endTime: '11:00' },
               { weekday: 6, startTime: '12:00', endTime: '13:00' },
@@ -33,6 +34,7 @@ describe('groups', () => {
     await renderAt('/groups');
     expect(await screen.findByText(tr('groups.archived'))).toBeInTheDocument();
     expect(screen.getByText(tr('groups.seats', { count: 12, capacity: 20 }))).toBeVisible();
+    expect(screen.getByText(/· مجموعة أ/)).toBeVisible();
     expect(screen.getAllByText(tr('groups.students', { count: 12 }))).toHaveLength(1);
     // Currency text keeps its no-break space, so compare it uncollapsed.
     const fee = tr('groups.perMonth', { fee: formatEgp(fx.group.monthlyFeePiastres!, 'ar') });
@@ -105,6 +107,10 @@ describe('group form', () => {
     await pick(user, tr('groups.subject'), fx.subjects[0]!.nameAr);
     await pick(user, tr('groups.gradeLevel'), fx.gradeLevels[0]!.nameAr);
     await pick(user, tr('groups.teacher'), fx.members[1]!.name);
+    await user.type(
+      screen.getByLabelText(`${tr('groups.label')} ${tr('form.optional')}`),
+      ' الصباحية ',
+    );
     await user.type(screen.getByLabelText(`${tr('groups.capacity')} ${tr('form.optional')}`), '25');
     const fee = screen.getByLabelText(`${tr('groups.monthlyFee')} ${tr('form.optional')}`);
     await user.type(fee, 'abc');
@@ -124,6 +130,7 @@ describe('group form', () => {
       subjectId: fx.subjects[0]!.id,
       gradeLevelId: fx.gradeLevels[0]!.id,
       teacherMembershipId: fx.members[1]!.id,
+      label: 'الصباحية',
       capacity: 25,
       monthlyFeePiastres: 30000,
       slots: [{ weekday: 6, startTime: '16:00', endTime: '17:30' }],
@@ -135,7 +142,10 @@ describe('group form', () => {
     await screen.findByRole('combobox', { name: tr('groups.teacher') });
     await user.click(screen.getByRole('button', { name: tr('groups.save') }));
     await expect.poll(() => router.state.location.pathname).toBe('/groups');
-    expect(call(`PATCH /api/v1/groups/${fx.group.id}`)?.body).toMatchObject({ capacity: null });
+    expect(call(`PATCH /api/v1/groups/${fx.group.id}`)?.body).toMatchObject({
+      capacity: null,
+      label: null,
+    });
   });
 
   it('flags overlapping, reversed and missing slot times', async () => {
@@ -200,7 +210,7 @@ describe('timetable', () => {
   const other = addDays(weekStart(today), today === weekStart(today) ? 1 : 0);
   const week = [
     session(other, 'closed', { moved: true }),
-    session(today, 'scheduled'),
+    session(today, 'scheduled', { groupLabel: 'مجموعة ب' }),
     session(today, 'open'),
   ];
   const withWeek = (list: unknown[]) =>
@@ -215,6 +225,7 @@ describe('timetable', () => {
     expect(screen.getAllByRole('link', { name: tr('timetable.start') })).toHaveLength(2);
     expect(screen.getByText(new RegExp(tr('timetable.moved')))).toBeInTheDocument();
     expect(screen.getByText(new RegExp(tr('timetable.status.closed')))).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /· مجموعة ب$/ })).toBeInTheDocument();
   });
 
   it('narrows the week to one teacher or one grade', async () => {

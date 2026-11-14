@@ -35,7 +35,7 @@ export default function Groups() {
       (!grade || g.gradeLevel.id === grade) &&
       (!needle ||
         normalizeArabic(
-          `${g.subject.nameAr} ${g.subject.nameEn} ${g.gradeLevel.nameAr} ${g.gradeLevel.nameEn} ${g.teacherName}`,
+          `${g.subject.nameAr} ${g.subject.nameEn} ${g.gradeLevel.nameAr} ${g.gradeLevel.nameEn} ${g.teacherName} ${g.label ?? ''}`,
         )
           .toLowerCase()
           .includes(needle)),
@@ -107,6 +107,7 @@ export default function Groups() {
                   <h2 className="truncate text-lg font-semibold">{itemName(g.subject, lang)}</h2>
                   <p className="truncate text-sm text-muted-foreground">
                     {itemName(g.gradeLevel, lang)}
+                    {g.label && ` · ${g.label}`}
                   </p>
                 </div>
                 {g.status === 'archived' && (

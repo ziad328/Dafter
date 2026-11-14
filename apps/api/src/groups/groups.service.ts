@@ -48,6 +48,7 @@ export class GroupsService {
       teacherMembershipId,
       subjectId: body.subjectId,
       gradeLevelId: body.gradeLevelId,
+      label: body.label ?? null,
       capacity: body.capacity ?? null,
       monthlyFeePiastres: body.monthlyFeePiastres ?? null,
     };

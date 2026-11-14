@@ -35,6 +35,8 @@ const slotList = z
   });
 
 const capacity = z.int().min(1).max(1000).nullable();
+// A short name that tells two groups of the same subject and grade apart («مجموعة أ», «الصباحية»).
+const label = z.string().trim().min(1).max(40).nullable();
 // Integer piastres (150.50 EGP = 15050); null = no monthly charge.
 const monthlyFee = z.int().min(1).max(10_000_000).nullable();
 
@@ -44,6 +46,7 @@ export const createGroupRequest = z
     teacherMembershipId: z.uuid().optional(),
     subjectId: z.uuid(),
     gradeLevelId: z.uuid(),
+    label: label.optional(),
     capacity: capacity.optional(),
     monthlyFeePiastres: monthlyFee.optional(),
     slots: slotList,
@@ -55,6 +58,7 @@ export const updateGroupRequest = z
     teacherMembershipId: z.uuid(),
     subjectId: z.uuid(),
     gradeLevelId: z.uuid(),
+    label,
     capacity,
     monthlyFeePiastres: monthlyFee,
     status: z.enum(['active', 'archived']),
@@ -71,6 +75,7 @@ export const group = z
     teacherName: z.string(),
     subject: curriculumItem,
     gradeLevel: curriculumItem,
+    label: z.string().nullable(),
     capacity: z.int().nullable(),
     monthlyFeePiastres: z.int().nullable(),
     status: z.enum(['active', 'archived']),

@@ -195,6 +195,24 @@ describe('PATCH /groups/:id', () => {
     });
   });
 
+  it('sets, trims and clears the optional label, and shows it on the sessions', async () => {
+    const g = (await c.t1.call('POST', 'groups', body({ label: '  مجموعة أ ' }))).json();
+    expect(g.label).toBe('مجموعة أ');
+    const day = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
+    const sessions = (await c.t1.call('GET', `sessions?from=${day(0)}&to=${day(14)}`)).json() as {
+      groupId: string;
+      groupLabel: string | null;
+    }[];
+    expect(sessions.find((s) => s.groupId === g.id)?.groupLabel).toBe('مجموعة أ');
+    expect((await c.t1.call('PATCH', `groups/${g.id}`, { label: 'x'.repeat(41) })).statusCode).toBe(
+      400,
+    );
+    expect((await c.t1.call('PATCH', `groups/${g.id}`, { label: ' ' })).statusCode).toBe(400);
+    const cleared = await c.t1.call('PATCH', `groups/${g.id}`, { label: null });
+    expect(cleared.json().label).toBeNull();
+    expect((await c.t1.call('POST', 'groups', body())).json().label).toBeNull();
+  });
+
   it('lets only the owner reassign the teacher, and never an assistant edit', async () => {
     const g = (await c.t1.call('POST', 'groups', body())).json();
     const byTeacher = await c.t1.call('PATCH', `groups/${g.id}`, { teacherMembershipId: c.t2.id });

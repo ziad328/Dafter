@@ -723,6 +723,7 @@ export type Group = {
   teacherName: string;
   subject: CurriculumItem;
   gradeLevel: CurriculumItem;
+  label: string | null;
   capacity: number | null;
   monthlyFeePiastres: number | null;
   status: 'active' | 'archived';
@@ -739,6 +740,7 @@ export type CreateGroupRequest = {
   teacherMembershipId?: string;
   subjectId: string;
   gradeLevelId: string;
+  label?: string | null;
   capacity?: number | null;
   monthlyFeePiastres?: number | null;
   slots: GroupSlot[];
@@ -747,6 +749,7 @@ export type UpdateGroupRequest = {
   teacherMembershipId?: string;
   subjectId?: string;
   gradeLevelId?: string;
+  label?: string | null;
   capacity?: number | null;
   monthlyFeePiastres?: number | null;
   status?: 'active' | 'archived';
@@ -763,6 +766,7 @@ export type Session = {
   teacherName: string;
   subject: CurriculumItem;
   gradeLevel: CurriculumItem;
+  groupLabel: string | null;
 };
 export type SessionList = Session[];
 export type MoveSessionRequest = {

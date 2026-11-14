@@ -32,7 +32,8 @@
       "mobile": "Enter an 11-digit Egyptian mobile number starting with 01.",
       "code": "Enter the 6-digit code.",
       "discount": "Enter a number from 0 to 100.",
-      "amount": "Enter an amount in pounds, like 150 or 150.50."
+      "amount": "Enter an amount in pounds, like 150 or 150.50.",
+      "label": "Keep the label to 40 characters."
     },
     "choose": "Choose…"
   },
@@ -119,7 +120,9 @@
     "create": "Create group",
     "save": "Save",
     "archived": "Archived",
-    "monthlyFee": "Monthly fee (EGP)"
+    "monthlyFee": "Monthly fee (EGP)",
+    "label": "Short label",
+    "labelHint": "Tells two groups of the same subject and grade apart, e.g. Group A."
   },
   "roles": {
     "owner": "Owner",
