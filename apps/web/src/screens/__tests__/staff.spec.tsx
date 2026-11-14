@@ -28,18 +28,26 @@ describe('staff', () => {
 
   it('sets which teachers an assistant works for, and undoes a failed save', async () => {
     const { user } = await renderAt('/members');
-    const card = (await screen.findByRole('heading', { name: assistant.name })).closest(
-      '[data-slot=card]',
-    ) as HTMLElement;
-    const box = within(card).getByRole('checkbox', { name: owner.name });
+    const title = tr('members.editScopes', { name: assistant.name });
+    expect(
+      await screen.findAllByText(tr('members.worksForList', { names: 'منى حسن' })),
+    ).toHaveLength(2);
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    await user.click(screen.getByRole('button', { name: title }));
+    const sheet = screen.getByRole('dialog', { name: title });
+    const box = within(sheet).getByRole('checkbox', { name: owner.name });
     await user.click(box);
     await expect
       .poll(() => call(`PUT /api/v1/members/${assistant.id}/scopes`)?.body)
       .toEqual({ teacherMembershipIds: [...assistant.teacherMembershipIds, owner.id] });
+    const both = new Intl.ListFormat('ar').format([owner.name, 'منى حسن']);
+    expect(screen.getByText(tr('members.worksForList', { names: both }))).toBeVisible();
     server.use(http.put(route('members/:id/scopes'), fail('FORBIDDEN', 403)));
     await user.click(box);
-    expect(await within(card).findByText(tr('errors.FORBIDDEN'))).toBeVisible();
+    expect(await within(sheet).findByText(tr('errors.FORBIDDEN'))).toBeVisible();
     expect(box).toBeChecked();
+    await user.click(within(sheet).getByRole('button', { name: tr('payments.close') }));
+    expect(sheet).not.toHaveAttribute('open');
   });
 
   it('shows others a read-only list, and failures', async () => {
@@ -48,11 +56,28 @@ describe('staff', () => {
     const { unmount } = await renderAt('/members');
     expect(await screen.findByRole('heading', { name: assistant.name })).toBeVisible();
     expect(screen.queryByRole('button', { name: tr('members.createLink') })).toBeNull();
-    expect(screen.getAllByRole('checkbox')[0]).toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: tr('members.editScopes', { name: assistant.name }) }),
+    ).toBeNull();
     unmount();
     server.use(http.get(route('members'), fail('FORBIDDEN', 403)));
     await renderAt('/members');
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
+  });
+
+  it('searches a big team, and says when an assistant works for no one', async () => {
+    const many = Array.from({ length: 11 }, (_, i) => ({
+      ...assistant,
+      id: crypto.randomUUID(),
+      name: `مساعد ${i}`,
+      phone: `0100000010${i % 10}`,
+      teacherMembershipIds: [],
+    }));
+    server.use(http.get(route('members'), () => Response.json([owner, ...many])));
+    const { user } = await renderAt('/members');
+    expect(await screen.findAllByText(tr('members.worksForNone'))).toHaveLength(11);
+    await user.type(screen.getByRole('searchbox', { name: tr('members.search') }), 'مساعد 10');
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(1);
   });
 
   it('shows a failed invite', async () => {

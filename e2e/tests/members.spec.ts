@@ -49,11 +49,17 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
 
   // Back on the owner's staff screen: the assistant is listed; tick the teacher they work for.
   await page.reload();
-  const card = page.getByRole('listitem').filter({ hasText: name });
-  await expect(card.getByText(t.roles.assistant, { exact: true })).toBeVisible();
-  const teacher = card.getByRole('checkbox', { name: 'منى حسن' });
+  const row = page.getByRole('listitem').filter({ hasText: name });
+  await expect(row.getByText(t.roles.assistant)).toBeVisible();
+  const edit = t.members.editScopes.replace('{name}', name);
+  await row.getByRole('button', { name: edit }).click();
+  const teacher = page
+    .getByRole('dialog', { name: edit })
+    .getByRole('checkbox', { name: 'منى حسن' });
   await teacher.check();
   await expect(teacher).toBeChecked();
   await page.reload();
+  await expect(row).toContainText('منى حسن');
+  await row.getByRole('button', { name: edit }).click();
   await expect(teacher).toBeChecked();
 });

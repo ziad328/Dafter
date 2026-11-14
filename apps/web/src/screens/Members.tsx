@@ -1,4 +1,4 @@
-import type { Member } from '@dafter/contracts';
+import { type Member, normalizeArabic } from '@dafter/contracts';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,7 +9,7 @@ import {
 } from '@/api/generated';
 import { FormError, SelectField, Skeleton } from '@/components/Field';
 import { ShareButton } from '@/components/ShareButton';
-import { PageHeader } from '@/components/Page';
+import { Avatar, PageHeader, Panel, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { errorKey } from '@/lib/session';
@@ -19,21 +19,40 @@ export default function Members() {
   const { t } = useTranslation();
   const isOwner = useGetCurrentWorkspaceQuery().data?.role === 'owner';
   const members = useListMembersQuery();
+  const [q, setQ] = useState('');
   if (members.isLoading) return <Skeleton />;
-  const teachers = (members.data ?? []).filter((m) => m.role !== 'assistant');
+  const all = members.data ?? [];
+  const teachers = all.filter((m) => m.role !== 'assistant');
+  const needle = normalizeArabic(q.trim());
+  const shown = needle
+    ? all.filter((m) => normalizeArabic(`${m.name} ${m.phone ?? ''}`).includes(needle))
+    : all;
 
   return (
     <div className="grid gap-5">
       <PageHeader title={t('members.title')} />
       {isOwner && <InviteCard />}
       <FormError message={members.error && t(errorKey(members.error))} />
-      <ul className="grid gap-2">
-        {members.data?.map((m) => (
-          <li key={m.id}>
-            <MemberCard member={m} teachers={teachers} canEdit={isOwner} />
-          </li>
-        ))}
-      </ul>
+      {/* A search once the team outgrows one screen (audit MB1). */}
+      {all.length > 10 && (
+        <input
+          type="search"
+          aria-label={t('members.search')}
+          placeholder={t('members.search')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="h-11 w-full rounded-2xl border bg-card px-4 text-base shadow-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      )}
+      <Panel className="overflow-hidden">
+        <ul className="divide-y">
+          {shown.map((m) => (
+            <li key={m.id}>
+              <MemberRow member={m} teachers={teachers} canEdit={isOwner} />
+            </li>
+          ))}
+        </ul>
+      </Panel>
     </div>
   );
 }
@@ -82,7 +101,8 @@ function InviteCard() {
   );
 }
 
-function MemberCard({
+/** One line per person; an assistant's teachers are named here and edited in a sheet. */
+function MemberRow({
   member: m,
   teachers,
   canEdit,
@@ -91,8 +111,9 @@ function MemberCard({
   teachers: Member[];
   canEdit: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [setScopes, saving] = useSetAssistantScopesMutation();
+  const [editing, setEditing] = useState(false);
   // Optimistic, so the box ticks at once; a failed save puts it back.
   const [ids, setIds] = useState(m.teacherMembershipIds);
   const toggle = async (teacherId: string, on: boolean) => {
@@ -101,28 +122,53 @@ function MemberCard({
     const res = await setScopes({ id: m.id, setScopesRequest: { teacherMembershipIds: next } });
     if (res.error) setIds(ids);
   };
+  const worksFor = teachers.filter((x) => ids.includes(x.id)).map((x) => x.name);
   return (
-    <Card className="gap-2 py-4">
-      <CardHeader className="px-4">
-        <CardTitle className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3>{m.name}</h3>
-          <span className="text-sm font-normal text-muted-foreground">{t(`roles.${m.role}`)}</span>
-        </CardTitle>
-        {m.phone && (
-          <CardDescription>
-            <bdi>{m.phone}</bdi>
-          </CardDescription>
+    <div className="flex items-center gap-3 px-4 py-3">
+      <Avatar name={m.name} />
+      <div className="grid min-w-0 flex-1">
+        <h3 className="truncate font-semibold">{m.name}</h3>
+        <p className="truncate text-sm text-muted-foreground">
+          {t(`roles.${m.role}`)}
+          {m.phone && (
+            <>
+              {' · '}
+              <bdi>{m.phone}</bdi>
+            </>
+          )}
+        </p>
+        {m.role === 'assistant' && (
+          <p className="truncate text-sm">
+            {worksFor.length
+              ? t('members.worksForList', {
+                  names: new Intl.ListFormat(i18n.language).format(worksFor),
+                })
+              : t('members.worksForNone')}
+          </p>
         )}
-      </CardHeader>
-      {m.role === 'assistant' && (
-        <CardContent className="grid gap-2 px-4">
+      </div>
+      {m.role === 'assistant' && canEdit && (
+        <Button
+          size="sm"
+          variant="outline"
+          aria-label={t('members.editScopes', { name: m.name })}
+          onClick={() => setEditing(true)}
+        >
+          {t('members.edit')}
+        </Button>
+      )}
+      <Sheet
+        open={editing}
+        onClose={() => setEditing(false)}
+        title={t('members.editScopes', { name: m.name })}
+      >
+        <div className="grid gap-2">
           <p className="text-sm font-medium">{t('members.worksFor')}</p>
           {teachers.map((teacher) => (
-            <label key={teacher.id} className="flex min-h-9 items-center gap-2 text-sm">
+            <label key={teacher.id} className="flex min-h-10 items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 className="size-4"
-                disabled={!canEdit}
                 checked={ids.includes(teacher.id)}
                 onChange={(e) => void toggle(teacher.id, e.target.checked)}
               />
@@ -130,8 +176,8 @@ function MemberCard({
             </label>
           ))}
           <FormError message={saving.error && t(errorKey(saving.error))} />
-        </CardContent>
-      )}
-    </Card>
+        </div>
+      </Sheet>
+    </div>
   );
 }

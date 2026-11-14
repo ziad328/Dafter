@@ -402,6 +402,11 @@
     "role": "الدور",
     "createLink": "إنشاء رابط الدعوة",
     "linkHint": "رابط دعوة {role} جديد:",
+    "search": "ابحث بالاسم أو الموبايل",
+    "worksForList": "يعمل مع: {names}",
+    "worksForNone": "لا يعمل مع أي مدرّس بعد",
+    "edit": "تعديل",
+    "editScopes": "مدرّسو {name}",
     "worksFor": "يعمل مع"
   },
   "nav": {

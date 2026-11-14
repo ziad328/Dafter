@@ -402,6 +402,11 @@
     "role": "Role",
     "createLink": "Create invite link",
     "linkHint": "Invite link for a new {role}:",
+    "search": "Search by name or mobile",
+    "worksForList": "Works for: {names}",
+    "worksForNone": "Not working for a teacher yet",
+    "edit": "Edit",
+    "editScopes": "{name}’s teachers",
     "worksFor": "Works for"
   },
   "nav": {
