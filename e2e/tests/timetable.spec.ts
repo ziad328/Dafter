@@ -15,7 +15,8 @@ const twelve = (hhmm: string) => {
   const [h, m] = hhmm.split(':').map(Number) as [number, number];
   return `${h % 12 || 12}:${pad(m)}\\s(${h < 12 ? 'AM|ص' : 'PM|م'})`;
 };
-const range = (a: string, b: string) => new RegExp(`${twelve(a)} – ${twelve(b)}`);
+// A timetable row shows the start above the end.
+const range = (a: string, b: string) => new RegExp(`${twelve(a)}[\\s\\S]*${twelve(b)}`);
 
 test('owner sees generated sessions, then moves and cancels one', async ({ page, lang, t }) => {
   // The dev database is not reset between runs, so this run's group gets a random time.
@@ -47,7 +48,7 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   if (weekStart(tomorrow) !== weekStart(cairoDate(new Date())))
     await page.getByRole('button', { name: t.timetable.nextWeek }).click();
 
-  const card = page.locator('[data-slot="card"]', { hasText: range(start, end) });
+  const card = page.getByRole('listitem').filter({ hasText: range(start, end) });
   await expect(
     card.getByRole('heading', { name: `${PHYSICS[lang]} · ${SEC3[lang]}` }),
   ).toBeVisible();
@@ -60,7 +61,7 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   await card.getByLabel(t.timetable.start).fill(later);
   await card.getByLabel(t.timetable.end).fill(latest);
   await card.getByRole('button', { name: t.timetable.save }).click();
-  const moved = page.locator('[data-slot="card"]', { hasText: range(later, latest) });
+  const moved = page.getByRole('listitem').filter({ hasText: range(later, latest) });
   await expect(moved.getByText(t.timetable.moved)).toBeVisible();
 
   // Cancel takes a second tap to confirm.
