@@ -73,6 +73,14 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
   await expect(page.getByText(egp(lang, 200))).toBeVisible();
   await expect(page.getByText(t.fees.methods.vodafone_cash)).toBeVisible();
   await expect(page.getByRole('button', { name: t.receipt.print })).toBeVisible();
+  // "Send" hands the receipt as text to the share sheet (stubbed: no native sheet in tests).
+  await page.evaluate(() => {
+    navigator.share = async (d) => void ((window as { shared?: ShareData }).shared = d);
+  });
+  await page.getByRole('button', { name: t.share.send }).click();
+  const shared = await page.evaluate(() => (window as { shared?: ShareData }).shared?.text);
+  expect(shared).toContain(`نور ${n}`);
+  expect(shared).toContain(egp(lang, 200));
 
   await page.goBack();
   const payment = page.getByTestId('ledger').getByRole('listitem').filter({

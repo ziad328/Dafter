@@ -8,6 +8,7 @@ import {
   useSetAssistantScopesMutation,
 } from '@/api/generated';
 import { FormError, SelectField, Skeleton } from '@/components/Field';
+import { ShareButton } from '@/components/ShareButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { errorKey } from '@/lib/session';
@@ -72,13 +73,7 @@ function InviteCard() {
             <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="staff-invite-link">
               {link}
             </bdi>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void navigator.clipboard?.writeText(link).catch(() => {})}
-            >
-              {t('studentApp.staff.copy')}
-            </Button>
+            <ShareButton text={t('share.staffInvite')} url={link} />
           </div>
         )}
       </CardContent>

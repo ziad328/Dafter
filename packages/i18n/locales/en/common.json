@@ -216,7 +216,8 @@
     "discount": "Discount %",
     "discountShort": "{pct}% off",
     "add": "Add to group",
-    "leave": "Remove from group"
+    "leave": "Remove from group",
+    "notJoined": "The student was saved, but not added to the group."
   },
   "studentApp": {
     "activateTitle": "Activate the Dafter app",
@@ -242,7 +243,6 @@
       "noPhone": "Activated, no phone linked.",
       "invite": "Create activation link",
       "linkHint": "Send this link to the student. It works once, for 72 hours.",
-      "copy": "Copy link",
       "reset": "Reset phone",
       "resetConfirm": "Tap again to reset the phone"
     },
@@ -419,5 +419,12 @@
     "done": "Payment recorded for {name}.",
     "another": "Another payment",
     "change": "Change"
+  },
+  "share": {
+    "send": "Send",
+    "copy": "Copy",
+    "copied": "Copied",
+    "staffInvite": "Join our workspace on Dafter:",
+    "studentInvite": "Activate the Dafter app with this link (works once, within 72 hours):"
   }
 }

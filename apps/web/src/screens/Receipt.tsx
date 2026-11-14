@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { useGetReceiptQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
+import { ShareButton } from '@/components/ShareButton';
 import { Button } from '@/components/ui/button';
 import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
@@ -17,6 +18,19 @@ export default function Receipt() {
   if (isLoading) return <Skeleton />;
   if (error || !data) return <FormError message={t(errorKey(error))} />;
   const { entry, center, timezone } = data;
+  const centerName = lang === 'en' && center.nameEn ? center.nameEn : center.nameAr;
+  const date = `${dayLabel(localDate(entry.createdAt, timezone), lang)} ${displayTime(entry.createdAt, timezone, lang)}`;
+  const amount = formatEgp(-entry.amountPiastres, lang);
+  const method = t(`fees.methods.${entry.method ?? 'cash'}`);
+  // Sent as text: the parent has no account, so a link to this page would not open for them.
+  const shareText = [
+    centerName,
+    t('receipt.title', { no: entry.receiptNo ?? '' }),
+    `${t('receipt.student')}: ${data.studentName}`,
+    `${t('receipt.amount')}: ${amount}`,
+    `${t('fees.method')}: ${method}`,
+    `${t('receipt.date')}: ${date}`,
+  ].join('\n');
   const row = (label: string, value: ReactNode) => (
     <div className="flex justify-between gap-4 border-b py-2">
       <dt className="text-muted-foreground">{label}</dt>
@@ -27,25 +41,21 @@ export default function Receipt() {
   return (
     <article className="grid gap-4 rounded-md bg-white p-6 text-black print:p-0">
       <header className="text-center">
-        <h1 className="text-xl font-bold">
-          {lang === 'en' && center.nameEn ? center.nameEn : center.nameAr}
-        </h1>
+        <h1 className="text-xl font-bold">{centerName}</h1>
         <p>{t('receipt.title', { no: entry.receiptNo ?? '' })}</p>
       </header>
       <dl>
         {row(t('receipt.student'), data.studentName)}
-        {row(
-          t('receipt.date'),
-          `${dayLabel(localDate(entry.createdAt, timezone), lang)} ${displayTime(entry.createdAt, timezone, lang)}`,
-        )}
-        {row(t('receipt.amount'), <bdi>{formatEgp(-entry.amountPiastres, lang)}</bdi>)}
-        {row(t('fees.method'), t(`fees.methods.${entry.method ?? 'cash'}`))}
+        {row(t('receipt.date'), date)}
+        {row(t('receipt.amount'), <bdi>{amount}</bdi>)}
+        {row(t('fees.method'), method)}
         {row(t('receipt.receivedBy'), entry.createdByName ?? '')}
       </dl>
       {entry.reversedById && <p className="text-center font-bold">{t('fees.reversed')}</p>}
-      <Button className="print:hidden" onClick={() => window.print()}>
-        {t('receipt.print')}
-      </Button>
+      <div className="grid gap-2 print:hidden">
+        <Button onClick={() => window.print()}>{t('receipt.print')}</Button>
+        {!entry.reversedById && <ShareButton text={shareText} />}
+      </div>
     </article>
   );
 }

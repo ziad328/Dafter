@@ -183,13 +183,14 @@ function StudentFormBody({
     // A new student opens on their page, ready to enroll; an edit goes back to the summary.
     if (res.data) {
       if (id) return onDone?.();
-      // shortcut: a failed enrolment is not shown here; the student page's group card can retry it.
-      if (groupId)
-        await enroll({
-          id: res.data.id,
-          createEnrollmentRequest: { groupId, discountPct: pct },
-        });
-      void navigate(`/students/${res.data.id}`);
+      // The student exists either way: a failed enrolment is reported on their page, where the
+      // group card can retry it (resubmitting this form would register them twice).
+      const joined = groupId
+        ? await enroll({ id: res.data.id, createEnrollmentRequest: { groupId, discountPct: pct } })
+        : undefined;
+      void navigate(`/students/${res.data.id}`, {
+        state: joined?.error ? { enrollError: errorKey(joined.error) } : undefined,
+      });
     }
   });
 

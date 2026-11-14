@@ -1,5 +1,6 @@
 import type { Enrollment, Student } from '@dafter/contracts';
 import { useState } from 'react';
+import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   useCreateEnrollmentMutation,
@@ -10,6 +11,7 @@ import {
   useResetStudentDeviceMutation,
 } from '@/api/generated';
 import { Field, FormError, SelectField } from '@/components/Field';
+import { ShareButton } from '@/components/ShareButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
@@ -28,6 +30,8 @@ export function Enrollments({ studentId }: { studentId: string }) {
   const name = (e: Pick<Enrollment, 'subject' | 'gradeLevel' | 'teacherName'>) =>
     `${itemName(e.subject, i18n.language)} · ${itemName(e.gradeLevel, i18n.language)} · ${e.teacherName}`;
   const pct = Number(discount || 0);
+  // Set by the new-student form when the student was saved but joining the group failed.
+  const fromCreate = (useLocation().state as { enrollError?: string } | null)?.enrollError;
 
   const onAdd = async () => {
     const res = await enroll({
@@ -48,6 +52,9 @@ export function Enrollments({ studentId }: { studentId: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
+        {fromCreate && active.length === 0 && (
+          <FormError message={`${t('enrollments.notJoined')} ${t(fromCreate as never)}`} />
+        )}
         {active.length === 0 && (
           <p className="text-sm text-muted-foreground">{t('enrollments.empty')}</p>
         )}
@@ -151,13 +158,7 @@ export function AppAccess({ student }: { student: Student }) {
             <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="invite-link">
               {link}
             </bdi>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void navigator.clipboard?.writeText(link).catch(() => {})}
-            >
-              {t('studentApp.staff.copy')}
-            </Button>
+            <ShareButton text={t('share.studentInvite')} url={link} />
           </div>
         )}
         {student.deviceBound && (

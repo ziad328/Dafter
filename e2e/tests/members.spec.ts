@@ -28,6 +28,10 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
   await page.getByRole('button', { name: t.members.createLink }).click();
   const link = (await page.getByTestId('staff-invite-link').textContent())!;
   expect(link).toMatch(/\/invite\/[\w-]+$/);
+  // Send (share sheet) on phones, Copy where the browser has none.
+  await expect(
+    page.getByRole('button', { name: new RegExp(`^(${t.share.send}|${t.share.copy})$`) }),
+  ).toBeVisible();
 
   // The new assistant opens the link, creates an account, and joins.
   const ctx = await browser.newContext({ viewport: { width: 375, height: 812 } });
