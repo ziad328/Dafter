@@ -1,4 +1,5 @@
 import type { AttendanceRecord, OpenSession, RosterEntry } from '@dafter/contracts';
+import { List, Maximize, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +44,8 @@ export default function SessionLive() {
   const [closed, setClosed] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const [session, setSession] = useState<{ open: OpenSession; offset: number }>();
+  // Phones: the QR alone over the whole screen (no header or tab bar), for students to scan.
+  const [full, setFull] = useState(false);
 
   useEffect(() => {
     const sent = Date.now();
@@ -88,7 +91,37 @@ export default function SessionLive() {
             {t('live.closed')}
           </p>
         ) : (
-          <RotatingQr session={session.open} offset={session.offset} />
+          <>
+            <div className="grid grid-cols-2 gap-2 lg:hidden">
+              <Button variant="outline" onClick={() => setFull(true)}>
+                <Maximize aria-hidden />
+                {t('live.fullScreen')}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  document.getElementById('class-list')?.scrollIntoView({ behavior: 'smooth' })
+                }
+              >
+                <List aria-hidden />
+                {t('live.toList')}
+              </Button>
+            </div>
+            {full ? (
+              <div className="fixed inset-0 z-50 grid content-center gap-4 overflow-y-auto bg-background p-4">
+                <RotatingQr session={session.open} offset={session.offset} />
+                <p className="text-center text-2xl font-bold" aria-live="polite">
+                  {t('live.count', { count: here })}
+                </p>
+                <Button variant="outline" className="mx-auto" onClick={() => setFull(false)}>
+                  <X aria-hidden />
+                  {t('live.exitFullScreen')}
+                </Button>
+              </div>
+            ) : (
+              <RotatingQr session={session.open} offset={session.offset} />
+            )}
+          </>
         )}
       </div>
       <div className="grid gap-4">
@@ -102,7 +135,7 @@ export default function SessionLive() {
             </p>
           )}
         </div>
-        <Card>
+        <Card id="class-list" className="scroll-mt-4">
           <CardHeader>
             <CardTitle>
               <h2>{t('live.list')}</h2>
@@ -162,7 +195,9 @@ function SessionTitle({ id }: { id: string }) {
   );
 }
 
-/** One student: their status, or a one-tap "present" for students without a phone. */
+const FIXES = ['present', 'late', 'excused', 'absent'] as const;
+
+/** One student: their status (tap to change it), or a one-tap "present" for students without a phone. */
 function RosterRow({
   sessionId,
   studentId,
@@ -178,13 +213,21 @@ function RosterRow({
 }) {
   const { t } = useTranslation();
   const [mark, marking] = useMarkAttendanceMutation();
+  const [picking, setPicking] = useState(false);
   const markable = !record || record.status === 'absent';
+  const set = async (status: (typeof FIXES)[number]) => {
+    const res = await mark({ id: sessionId, studentId, markAttendanceRequest: { status } });
+    if (res.data) {
+      setPicking(false);
+      onMarked(res.data);
+    }
+  };
   return (
     <li
       // A new record replays the green flash, so a fresh check-in catches the eye.
       key={record?.recordedAt}
       className={cn(
-        'flex min-h-12 items-center justify-between gap-2 rounded-lg px-2 py-1 text-sm',
+        'flex min-h-12 flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-1 text-sm',
         record && record.status !== 'absent' && 'animate-flash',
       )}
     >
@@ -201,20 +244,42 @@ function RosterRow({
           variant="outline"
           disabled={marking.isLoading}
           aria-label={t('live.markPresent', { name })}
-          onClick={async () => {
-            const res = await mark({
-              id: sessionId,
-              studentId,
-              markAttendanceRequest: { status: 'present' },
-            });
-            if (res.data) onMarked(res.data);
-          }}
+          onClick={() => void set('present')}
         >
           {t('live.present')}
         </Button>
       ) : (
-        <span className="text-muted-foreground">{t(`live.status.${record.status}`)}</span>
+        // A wrong tap or scan is fixed here: tap the status, pick the right one.
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-expanded={picking}
+          aria-label={t('live.change', { name })}
+          onClick={() => setPicking((p) => !p)}
+        >
+          {t(`live.status.${record.status}`)}
+        </Button>
       )}
+      {picking && record && (
+        <div
+          className="flex w-full flex-wrap gap-1"
+          role="group"
+          aria-label={t('live.change', { name })}
+        >
+          {FIXES.map((st) => (
+            <Button
+              key={st}
+              size="sm"
+              variant={st === record.status ? 'default' : 'outline'}
+              disabled={marking.isLoading}
+              onClick={() => void set(st)}
+            >
+              {t(`live.status.${st}`)}
+            </Button>
+          ))}
+        </div>
+      )}
+      <FormError message={marking.error && t(errorKey(marking.error))} />
     </li>
   );
 }

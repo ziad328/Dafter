@@ -88,6 +88,14 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await expect(mark(scanner)).toBeVisible();
   await expect(mark(absent)).toBeVisible();
 
+  // On a phone: the class list is one tap away, and the QR can take the whole screen.
+  await page.getByRole('button', { name: t.live.toList }).click();
+  await expect(list).toBeInViewport();
+  await page.getByRole('button', { name: t.live.fullScreen }).click();
+  await expect(qr).toBeInViewport({ ratio: 1 });
+  await page.getByRole('button', { name: t.live.exitFullScreen }).click();
+  await expect(page.getByRole('button', { name: t.live.fullScreen })).toBeVisible();
+
   // The student's phone: activate, bind, scan.
   const phone = await browser.newContext({
     viewport: { width: 375, height: 812 },
@@ -129,6 +137,13 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await expect(list.getByRole('listitem').filter({ hasText: scanner })).toContainText(
     t.live.status.present,
   );
+  // A wrong status is fixed on the spot: tap it, pick the right one.
+  const scannerRow = list.getByRole('listitem').filter({ hasText: scanner });
+  await scannerRow.getByRole('button', { name: t.live.change.replace('{name}', scanner) }).click();
+  await scannerRow.getByRole('button', { name: t.live.status.late, exact: true }).click();
+  await expect(
+    scannerRow.getByRole('button', { name: t.live.change.replace('{name}', scanner) }),
+  ).toHaveText(t.live.status.late);
 
   // Ten seconds later the QR is a new code.
   await page.clock.fastForward(10_000);

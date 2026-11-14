@@ -1,10 +1,11 @@
-import { ChevronLeft, Search, UserPlus } from 'lucide-react';
+import { ChevronLeft, Search, UserPlus, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import { useListStudentsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { Avatar, PageHeader, Panel } from '@/components/Page';
+import { PaymentSheet } from '@/components/PaymentSheet';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
 import { errorKey } from '@/lib/session';
@@ -21,20 +22,28 @@ export default function Students() {
     return () => clearTimeout(timer);
   }, [text]);
   const list = useListStudentsQuery({ q: q || undefined });
+  const [paying, setPaying] = useState(false);
 
   return (
     <div className="grid gap-5">
       <PageHeader
         title={t('students.title')}
         action={
-          <Button asChild>
-            <Link to="/students/new">
-              <UserPlus aria-hidden />
-              {t('students.new')}
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setPaying(true)}>
+              <Wallet aria-hidden />
+              {t('fees.record')}
+            </Button>
+            <Button asChild>
+              <Link to="/students/new">
+                <UserPlus aria-hidden />
+                {t('students.new')}
+              </Link>
+            </Button>
+          </div>
         }
       />
+      <PaymentSheet open={paying} onClose={() => setPaying(false)} />
       <div className="relative">
         <Search
           className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"

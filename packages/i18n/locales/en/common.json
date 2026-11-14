@@ -269,7 +269,11 @@
     },
     "expected": "of {count} enrolled",
     "present": "Mark present",
-    "markPresent": "Mark {name} present"
+    "markPresent": "Mark {name} present",
+    "fullScreen": "Full-screen code",
+    "exitFullScreen": "Exit full screen",
+    "toList": "Class list",
+    "change": "Change {name}'s status"
   },
   "scan": {
     "open": "Check in",
@@ -405,5 +409,11 @@
     "checkedIn": "Checked in",
     "students": "Active students",
     "week": "Attendance this week"
+  },
+  "payments": {
+    "close": "Close",
+    "done": "Payment recorded for {name}.",
+    "another": "Another payment",
+    "change": "Change"
   }
 }

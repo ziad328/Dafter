@@ -269,7 +269,11 @@
     },
     "expected": "من {count} مسجّلين",
     "present": "تحضير",
-    "markPresent": "تحضير {name}"
+    "markPresent": "تحضير {name}",
+    "fullScreen": "الكود بملء الشاشة",
+    "exitFullScreen": "خروج من ملء الشاشة",
+    "toList": "قائمة الطلاب",
+    "change": "تغيير حالة {name}"
   },
   "scan": {
     "open": "سجّل حضورك",
@@ -405,5 +409,11 @@
     "checkedIn": "سجّلوا حضورهم",
     "students": "طلاب نشطون",
     "week": "الحضور هذا الأسبوع"
+  },
+  "payments": {
+    "close": "إغلاق",
+    "done": "تم تسجيل الدفعة لـ {name}.",
+    "another": "دفعة أخرى",
+    "change": "تغيير"
   }
 }

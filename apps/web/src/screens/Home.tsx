@@ -23,6 +23,7 @@ import {
 } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { Avatar, Panel } from '@/components/Page';
+import { PaymentSheet } from '@/components/PaymentSheet';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
 import { errorKey } from '@/lib/session';
@@ -368,10 +369,11 @@ const ACTION_TONES = [
 /** The daily jobs at the door, one tap each. */
 function QuickActions({ role }: { role?: string }) {
   const { t } = useTranslation();
-  const items = [
+  const [paying, setPaying] = useState(false);
+  const items: { to?: string; label: string; icon: typeof Wallet }[] = [
     { to: '/students/new', label: t('today.addStudent'), icon: UserPlus },
     { to: '/students', label: t('today.findStudent'), icon: Search },
-    { to: '/students', label: t('today.recordPayment'), icon: Wallet },
+    { label: t('today.recordPayment'), icon: Wallet },
     ...(role && role !== 'teacher'
       ? [{ to: '/messages', label: t('nav.messages'), icon: MessageSquareText }]
       : []),
@@ -380,12 +382,9 @@ function QuickActions({ role }: { role?: string }) {
     <Panel className="grid gap-3 p-5">
       <h2 className="font-semibold">{t('today.quick')}</h2>
       <ul className="grid grid-cols-2 gap-2">
-        {items.map(({ to, label, icon: Icon }, i) => (
-          <li key={label}>
-            <Link
-              to={to}
-              className="group grid h-full justify-items-center gap-2 rounded-2xl border p-3 text-center text-sm font-medium transition-all hover:-translate-y-0.5 hover:border-ink/40 hover:shadow-card focus-visible:outline-2"
-            >
+        {items.map(({ to, label, icon: Icon }, i) => {
+          const body = (
+            <>
               <span
                 className={cn(
                   'grid size-11 place-items-center rounded-xl transition-transform group-hover:scale-110',
@@ -395,10 +394,26 @@ function QuickActions({ role }: { role?: string }) {
                 <Icon className="size-5" aria-hidden />
               </span>
               {label}
-            </Link>
-          </li>
-        ))}
+            </>
+          );
+          const cls =
+            'group grid h-full w-full justify-items-center gap-2 rounded-2xl border p-3 text-center text-sm font-medium transition-all hover:-translate-y-0.5 hover:border-ink/40 hover:shadow-card focus-visible:outline-2';
+          return (
+            <li key={label}>
+              {to ? (
+                <Link to={to} className={cls}>
+                  {body}
+                </Link>
+              ) : (
+                <button type="button" className={cls} onClick={() => setPaying(true)}>
+                  {body}
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
+      <PaymentSheet open={paying} onClose={() => setPaying(false)} />
     </Panel>
   );
 }

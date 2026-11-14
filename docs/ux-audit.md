@@ -115,7 +115,7 @@ A walkthrough of the redesigned app as owner, teacher, assistant and student, in
 ## Suggested order
 
 1. **Quick wins (a day):** O1, A1, A4, S2, S6, all of L1–L15, U5. **Done Nov 14**: L3 became «مكان العمل» rather than «السنتر», since an independent teacher has no center; L8 kept «مالك» and fixed the one place that said «صاحب المساحة»; A4 pre-fills only when the student is in one group.
-2. **The three slow daily jobs:** the payment sheet (Top 5 #1), group in the new-student form (A2), and the live phone layout with undo (T1, T2).
+2. **The three slow daily jobs:** the payment sheet (Top 5 #1), group in the new-student form (A2), and the live phone layout with undo (T1, T2). **Done Nov 14**: the sheet opens from Today and the students list (search, pay, receipt: 3 taps plus the search); the group in the new-student form also sets the grade; the full-screen QR is a button, not the default, and the class list is a jump button rather than a separate tab; a status is changed by tapping it in the row.
 3. **The student app redesign:** S1, S3, S4, S5.
 4. **Share buttons:** O3, A7, A8.
 5. **Consistency pass:** U1, O5, O6, T5.

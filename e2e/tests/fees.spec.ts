@@ -1,4 +1,13 @@
-import { expect, PASSWORD, signIn, STAFF, test, choose, enterWorkspace } from './fixtures';
+import {
+  choose,
+  enterWorkspace,
+  expect,
+  ownerApi,
+  PASSWORD,
+  signIn,
+  STAFF,
+  test,
+} from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const egp = (lang: 'ar' | 'en', pounds: number) =>
@@ -73,4 +82,43 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
   await payment.getByRole('button', { name: t.fees.confirmReverse }).click();
   await expect(balance).toContainText(egp(lang, 500));
   await expect(payment.getByText(t.fees.reversed)).toBeVisible();
+});
+
+test('a payment from Today: find the student, the amount is what they owe, save, receipt', async ({
+  page,
+  request,
+  lang,
+  t,
+}) => {
+  const { get, post } = await ownerApi(request, CENTER.ar);
+  const [subject] = await get('subjects');
+  const [grade] = await get('grade-levels');
+  const group = await post('groups', {
+    subjectId: subject.id,
+    gradeLevelId: grade.id,
+    monthlyFeePiastres: 40_000,
+    slots: [{ weekday: 2, startTime: '17:00', endTime: '18:30' }],
+  });
+  const n = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');
+  const student = await post('students', {
+    nameAr: `سلمى ${n}`,
+    gradeLevelId: grade.id,
+    guardian: { phone: `011${n}`, relation: 'mother', preferredLocale: 'ar', whatsappOptIn: false },
+  });
+  await post(`students/${student.id}/enrollments`, { groupId: group.id });
+
+  await signIn(page, t, STAFF.owner);
+  await enterWorkspace(page, t, CENTER[lang]);
+  await page.getByRole('button', { name: t.today.recordPayment, exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('searchbox', { name: t.students.search }).fill(`سلمى ${n}`);
+  await sheet.getByRole('button', { name: new RegExp(n) }).click();
+  await expect(sheet.getByTestId('balance')).toContainText(egp(lang, 400));
+  await expect(sheet.getByLabel(t.fees.amount)).toHaveValue(/^400(\.00)?$/);
+  await sheet.getByRole('button', { name: t.fees.save, exact: true }).click();
+  await expect(sheet.getByText(t.payments.done.replace('{name}', `سلمى ${n}`))).toBeVisible();
+
+  await sheet.getByRole('link', { name: new RegExp(t.fees.receipt) }).click();
+  await expect(page).toHaveURL(/\/receipts\//);
+  await expect(page.getByText(egp(lang, 400))).toBeVisible();
 });

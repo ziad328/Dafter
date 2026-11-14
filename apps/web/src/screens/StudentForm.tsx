@@ -12,9 +12,11 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import * as z from 'zod';
 import {
+  useCreateEnrollmentMutation,
   useCreateStudentMutation,
   useGetStudentQuery,
   useListGradeLevelsQuery,
+  useListGroupsQuery,
   useListStudentsQuery,
   useUpdateStudentMutation,
 } from '@/api/generated';
@@ -149,16 +151,23 @@ function StudentFormBody({
   const grades = useListGradeLevelsQuery();
   const [create, created] = useCreateStudentMutation();
   const [update, updated] = useUpdateStudentMutation();
-  const saving = created.isLoading || updated.isLoading;
+  // New students only: register and put them in a group with one submit.
+  const groups = useListGroupsQuery(undefined, { skip: !!id });
+  const [enroll, enrolled] = useCreateEnrollmentMutation();
+  const [groupId, setGroupId] = useState('');
+  const [discount, setDiscount] = useState('');
+  const pct = Number(discount || 0);
+  const saving = created.isLoading || updated.isLoading || enrolled.isLoading;
   const error = created.error ?? updated.error;
 
-  const { register, handleSubmit, watch, formState } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: student ? toForm(student) : blank,
   });
   const { errors } = formState;
 
   const onSubmit = handleSubmit(async (body) => {
+    if (pct > 100) return;
     const res = id
       ? await update({
           id,
@@ -173,8 +182,14 @@ function StudentFormBody({
       : await create({ createStudentRequest: body });
     // A new student opens on their page, ready to enroll; an edit goes back to the summary.
     if (res.data) {
-      if (id) onDone?.();
-      else void navigate(`/students/${res.data.id}`);
+      if (id) return onDone?.();
+      // shortcut: a failed enrolment is not shown here; the student page's group card can retry it.
+      if (groupId)
+        await enroll({
+          id: res.data.id,
+          createEnrollmentRequest: { groupId, discountPct: pct },
+        });
+      void navigate(`/students/${res.data.id}`);
     }
   });
 
@@ -203,10 +218,43 @@ function StudentFormBody({
             {...register('phone', { setValueAs: optionalPhone })}
           />
           <PhoneMatches phone={watch('phone')} selfId={id} message={t('students.duplicatePhone')} />
+          {!id && !!groups.data?.length && (
+            <SelectField
+              label={`${t('enrollments.group')} ${t('form.optional')}`}
+              value={groupId}
+              onChange={(ev) => {
+                setGroupId(ev.target.value);
+                const g = groups.data?.find((x) => x.id === ev.target.value);
+                // The group decides the grade, so the next field is already right.
+                if (g) setValue('gradeLevelId', g.gradeLevel.id, { shouldValidate: true });
+              }}
+            >
+              <option value="">{t('form.choose')}</option>
+              {groups.data
+                .filter((g) => g.status === 'active')
+                .map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {`${itemName(g.subject, i18n.language)} · ${itemName(g.gradeLevel, i18n.language)} · ${g.teacherName}`}
+                  </option>
+                ))}
+            </SelectField>
+          )}
+          {groupId && (
+            <Field
+              label={`${t('enrollments.discount')} ${t('form.optional')}`}
+              inputMode="numeric"
+              dir="ltr"
+              value={discount}
+              onChange={(ev) => setDiscount(ev.target.value.replace(/\D/g, '').slice(0, 3))}
+              error={pct > 100 ? t('form.invalid.discount') : undefined}
+            />
+          )}
           <SelectField
             label={t('students.gradeLevel')}
             error={errors.gradeLevelId && t('form.invalid.gradeLevel')}
             {...register('gradeLevelId')}
+            // Controlled, so a grade set from the chosen group shows in the dropdown.
+            value={watch('gradeLevelId') ?? ''}
           >
             <option value="">{t('form.choose')}</option>
             {grades.data?.map((g) => (

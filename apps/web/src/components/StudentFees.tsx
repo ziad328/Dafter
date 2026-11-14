@@ -18,10 +18,55 @@ import { errorKey } from '@/lib/session';
 const METHODS = ['cash', 'vodafone_cash', 'instapay'] as const;
 
 /** Balance, entries, record a payment, reverse. Money waits for the server (no optimistic UI). */
+/** Balance, entries, record a payment, reverse. Money waits for the server (no optimistic UI). */
 export function StudentFees({ studentId }: { studentId: string }) {
   const { t, i18n } = useTranslation();
-  const lang = i18n.language;
   const ledger = useGetStudentLedgerQuery({ id: studentId });
+  if (ledger.isLoading) return <Skeleton />;
+  const balance = ledger.data?.balancePiastres ?? 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h2>{t('fees.title')}</h2>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <Balance piastres={balance} lang={i18n.language} />
+        <ul className="grid gap-2" data-testid="ledger">
+          {ledger.data?.entries.map((e) => (
+            <Entry key={e.id} entry={e} />
+          ))}
+        </ul>
+        <PaymentForm studentId={studentId} due={balance} />
+      </CardContent>
+    </Card>
+  );
+}
+
+export function Balance({ piastres, lang }: { piastres: number; lang: string }) {
+  const { t } = useTranslation();
+  return (
+    <p role="status" className="text-lg font-semibold" data-testid="balance">
+      {piastres === 0 ? t('fees.settled') : t(piastres > 0 ? 'fees.owes' : 'fees.credit')}
+      {piastres !== 0 && <bdi className="ms-1">{formatEgp(Math.abs(piastres), lang)}</bdi>}
+    </p>
+  );
+}
+
+/** Group, amount (pre-filled with what is owed when there is one group), method, save. */
+export function PaymentForm({
+  studentId,
+  due,
+  onPaid,
+}: {
+  studentId: string;
+  due: number;
+  onPaid?: (entry: LedgerEntry) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const enrollments = useListEnrollmentsQuery({ id: studentId });
   const [pay, paying] = useCreatePaymentMutation();
   const [groupId, setGroupId] = useState('');
@@ -38,13 +83,9 @@ export function StudentFees({ studentId }: { studentId: string }) {
       setIdem(crypto.randomUUID());
     };
   const groups = enrollments.data?.filter((e) => e.status === 'active') ?? [];
-  const due = ledger.data?.balancePiastres ?? 0;
   const shown = amount ?? (due > 0 && groups.length === 1 ? egpText(due) : '');
   const piastres = toPiastres(shown);
   const group = groupId || groups[0]?.groupId || '';
-
-  if (ledger.isLoading) return <Skeleton />;
-  const balance = ledger.data?.balancePiastres ?? 0;
 
   const onPay = async () => {
     if (!piastres || !group) return;
@@ -55,73 +96,52 @@ export function StudentFees({ studentId }: { studentId: string }) {
     if (res.data) {
       setAmount(undefined);
       setIdem(crypto.randomUUID());
+      onPaid?.(res.data);
     }
   };
 
+  if (enrollments.isLoading) return <Skeleton />;
+  if (groups.length === 0) return null;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>{t('fees.title')}</h2>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        <p role="status" className="text-lg font-semibold" data-testid="balance">
-          {balance === 0 ? t('fees.settled') : t(balance > 0 ? 'fees.owes' : 'fees.credit')}
-          {balance !== 0 && <bdi className="ms-1">{formatEgp(Math.abs(balance), lang)}</bdi>}
-        </p>
-        <ul className="grid gap-2" data-testid="ledger">
-          {ledger.data?.entries.map((e) => (
-            <Entry key={e.id} entry={e} />
+    <fieldset className="grid gap-3 rounded-md border p-3">
+      <legend className="px-1 text-sm font-medium">{t('fees.record')}</legend>
+      {groups.length > 1 && (
+        <SelectField
+          label={t('enrollments.group')}
+          value={group}
+          onChange={(ev) => edit(setGroupId)(ev.target.value)}
+        >
+          {groups.map((g) => (
+            <option key={g.groupId} value={g.groupId}>
+              {`${itemName(g.subject, lang)} · ${g.teacherName}`}
+            </option>
           ))}
-        </ul>
-        {groups.length > 0 && (
-          <fieldset className="grid gap-3 rounded-md border p-3">
-            <legend className="px-1 text-sm font-medium">{t('fees.record')}</legend>
-            {groups.length > 1 && (
-              <SelectField
-                label={t('enrollments.group')}
-                value={group}
-                onChange={(ev) => edit(setGroupId)(ev.target.value)}
-              >
-                {groups.map((g) => (
-                  <option key={g.groupId} value={g.groupId}>
-                    {`${itemName(g.subject, lang)} · ${g.teacherName}`}
-                  </option>
-                ))}
-              </SelectField>
-            )}
-            <Field
-              label={t('fees.amount')}
-              inputMode="decimal"
-              dir="ltr"
-              value={shown}
-              onChange={(ev) => edit(setAmount)(ev.target.value)}
-              error={shown && !piastres ? t('form.invalid.amount') : undefined}
-            />
-            <SelectField
-              label={t('fees.method')}
-              value={method}
-              onChange={(ev) => edit(setMethod)(ev.target.value as typeof method)}
-            >
-              {METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {t(`fees.methods.${m}`)}
-                </option>
-              ))}
-            </SelectField>
-            <FormError message={paying.error && t(errorKey(paying.error))} />
-            <Button
-              type="button"
-              disabled={!piastres || paying.isLoading}
-              onClick={() => void onPay()}
-            >
-              {paying.isLoading ? t('fees.saving') : t('fees.save')}
-            </Button>
-          </fieldset>
-        )}
-      </CardContent>
-    </Card>
+        </SelectField>
+      )}
+      <Field
+        label={t('fees.amount')}
+        inputMode="decimal"
+        dir="ltr"
+        value={shown}
+        onChange={(ev) => edit(setAmount)(ev.target.value)}
+        error={shown && !piastres ? t('form.invalid.amount') : undefined}
+      />
+      <SelectField
+        label={t('fees.method')}
+        value={method}
+        onChange={(ev) => edit(setMethod)(ev.target.value as typeof method)}
+      >
+        {METHODS.map((m) => (
+          <option key={m} value={m}>
+            {t(`fees.methods.${m}`)}
+          </option>
+        ))}
+      </SelectField>
+      <FormError message={paying.error && t(errorKey(paying.error))} />
+      <Button type="button" disabled={!piastres || paying.isLoading} onClick={() => void onPay()}>
+        {paying.isLoading ? t('fees.saving') : t('fees.save')}
+      </Button>
+    </fieldset>
   );
 }
 

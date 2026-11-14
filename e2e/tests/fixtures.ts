@@ -1,4 +1,10 @@
-import { test as base, expect, type Locator, type Page } from '@playwright/test';
+import {
+  test as base,
+  expect,
+  type APIRequestContext,
+  type Locator,
+  type Page,
+} from '@playwright/test';
 // Direct JSON imports: Node ESM needs the attribute, and @dafter/i18n's index only works under Vite.
 import ar from '../../packages/i18n/locales/ar/common.json' with { type: 'json' };
 import en from '../../packages/i18n/locales/en/common.json' with { type: 'json' };
@@ -92,4 +98,24 @@ export async function enterWorkspace(page: Page, t: typeof ar, name: string) {
   await expect(button.or(chip).first()).toBeVisible();
   if (await button.isVisible()) await button.click();
   await expect(chip).toContainText(name);
+}
+
+/** The owner's API in one workspace, for setting up data the screens under test then use. */
+export async function ownerApi(request: APIRequestContext, workspaceNameAr: string) {
+  const login = await request.post('/api/v1/auth/login', {
+    data: { login: STAFF.owner, password: PASSWORD },
+  });
+  const auth = { authorization: `Bearer ${(await login.json()).accessToken}` };
+  const workspaces = (await (
+    await request.get('/api/v1/workspaces', { headers: auth })
+  ).json()) as { id: string; nameAr: string }[];
+  const headers = {
+    ...auth,
+    'x-workspace-id': workspaces.find((w) => w.nameAr === workspaceNameAr)!.id,
+  };
+  return {
+    get: async (url: string) => (await request.get(`/api/v1/${url}`, { headers })).json(),
+    post: async (url: string, data?: object) =>
+      (await request.post(`/api/v1/${url}`, { headers, data })).json(),
+  };
 }
