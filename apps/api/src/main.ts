@@ -10,7 +10,7 @@ import { startWorker } from './worker.js';
 const envFile = '../../.env';
 if (existsSync(envFile)) process.loadEnvFile(envFile);
 
-async function bootstrap() {
+export async function bootstrap() {
   const directUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL!;
   // Long-running hosts migrate on every start; already-applied migrations are skipped. Vercel
   // uses src/vercel.ts instead, with no worker and no migrations at boot.
@@ -28,6 +28,9 @@ async function bootstrap() {
       .addHook('onClose', () => boss.stop());
   }
   await app.listen({ port: Number(process.env.PORT ?? 3000), host: '0.0.0.0' });
+  return app;
 }
 
-void bootstrap();
+// The entry point (node dist/main.js); tests import bootstrap() instead.
+/* v8 ignore next */
+if (require.main === module) void bootstrap();

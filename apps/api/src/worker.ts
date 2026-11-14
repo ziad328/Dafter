@@ -50,9 +50,12 @@ export async function startWorker(
   return boss;
 }
 
+// Run on its own (node dist/worker.js); tests call startWorker() instead.
+/* v8 ignore start */
 if (require.main === module) {
   if (existsSync('../../.env')) process.loadEnvFile('../../.env');
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set');
   void startWorker(createDb(url).db, new Clock(), url);
 }
+/* v8 ignore stop */

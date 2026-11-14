@@ -16,5 +16,13 @@ export default defineConfig({
     env: { JWT_SECRET: 'test-secret', QR_SECRET: 'test-qr-secret' },
     hookTimeout: 180_000,
     testTimeout: 30_000,
+    // Every line of src is run by a test; specs and test helpers are not counted.
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.spec.ts', 'src/testing/**'],
+      reporter: ['text-summary', 'json-summary'],
+      thresholds: { lines: 100 },
+    },
   },
 });
