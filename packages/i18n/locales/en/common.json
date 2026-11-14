@@ -295,7 +295,8 @@
       "makeup": "Recorded as a make-up class",
       "excused": "Marked as excused",
       "absent": "Marked absent"
-    }
+    },
+    "switchCamera": "Switch camera"
   },
   "install": {
     "title": "Install the Dafter app first",

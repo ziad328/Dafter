@@ -1,5 +1,6 @@
 import type { CheckIn } from '@dafter/contracts';
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
+import { SwitchCamera } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -17,6 +18,15 @@ declare global {
   }
 }
 
+const CAMERA_KEY = 'dafter.camera';
+const savedCamera = () => {
+  try {
+    return localStorage.getItem(CAMERA_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 /** Student check-in: scan the teacher's screen, sign the code with this phone's key, send. */
 export default function StudentScan() {
   const { t } = useTranslation();
@@ -24,6 +34,11 @@ export default function StudentScan() {
   const [checkIn, { error }] = useCheckInMutation();
   const [done, setDone] = useState<CheckIn>();
   const [cameraBlocked, setCameraBlocked] = useState(false);
+  // The camera the student picked last time (kept for the next class); none = the back camera.
+  const [cameraId, setCameraId] = useState(savedCamera);
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  // The camera actually running, read when it starts (the stream can be gone by the time of a tap).
+  const active = useRef<string>(undefined);
   const busy = useRef(false);
 
   const submit = useCallback(
@@ -46,25 +61,41 @@ export default function StudentScan() {
     let controls: IScannerControls | undefined;
     let stopped = false;
     let last = '';
-    const reader = new BrowserQRCodeReader();
-    reader
-      .decodeFromConstraints({ video: { facingMode: 'environment' } }, video.current!, (result) => {
-        const text = result?.getText();
-        // The same window's code is sent once; the next window brings a new text.
-        if (text && text !== last) {
-          last = text;
-          void submit(text);
-        }
-      })
-      .then((c) => (stopped ? c.stop() : (controls = c)))
-      .catch(() => setCameraBlocked(true));
+    let stream: MediaStream | undefined;
+    const constraints = cameraId
+      ? { video: { deviceId: { exact: cameraId } } }
+      : { video: { facingMode: 'environment' } };
+    // The stream is opened here, not by the reader, so the running camera's id is known for "switch".
+    const start = async () => {
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (stopped) return stream.getTracks().forEach((track) => track.stop());
+      active.current = stream.getVideoTracks()[0]?.getSettings().deviceId ?? cameraId;
+      controls = await new BrowserQRCodeReader().decodeFromStream(
+        stream,
+        video.current!,
+        (result) => {
+          const text = result?.getText();
+          // The same window's code is sent once; the next window brings a new text.
+          if (text && text !== last) {
+            last = text;
+            void submit(text);
+          }
+        },
+      );
+      if (stopped) return controls.stop();
+      // Labels and the full list are only visible once the camera permission is granted.
+      setCameras(await BrowserQRCodeReader.listVideoInputDevices());
+    };
+    // A remembered camera that is gone (another phone, unplugged): fall back to the back one.
+    start().catch(() => (cameraId ? setCameraId(undefined) : setCameraBlocked(true)));
     if (import.meta.env.DEV) window.__dafterScan = submit;
     return () => {
       stopped = true;
       controls?.stop();
+      stream?.getTracks().forEach((track) => track.stop());
       if (import.meta.env.DEV) delete window.__dafterScan;
     };
-  }, [done, submit]);
+  }, [done, submit, cameraId]);
 
   if (done)
     return (
@@ -84,6 +115,17 @@ export default function StudentScan() {
       </Card>
     );
 
+  const switchCamera = () => {
+    const at = cameras.findIndex((c) => c.deviceId === active.current);
+    const next = cameras[(at + 1) % cameras.length]!.deviceId;
+    try {
+      localStorage.setItem(CAMERA_KEY, next);
+    } catch {
+      // Private mode: the choice lasts until the page closes.
+    }
+    setCameraId(next);
+  };
+
   const code = error ? errorKey(error) : undefined;
   return (
     <Card>
@@ -99,6 +141,12 @@ export default function StudentScan() {
           muted
           playsInline
         />
+        {cameras.length > 1 && (
+          <Button variant="outline" onClick={switchCamera}>
+            <SwitchCamera aria-hidden />
+            {t('scan.switchCamera')}
+          </Button>
+        )}
         <p className="text-sm text-muted-foreground">{t('scan.hint')}</p>
         {cameraBlocked && <FormError message={t('scan.cameraBlocked')} />}
         {/* An expired code just means "scan again": the camera is still running. */}

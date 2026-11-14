@@ -107,6 +107,29 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
     // Stands in for the installed PWA (dev only); pwa.spec.ts covers the browser-tab gate.
     localStorage.setItem('dafter.devInstalled', '1');
   }, lang);
+  // A phone with a back and a front camera (Playwright has none): canvas streams stand in.
+  await phone.addInitScript(() => {
+    const cams = ['back', 'front'].map((id) => ({
+      deviceId: id,
+      groupId: 'g',
+      kind: 'videoinput',
+      label: id,
+    }));
+    const asked: string[] = [];
+    (window as { cameraAsks?: string[] }).cameraAsks = asked;
+    navigator.mediaDevices.enumerateDevices = async () =>
+      cams.map((c) => ({ ...c, toJSON: () => c })) as MediaDeviceInfo[];
+    navigator.mediaDevices.getUserMedia = async (c) => {
+      const id =
+        ((c?.video as MediaTrackConstraints)?.deviceId as { exact?: string })?.exact ?? 'back';
+      asked.push(id);
+      const canvas = Object.assign(document.createElement('canvas'), { width: 64, height: 64 });
+      canvas.getContext('2d')!.fillRect(0, 0, 64, 64);
+      const stream = canvas.captureStream(5);
+      stream.getVideoTracks()[0]!.getSettings = () => ({ deviceId: id });
+      return stream;
+    };
+  });
   const s = await phone.newPage();
   const email = `scan${n}@example.com`;
   await s.goto(`/s/activate/${invite}`);
@@ -120,6 +143,12 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   // The check-in button appears only once the phone is bound.
   await expect(s.getByRole('link', { name: t.scan.open })).toBeVisible();
   await s.getByRole('link', { name: t.scan.open }).click();
+  await s.waitForFunction(() => !!(window as Hook).__dafterScan);
+  // Two cameras: a switch button moves to the other one.
+  await s.getByRole('button', { name: t.scan.switchCamera }).click();
+  await expect
+    .poll(() => s.evaluate(() => (window as { cameraAsks?: string[] }).cameraAsks?.join(',')))
+    .toContain('front');
   await s.waitForFunction(() => !!(window as Hook).__dafterScan);
 
   // No camera in the test: hand the teacher's current QR text to the scanner's dev hook.
