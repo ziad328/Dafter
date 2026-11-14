@@ -160,14 +160,25 @@ function InstallGate() {
 function PasteInvite() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const token = inviteFromText(text);
+  // Returning students only sign in; the paste box is for the first time (audit A3).
+  if (!open)
+    return (
+      <CardContent className="mt-4 border-t pt-2">
+        <Button type="button" variant="link" className="px-0" onClick={() => setOpen(true)}>
+          {t('install.firstTime')}
+        </Button>
+      </CardContent>
+    );
   return (
     <CardContent className="mt-4 grid gap-3 border-t pt-4">
       <Field
         label={t('install.paste')}
         dir="ltr"
         autoComplete="off"
+        autoFocus
         value={text}
         onChange={(e) => setText(e.target.value)}
         error={text && !token ? t('install.pasteInvalid') : undefined}

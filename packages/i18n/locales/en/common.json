@@ -50,6 +50,7 @@
       "phone": "Mobile number",
       "email": "Email",
       "password": "Password",
+      "passwordHint": "At least 8 characters.",
       "submit": "Create account",
       "haveAccount": "Already have an account?",
       "login": "Sign in"
@@ -302,7 +303,8 @@
     "title": "Install the Dafter app first",
     "why": "Your login and attendance key live inside the installed app, so sign in there, not in the browser.",
     "button": "Install the app",
-    "paste": "First time? Paste your invite link",
+    "firstTime": "First time? Activate with your invite link",
+    "paste": "Paste your invite link",
     "pasteInvalid": "This is not a Dafter invite link.",
     "activate": "Activate",
     "steps": {

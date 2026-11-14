@@ -150,6 +150,9 @@ describe('workspaces', () => {
     const { user, router } = await renderAt('/workspaces', { lang: 'en' });
     const current = await screen.findByRole('button', { name: new RegExp('Al-Nour Center') });
     expect(current).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('navigation', { name: tr('nav.breadcrumbs') })).toHaveTextContent(
+      tr('workspaces.title'),
+    );
     await user.click(screen.getByRole('button', { name: new RegExp(second.nameAr) }));
     expect(getWorkspaceId()).toBe(second.id);
     expect(router.state.location.pathname).toBe('/');
@@ -200,7 +203,7 @@ describe('more', () => {
       'href',
       '/dev/phone',
     );
-    expect(within(nav).getByRole('link', { name: tr('nav.switchWorkspace') })).toBeVisible();
+    expect(within(nav).getByRole('link', { name: tr('nav.switchWorkspace') })).toContainHTML('svg');
     const main = screen.getByRole('main');
     await user.click(within(main).getByRole('button', { name: tr('shell.darkMode') }));
     expect(document.documentElement).toHaveClass('dark');
@@ -313,6 +316,9 @@ describe('register', () => {
     server.use(http.post(route('auth/refresh'), fail('UNAUTHENTICATED', 401)));
     const { user, router } = await renderAt('/register?next=/students', { workspace: null });
     const submit = await screen.findByRole('button', { name: tr('auth.register.submit') });
+    expect(screen.getByLabelText(tr('auth.register.password'))).toHaveAccessibleDescription(
+      tr('auth.register.passwordHint'),
+    );
     await user.type(
       screen.getByLabelText(`${tr('auth.register.email')} ${tr('form.optional')}`),
       'x',

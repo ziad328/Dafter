@@ -1,3 +1,4 @@
+import { ArrowLeftRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router';
 import { AccountActions, useNavItems } from '@/components/AppShell';
@@ -24,6 +25,7 @@ export default function More() {
           to="/workspaces"
           className="flex min-h-12 items-center gap-3 px-4 text-sm font-medium"
         >
+          <ArrowLeftRight className="size-5 text-ink" aria-hidden />
           {t('nav.switchWorkspace')}
         </NavLink>
       </nav>

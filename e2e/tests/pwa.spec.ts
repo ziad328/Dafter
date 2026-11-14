@@ -14,6 +14,7 @@ test('in a browser tab the student app asks to install first (rule 13)', async (
 test('inside the app, a pasted invite link opens activation', async ({ page, t }) => {
   await page.addInitScript(() => localStorage.setItem('dafter.devInstalled', '1'));
   await page.goto('/s/login');
+  await page.getByRole('button', { name: t.install.firstTime }).click();
   const paste = page.getByLabel(t.install.paste);
   await paste.fill('hello');
   await expect(page.getByText(t.install.pasteInvalid)).toBeVisible();

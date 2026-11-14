@@ -51,7 +51,7 @@ export function Breadcrumbs() {
       '/messages': t('nav.messages'),
       '/members': t('nav.staff'),
       '/dev/phone': t('nav.phone'),
-      '/workspaces': t('nav.switchWorkspace'),
+      '/workspaces': t('workspaces.title'),
     };
     if (more[pathname]) {
       crumbs = [{ label: t('nav.more'), to: '/more' }, { label: more[pathname] }];

@@ -131,6 +131,8 @@ describe('student sign-in', () => {
     installed();
     const { user, router } = await renderAt('/s/login', { workspace: null });
     expect(await screen.findByText(tr('studentApp.loginTitle'))).toBeVisible();
+    expect(screen.queryByLabelText(tr('install.paste'))).toBeNull();
+    await user.click(screen.getByRole('button', { name: tr('install.firstTime') }));
     const paste = screen.getByLabelText(tr('install.paste'));
     await user.type(paste, 'not a link');
     expect(screen.getByText(tr('install.pasteInvalid'))).toBeVisible();

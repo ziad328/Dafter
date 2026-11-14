@@ -68,6 +68,7 @@ export default function Register() {
             label={t('auth.register.password')}
             type="password"
             autoComplete="new-password"
+            hint={t('auth.register.passwordHint')}
             error={errors.password && t('form.invalid.password')}
             {...register('password')}
           />
