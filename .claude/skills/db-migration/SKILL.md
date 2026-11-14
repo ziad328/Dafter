@@ -9,3 +9,4 @@ description: Use when changing the database schema in packages/db - tables, colu
 - Run `pnpm db:generate`, read the SQL, run `pnpm db:reset`, run integration tests.
 - Migrations are backward compatible (add first, remove later). Never edit an applied migration.
 - Update the seed and the test factories.
+- After the migration is committed and pushed, apply it to production yourself, without waiting to be asked (Vercel never migrates): `pnpm --filter @dafter/db exec tsx --env-file=../../.env.neon src/scripts/migrate.ts`. Then check the live site (`https://dafter-vert.vercel.app`) still loads the affected lists, and say in one line that Neon is migrated. Additive migrations only; anything that drops or rewrites data needs Ziad's OK first.

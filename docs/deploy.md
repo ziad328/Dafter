@@ -93,7 +93,13 @@ Check, all on that URL:
 - `/login` shows the Arabic login page; sign in as `01000000002` / `dafter-dev-123`, pick سنتر النور, reload: you stay signed in (the cookie works).
 - Project → **Settings** → **Cron Jobs** lists `/api/v1/internal/tick?daily=1` at `0 6 * * *` (08:00 Cairo).
 
-**New database migrations:** Vercel doesn't migrate. When a commit adds a migration, run `pnpm demo:seed:neon` (it migrates first, then skips the seed) before pushing.
+**New database migrations:** Vercel doesn't migrate, so the new API code runs against the old schema until you do. After every commit that adds a migration, apply it to Neon right away (migrations only, no seed):
+
+```bash
+pnpm --filter @dafter/db exec tsx --env-file=../../.env.neon src/scripts/migrate.ts
+```
+
+Claude does this after each migration it writes (the `db-migration` skill). Nov 15: `0010` and `0011` were missed, and groups and the timetable answered 500 until they were applied.
 
 ## 4. cron-job.org (hourly retries, optional) — about 5 minutes
 
@@ -138,7 +144,7 @@ These can't be automated (see `docs/known-limits.md`):
 | Build fails at `pnpm install` | Lockfile out of date | Run `pnpm install` locally, commit `pnpm-lock.yaml`, push |
 | `/health` returns 500; function log: `DATABASE_URL is not set` or `QR_SECRET is not set` | Variable missing | Project → Settings → Environment Variables → add → **Redeploy** |
 | Function log: `MAIL_PROVIDER=brevo needs…` | Brevo variables missing | Add `BREVO_API_KEY` and `MAIL_FROM`, redeploy |
-| Function log: `relation … does not exist` | A migration wasn't run on Neon | `pnpm demo:seed:neon`, then retry |
+| Function log: `relation … does not exist` or `column … does not exist`; lists answer 500 `INTERNAL` | A migration wasn't run on Neon | The migrate command above, then retry |
 | `/login` shows a 404 page | `vercel.json` rewrites not picked up | Check Root Directory is the repo root |
 | The live list stops for ~2 s every 5 minutes | Vercel ends a function after 300 s; the screen reconnects | Expected |
 | Login code email never arrives | Sender not verified, or the free daily limit reached | Brevo → Transactional → Logs |
