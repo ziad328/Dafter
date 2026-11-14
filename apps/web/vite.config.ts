@@ -14,6 +14,8 @@ export default defineConfig({
     // run a stale service worker.
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered in main.tsx (lib/sw-update.ts), which also checks for new builds.
+      injectRegister: false,
       manifest: {
         name: 'دفتر',
         short_name: 'دفتر',

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   createBrowserRouter,
@@ -13,30 +13,31 @@ import { AppShell } from './components/AppShell';
 import { FormError, Skeleton } from './components/Field';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Button } from './components/ui/button';
+import { lazyPage } from './lib/lazy-page';
 import { errorKey, useSignOut } from './lib/session';
 
-const Login = lazy(() => import('./screens/Login'));
-const Register = lazy(() => import('./screens/Register'));
-const ForgotPassword = lazy(() => import('./screens/ForgotPassword'));
-const ResetPassword = lazy(() => import('./screens/ResetPassword'));
-const AcceptInvite = lazy(() => import('./screens/AcceptInvite'));
-const Workspaces = lazy(() => import('./screens/Workspaces'));
-const Members = lazy(() => import('./screens/Members'));
-const Home = lazy(() => import('./screens/Home'));
-const Groups = lazy(() => import('./screens/Groups'));
-const GroupForm = lazy(() => import('./screens/GroupForm'));
-const Timetable = lazy(() => import('./screens/Timetable'));
-const Students = lazy(() => import('./screens/Students'));
-const StudentForm = lazy(() => import('./screens/StudentForm'));
-const StudentLogin = lazy(() => import('./screens/StudentLogin'));
-const StudentHome = lazy(() => import('./screens/StudentHome'));
-const StudentScan = lazy(() => import('./screens/StudentScan'));
-const SessionLive = lazy(() => import('./screens/SessionLive'));
-const Receipt = lazy(() => import('./screens/Receipt'));
-const FakePhone = lazy(() => import('./screens/FakePhone'));
-const Messages = lazy(() => import('./screens/Messages'));
-const More = lazy(() => import('./screens/More'));
-const Fees = lazy(() => import('./screens/Fees'));
+const Login = lazyPage(() => import('./screens/Login'));
+const Register = lazyPage(() => import('./screens/Register'));
+const ForgotPassword = lazyPage(() => import('./screens/ForgotPassword'));
+const ResetPassword = lazyPage(() => import('./screens/ResetPassword'));
+const AcceptInvite = lazyPage(() => import('./screens/AcceptInvite'));
+const Workspaces = lazyPage(() => import('./screens/Workspaces'));
+const Members = lazyPage(() => import('./screens/Members'));
+const Home = lazyPage(() => import('./screens/Home'));
+const Groups = lazyPage(() => import('./screens/Groups'));
+const GroupForm = lazyPage(() => import('./screens/GroupForm'));
+const Timetable = lazyPage(() => import('./screens/Timetable'));
+const Students = lazyPage(() => import('./screens/Students'));
+const StudentForm = lazyPage(() => import('./screens/StudentForm'));
+const StudentLogin = lazyPage(() => import('./screens/StudentLogin'));
+const StudentHome = lazyPage(() => import('./screens/StudentHome'));
+const StudentScan = lazyPage(() => import('./screens/StudentScan'));
+const SessionLive = lazyPage(() => import('./screens/SessionLive'));
+const Receipt = lazyPage(() => import('./screens/Receipt'));
+const FakePhone = lazyPage(() => import('./screens/FakePhone'));
+const Messages = lazyPage(() => import('./screens/Messages'));
+const More = lazyPage(() => import('./screens/More'));
+const Fees = lazyPage(() => import('./screens/Fees'));
 
 /** Signed-out screens and the student app: the wordmark, the notebook's red line, one column. */
 function Layout() {

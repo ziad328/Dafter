@@ -18,4 +18,18 @@ describe('start-up', () => {
     await import('./main');
     expect(await screen.findByText('دفتر')).toBeInTheDocument();
   });
+
+  it('registers the service worker in a production build', async () => {
+    vi.resetModules();
+    vi.stubEnv('PROD', true);
+    const registerSW = vi.fn();
+    vi.doMock('virtual:pwa-register', () => ({ registerSW }));
+    document.body.innerHTML = '<div id="root"></div>';
+    await import('./main');
+    await vi.waitFor(() =>
+      expect(registerSW).toHaveBeenCalledWith(expect.objectContaining({ immediate: true })),
+    );
+    vi.doUnmock('virtual:pwa-register');
+    vi.unstubAllEnvs();
+  });
 });
