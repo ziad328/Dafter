@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { clearAccessToken, setWorkspaceId } from '@/api/base';
 import { i18n } from '@/i18n';
@@ -40,3 +40,5 @@ HTMLDialogElement.prototype.close = function () {
 Element.prototype.hasPointerCapture = () => false;
 Element.prototype.releasePointerCapture = () => {};
 Element.prototype.scrollIntoView = () => {};
+// The full suite runs files in parallel; give slow renders (QR, lazy screens) more than 1 s.
+configure({ asyncUtilTimeout: 5000 });

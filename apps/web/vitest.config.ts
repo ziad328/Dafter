@@ -8,6 +8,7 @@ export default defineConfig({
     // An absolute API origin: Node's fetch rejects the relative URLs the browser accepts.
     env: { VITE_API_URL: 'http://localhost:3000' },
     setupFiles: ['./src/test/setup.ts'],
+    expect: { poll: { timeout: 5000 } },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
