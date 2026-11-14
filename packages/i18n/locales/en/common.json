@@ -177,7 +177,8 @@
     "ENTRY_NOT_FOUND": "Entry not found.",
     "ENTRY_ALREADY_REVERSED": "This entry was already reversed.",
     "ENTRY_NOT_REVERSIBLE": "A reversal cannot be reversed. Record a new entry instead.",
-    "RESET_INVALID": "This link is invalid, expired or already used."
+    "RESET_INVALID": "This link is invalid, expired or already used.",
+    "RESET_NOT_ALLOWED": "This account is also used in another workspace or as a student, so only its owner can reset it, from \"Forgot your password?\"."
   },
   "timetable": {
     "title": "Timetable",
@@ -428,7 +429,10 @@
     "worksForNone": "Not working for a teacher yet",
     "edit": "Edit",
     "editScopes": "{name}’s teachers",
-    "worksFor": "Works for"
+    "worksFor": "Works for",
+    "resetFor": "Password link for {name}",
+    "resetHint": "For someone who forgot their password. The link works once, for 24 hours. Send it only to them.",
+    "createResetLink": "Create the link"
   },
   "nav": {
     "label": "Main",
@@ -484,7 +488,8 @@
     "copy": "Copy",
     "copied": "Copied",
     "staffInvite": "Join our workspace on Dafter:",
-    "studentInvite": "Activate the Dafter app with this link (works once, within 72 hours):"
+    "studentInvite": "Activate the Dafter app with this link (works once, within 72 hours):",
+    "staffReset": "Set a new Dafter password (this link works once, for 24 hours):"
   },
   "feesView": {
     "title": "Fees",

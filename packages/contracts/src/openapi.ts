@@ -57,6 +57,7 @@ import {
   invite,
   memberList,
   setScopesRequest,
+  staffResetLink,
   workspace,
   workspaceList,
 } from './workspaces.js';
@@ -206,6 +207,20 @@ export function buildOpenApi() {
           requestBody: { required: true, content: json(createInviteRequest) },
           responses: {
             201: { description: 'The invite; its token is shown only here', content: json(invite) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/members/{id}/password-reset': {
+        post: {
+          operationId: 'createStaffResetLink',
+          tags: ['members'],
+          description:
+            'Owner only. A single-use link (24 hours) for a teacher or assistant whose account belongs to this workspace alone (no other workspace, no student account); otherwise RESET_NOT_ALLOWED, so an owner cannot take over an account used elsewhere.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            201: { description: 'The link token, shown only here', content: json(staffResetLink) },
             ...errors,
           },
         },

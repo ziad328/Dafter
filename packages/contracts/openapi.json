@@ -475,6 +475,52 @@
         }
       }
     },
+    "/api/v1/members/{id}/password-reset": {
+      "post": {
+        "operationId": "createStaffResetLink",
+        "tags": ["members"],
+        "description": "Owner only. A single-use link (24 hours) for a teacher or assistant whose account belongs to this workspace alone (no other workspace, no student account); otherwise RESET_NOT_ALLOWED, so an owner cannot take over an account used elsewhere.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The link token, shown only here",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffResetLink"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/invites/{token}/accept": {
       "post": {
         "operationId": "acceptInvite",
@@ -2950,6 +2996,7 @@
           "WORKSPACE_NOT_FOUND",
           "INVITE_INVALID",
           "RESET_INVALID",
+          "RESET_NOT_ALLOWED",
           "ALREADY_MEMBER",
           "MEMBER_NOT_ASSISTANT",
           "SCOPE_TEACHER_INVALID",
@@ -3209,6 +3256,21 @@
           }
         },
         "required": ["id", "role", "token", "expiresAt"],
+        "additionalProperties": false
+      },
+      "StaffResetLink": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["token", "expiresAt"],
         "additionalProperties": false
       },
       "MemberList": {

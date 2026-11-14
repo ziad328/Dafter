@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { and, asc, eq, gt, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import type { Invite, Member, Workspace } from '@dafter/contracts';
-import { assistantScopes, invites, memberships, users } from '@dafter/db';
+import { assistantScopes, invites, memberships, passwordResets, users } from '@dafter/db';
 import { AppError } from '../errors.js';
 import { TenantRepository } from '../tenant.repository.js';
 
@@ -28,6 +28,40 @@ export class MembersRepository extends TenantRepository {
    * The second cross-tenant read: the invitee is not a member yet, so RLS would hide the invite.
    * Runs as the owner (no RLS); the token hash is the only filter, so keep it that way.
    */
+  /**
+   * Stores an owner-issued reset for a member whose account lives in this workspace alone:
+   * a teacher or assistant with a password, no other membership and no student record anywhere.
+   * The third cross-tenant read (other workspaces' rows decide it), as the owner without RLS.
+   */
+  async issueReset(
+    workspaceId: string,
+    memberId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<'ok' | 'not_found' | 'not_allowed'> {
+    const [member] = await this.inTenant(workspaceId, (tx) =>
+      tx
+        .select({ userId: memberships.userId, role: memberships.role })
+        .from(memberships)
+        .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.id, memberId))),
+    );
+    if (!member) return 'not_found';
+    if (member.role === 'owner') return 'not_allowed';
+    const { rows } = await this.db.execute<{
+      has_password: boolean;
+      memberships: number;
+      student: boolean;
+    }>(sql`
+      select u.password_hash is not null as has_password,
+        (select count(*) from memberships m where m.user_id = u.id)::int as memberships,
+        exists (select 1 from students s where s.user_id = u.id) as student
+      from users u where u.id = ${member.userId}`);
+    const user = rows[0]!;
+    if (!user.has_password || user.memberships > 1 || user.student) return 'not_allowed';
+    await this.db.insert(passwordResets).values({ userId: member.userId, tokenHash, expiresAt });
+    return 'ok';
+  }
+
   async findInviteWorkspace(tokenHash: string): Promise<string | undefined> {
     const [row] = await this.db
       .select({ workspaceId: invites.workspaceId })

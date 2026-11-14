@@ -56,7 +56,7 @@ Priority: high (hurts a daily job), medium, low. Size: S (under an hour), M (a f
 
 ## Status (Nov 14)
 
-Done, each with unit tests (and e2e where a flow changed): F1–F5, M1–M3, LV1, AV1, A2, A3, W1, MO1, T1, G1, G2, TT1, TT2, MB1, ST1–ST4, and the show-password half of A1. Done after: password reset (A1, `0439868`), G1's per-group label (`d486b2f`), and the center-wide fees view from the product gaps (`/fees`). The owner-side reset link was skipped: it would let an owner take over a staff member's global account.
+Done, each with unit tests (and e2e where a flow changed): F1–F5, M1–M3, LV1, AV1, A2, A3, W1, MO1, T1, G1, G2, TT1, TT2, MB1, ST1–ST4, and the show-password half of A1. Done after: password reset (A1, `0439868`), G1's per-group label (`d486b2f`), and the center-wide fees view from the product gaps (`/fees`). The owner-side reset link came later, limited to accounts that exist only in that workspace, so an owner can't take over an account used elsewhere.
 
 ## Suggested order
 

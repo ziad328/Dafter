@@ -100,6 +100,16 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ['members'],
       }),
+      createStaffResetLink: build.mutation<
+        CreateStaffResetLinkApiResponse,
+        CreateStaffResetLinkApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/v1/members/${queryArg.id}/password-reset`,
+          method: 'POST',
+        }),
+        invalidatesTags: ['members'],
+      }),
       acceptInvite: build.mutation<AcceptInviteApiResponse, AcceptInviteApiArg>({
         query: (queryArg) => ({ url: `/api/v1/invites/${queryArg.token}/accept`, method: 'POST' }),
         invalidatesTags: ['members'],
@@ -410,6 +420,11 @@ export type CreateInviteApiResponse =
 export type CreateInviteApiArg = {
   createInviteRequest: CreateInviteRequest;
 };
+export type CreateStaffResetLinkApiResponse =
+  /** status 201 The link token, shown only here */ StaffResetLink;
+export type CreateStaffResetLinkApiArg = {
+  id: string;
+};
 export type AcceptInviteApiResponse = /** status 200 The joined workspace */ Workspace;
 export type AcceptInviteApiArg = {
   token: string;
@@ -594,6 +609,7 @@ export type ErrorCode =
   | 'WORKSPACE_NOT_FOUND'
   | 'INVITE_INVALID'
   | 'RESET_INVALID'
+  | 'RESET_NOT_ALLOWED'
   | 'ALREADY_MEMBER'
   | 'MEMBER_NOT_ASSISTANT'
   | 'SCOPE_TEACHER_INVALID'
@@ -711,6 +727,10 @@ export type Invite = {
 };
 export type CreateInviteRequest = {
   role: 'teacher' | 'assistant';
+};
+export type StaffResetLink = {
+  token: string;
+  expiresAt: string;
 };
 export type Member = {
   id: string;
@@ -1019,6 +1039,7 @@ export const {
   useListWorkspacesQuery,
   useGetCurrentWorkspaceQuery,
   useCreateInviteMutation,
+  useCreateStaffResetLinkMutation,
   useAcceptInviteMutation,
   useListMembersQuery,
   useSetAssistantScopesMutation,

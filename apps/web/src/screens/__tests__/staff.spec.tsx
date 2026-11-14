@@ -80,6 +80,32 @@ describe('staff', () => {
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(1);
   });
 
+  it('makes a one-time password link for a staff member, but not for the owner', async () => {
+    const { user } = await renderAt('/members');
+    const name = tr('members.resetFor', { name: assistant.name });
+    await user.click(await screen.findByRole('button', { name }));
+    const sheet = screen.getByRole('dialog', { name });
+    await user.click(within(sheet).getByRole('button', { name: tr('members.createResetLink') }));
+    expect(await within(sheet).findByTestId('staff-reset-link')).toHaveTextContent(
+      '/reset/staff-reset-token',
+    );
+    expect(call(`POST /api/v1/members/${assistant.id}/password-reset`)).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: tr('members.resetFor', { name: owner.name }) }),
+    ).toBeNull();
+  });
+
+  it('explains when the account is used elsewhere', async () => {
+    server.use(http.post(route('members/:id/password-reset'), fail('RESET_NOT_ALLOWED', 409)));
+    const { user } = await renderAt('/members', { lang: 'en' });
+    const name = tr('members.resetFor', { name: assistant.name });
+    await user.click(await screen.findByRole('button', { name }));
+    await user.click(screen.getByRole('button', { name: tr('members.createResetLink') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.RESET_NOT_ALLOWED'));
+    await user.click(screen.getByRole('button', { name: tr('payments.close') }));
+    expect(screen.queryByRole('dialog', { name })).toBeNull();
+  });
+
   it('shows a failed invite', async () => {
     server.use(http.post(route('invites'), fail('FORBIDDEN', 403)));
     const { user } = await renderAt('/members');

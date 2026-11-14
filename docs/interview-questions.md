@@ -111,3 +111,11 @@ So the endpoint can't be used to find out which emails have accounts. The same s
 
 **3. Why build the link from `APP_URL` and not from the request's Host header, and what stays valid after a reset?**
 An attacker could send a reset request with their own Host, and the victim would get a real token pointing at the attacker's site (host-header poisoning). After the reset, refresh tokens are dead, but an access token already issued keeps working for up to 15 minutes, the trade-off of stateless JWTs.
+
+## After v0 · Owner-issued reset link
+
+**1. Why can an owner create a reset link only for staff whose account is in this workspace alone?**
+Accounts are global: the same login may teach at another center or own its own workspace. A link the owner creates is a link the owner can use, so for a shared account it would be a takeover of access the owner was never given. If the account exists only in this workspace (and is not a student account), the owner gains nothing they don't already control, so it is safe. Everyone else uses "Forgot your password?" by email.
+
+**2. Why does that check read other workspaces' memberships, and how is it kept safe?**
+RLS hides other tenants, so the check runs as the table owner without RLS, like the invite lookup. It returns only a yes/no (count of memberships, any student record), never another workspace's data, and the member id is first resolved inside the caller's workspace, so an unknown or foreign id is a plain 404.

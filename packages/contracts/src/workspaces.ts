@@ -43,6 +43,13 @@ export const invite = z
   })
   .meta({ id: 'Invite' });
 
+/** Owner-issued password reset link for a staff member: shown once, opens /reset/<token>. */
+export const staffResetLink = z
+  .object({ token: z.string(), expiresAt: z.iso.datetime() })
+  .meta({ id: 'StaffResetLink' });
+
+export type StaffResetLink = z.infer<typeof staffResetLink>;
+
 export const member = z
   .object({
     id: z.uuid(),

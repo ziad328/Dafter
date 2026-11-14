@@ -132,6 +132,10 @@ export const handlers = [
   ),
   http.post(api('invites/:token/accept'), log(fx.currentWorkspace)),
   http.get(api('members'), log(fx.members)),
+  http.post(
+    api('members/:id/password-reset'),
+    log({ token: 'staff-reset-token', expiresAt: new Date().toISOString() }, 201),
+  ),
   http.put(
     api('members/:id/scopes'),
     log((_r, p) => fx.members.find((m) => m.id === p.id)!),

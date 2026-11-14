@@ -1,8 +1,10 @@
 import { type Member, normalizeArabic } from '@dafter/contracts';
+import { KeyRound } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useCreateInviteMutation,
+  useCreateStaffResetLinkMutation,
   useGetCurrentWorkspaceQuery,
   useListMembersQuery,
   useSetAssistantScopesMutation,
@@ -101,6 +103,54 @@ function InviteCard() {
   );
 }
 
+/**
+ * The owner makes a one-time password link for someone who forgot theirs (no email needed). The
+ * API refuses accounts used in another workspace, and the sheet shows that error.
+ */
+function ResetLink({ member: m }: { member: Member }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [create, created] = useCreateStaffResetLinkMutation();
+  const link = created.data && `${location.origin}/reset/${created.data.token}`;
+  return (
+    <>
+      <Button
+        size="icon"
+        variant="outline"
+        aria-label={t('members.resetFor', { name: m.name })}
+        onClick={() => setOpen(true)}
+      >
+        <KeyRound className="size-4" aria-hidden />
+      </Button>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t('members.resetFor', { name: m.name })}
+      >
+        <div className="grid gap-3 text-sm">
+          <p className="text-muted-foreground">{t('members.resetHint')}</p>
+          <Button
+            type="button"
+            disabled={created.isLoading}
+            onClick={() => void create({ id: m.id })}
+          >
+            {t('members.createResetLink')}
+          </Button>
+          <FormError message={created.error && t(errorKey(created.error))} />
+          {link && (
+            <div className="grid gap-2 rounded-md border p-3">
+              <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="staff-reset-link">
+                {link}
+              </bdi>
+              <ShareButton text={t('share.staffReset')} url={link} />
+            </div>
+          )}
+        </div>
+      </Sheet>
+    </>
+  );
+}
+
 /** One line per person; an assistant's teachers are named here and edited in a sheet. */
 function MemberRow({
   member: m,
@@ -157,6 +207,7 @@ function MemberRow({
           {t('members.edit')}
         </Button>
       )}
+      {m.role !== 'owner' && canEdit && <ResetLink member={m} />}
       <Sheet
         open={editing}
         onClose={() => setEditing(false)}

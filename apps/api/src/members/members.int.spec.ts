@@ -1,12 +1,12 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { auditLog } from '@dafter/db';
+import { auditLog, students } from '@dafter/db';
 import { useTestDb } from '@dafter/db/testing';
 import { createApp } from '../app.js';
 import { REFRESH_COOKIE } from '../auth/auth.controller.js';
 import { FakeClock } from '../clock.js';
-import { INVITE_TTL_MS } from './members.service.js';
+import { INVITE_TTL_MS, STAFF_RESET_TTL_MS } from './members.service.js';
 
 const testDb = useTestDb();
 const clock = new FakeClock();
@@ -232,5 +232,95 @@ describe('audit log', () => {
       .from(auditLog)
       .where(eq(auditLog.action, 'POST /api/v1/auth/refresh'));
     expect(rows).toEqual([]);
+  });
+});
+
+describe('owner-issued password reset link', () => {
+  const members = async (o: { token: string; ws: string }) =>
+    (await call('GET', 'members', o.token, o.ws)).json() as {
+      id: string;
+      userId: string;
+      phone: string;
+      role: string;
+    }[];
+  const reset = (o: { token: string; ws: string }, id: string, token = o.token) =>
+    call('POST', `members/${id}/password-reset`, token, o.ws);
+
+  it('lets the owner reset a staff member whose account is only in this workspace', async () => {
+    const o = await owner();
+    await joined(o, 'assistant');
+    const assistant = (await members(o)).find((m) => m.role === 'assistant')!;
+    const res = await reset(o, assistant.id);
+    expect(res.statusCode).toBe(201);
+    const { token, expiresAt } = res.json();
+    expect(Date.parse(expiresAt) - clock.now().getTime()).toBe(STAFF_RESET_TTL_MS);
+
+    const confirm = (password: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/password-reset/confirm',
+        payload: { token, password },
+      });
+    expect((await confirm('brand new horse')).statusCode).toBe(204);
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { login: assistant.phone, password: 'brand new horse' },
+    });
+    expect(login.statusCode).toBe(200);
+    expect((await confirm('another horse')).statusCode).toBe(410);
+  });
+
+  it('expires after 24 hours', async () => {
+    const o = await owner();
+    await joined(o, 'teacher');
+    const teacher = (await members(o)).find((m) => m.role === 'teacher')!;
+    const { token } = (await reset(o, teacher.id)).json();
+    clock.advance(STAFF_RESET_TTL_MS);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/password-reset/confirm',
+      payload: { token, password: 'brand new horse' },
+    });
+    expect(res.statusCode).toBe(410);
+  });
+
+  it('refuses owners, accounts in another workspace, students, non-owners and unknown members', async () => {
+    const o = await owner();
+    const assistantToken = await joined(o, 'assistant');
+    const teacherToken = await joined(o, 'teacher');
+    const list = await members(o);
+    const byRole = (r: string) => list.find((m) => m.role === r)!;
+    const notAllowed = async (id: string) => {
+      const res = await reset(o, id);
+      expect(res.statusCode).toBe(409);
+      expect(res.json().code).toBe('RESET_NOT_ALLOWED');
+    };
+
+    await notAllowed(byRole('owner').id);
+    // The teacher also owns a workspace of their own.
+    const own = await call('POST', 'workspaces', teacherToken, undefined, {
+      type: 'independent',
+      nameAr: 'دروسي',
+    });
+    expect(own.statusCode).toBe(201);
+    await notAllowed(byRole('teacher').id);
+    // The assistant is also someone's student account.
+    const [grade] = (await call('GET', 'grade-levels', o.token, o.ws)).json();
+    await testDb()
+      .db.insert(students)
+      .values({
+        workspaceId: o.ws,
+        nameAr: 'طالب',
+        nameSearch: 'طالب',
+        gradeLevelId: grade.id,
+        userId: byRole('assistant').userId,
+      });
+    await notAllowed(byRole('assistant').id);
+
+    expect((await reset(o, byRole('teacher').id, assistantToken)).statusCode).toBe(403);
+    expect((await reset(o, crypto.randomUUID())).json().code).toBe('NOT_FOUND');
+    const other = await owner();
+    expect((await reset(other, byRole('teacher').id)).json().code).toBe('NOT_FOUND');
   });
 });

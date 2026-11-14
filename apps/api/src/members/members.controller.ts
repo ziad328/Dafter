@@ -18,6 +18,7 @@ import {
   type Member,
   type SetScopesRequest,
   setScopesRequest,
+  type StaffResetLink,
   type Workspace,
 } from '@dafter/contracts';
 import type { AuditedRequest } from '../audit.interceptor.js';
@@ -61,6 +62,14 @@ export class MembersController {
   @Get()
   list(@Req() req: TenantedRequest): Promise<Member[]> {
     return this.members.list(req.workspaceId);
+  }
+
+  @Post(':id/password-reset')
+  resetLink(
+    @Req() req: TenantedRequest,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+  ): Promise<StaffResetLink> {
+    return this.members.resetLink(req.workspaceId, req.role, id);
   }
 
   @Put(':id/scopes')
