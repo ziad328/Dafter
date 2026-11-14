@@ -119,6 +119,22 @@ describe('GET /stats/collections', () => {
       today: { cash: 10000, vodafone_cash: 5000, instapay: -3000, total: 12000 },
       month: { cash: 10000, vodafone_cash: 5000, instapay: 0, total: 15000 },
     });
+    // An assistant counts only their teachers' groups: none until scoped to this group's teacher.
+    expect((await c.assistant('GET', 'stats/collections')).json().month.total).toBe(0);
+    const role = async (r: 'teacher' | 'assistant') =>
+      (
+        await testDb()
+          .db.select()
+          .from(memberships)
+          .where(and(eq(memberships.workspaceId, c.workspaceId), eq(memberships.role, r)))
+      )[0]!.id;
+    await testDb()
+      .db.insert(assistantScopes)
+      .values({
+        workspaceId: c.workspaceId,
+        membershipId: await role('assistant'),
+        teacherMembershipId: await role('teacher'),
+      });
     expect((await c.assistant('GET', 'stats/collections')).json().month.total).toBe(15000);
     expect((await c.teacher('GET', 'stats/collections')).json().code).toBe('FORBIDDEN');
 

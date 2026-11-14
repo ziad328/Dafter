@@ -373,7 +373,7 @@ export function buildOpenApi() {
           operationId: 'getCollectionStats',
           tags: ['money'],
           description:
-            'Owner and assistant: payments minus their reversals, today and this month, by method, for the whole workspace.',
+            "Owner and assistant: payments minus their reversals, today and this month, by method, for the groups the caller can see (an assistant: their teachers' groups).",
           security: [{ bearer: [] }],
           responses: {
             200: { description: 'Collected', content: json(collectionStats) },

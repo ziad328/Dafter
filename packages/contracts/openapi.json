@@ -1163,7 +1163,7 @@
       "get": {
         "operationId": "getCollectionStats",
         "tags": ["money"],
-        "description": "Owner and assistant: payments minus their reversals, today and this month, by method, for the whole workspace.",
+        "description": "Owner and assistant: payments minus their reversals, today and this month, by method, for the groups the caller can see (an assistant: their teachers' groups).",
         "security": [
           {
             "bearer": []

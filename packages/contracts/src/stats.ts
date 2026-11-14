@@ -29,7 +29,7 @@ export const methodTotals = z
   .object({ cash: z.int(), vodafone_cash: z.int(), instapay: z.int(), total: z.int() })
   .meta({ id: 'MethodTotals' });
 
-/** Owner and assistant: money collected today and this month, in the workspace timezone. */
+/** Owner and assistant: money collected today and this month in the caller's groups, in the workspace timezone. */
 export const collectionStats = z
   .object({ today: methodTotals, month: methodTotals })
   .meta({ id: 'CollectionStats' });

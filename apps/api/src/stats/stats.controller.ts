@@ -35,9 +35,13 @@ export class StatsController {
   }
 
   @Get('collections')
-  collections(@Req() req: TenantedRequest): Promise<CollectionStats> {
+  async collections(@Req() req: TenantedRequest): Promise<CollectionStats> {
     if (req.role === 'teacher') throw new AppError('FORBIDDEN');
-    return this.repo.collections(req.workspaceId, this.clock.now());
+    return this.repo.collections(
+      req.workspaceId,
+      this.clock.now(),
+      await this.groups.visibleTeachers(req),
+    );
   }
 }
 

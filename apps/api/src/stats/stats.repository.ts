@@ -60,7 +60,11 @@ export class StatsRepository extends TenantRepository {
    * from the start of this month in the workspace timezone up to `now`. A reversal counts on the
    * day it was made. Reversals of charges are not money in, so they are left out.
    */
-  async collections(workspaceId: string, now: Date): Promise<CollectionStats> {
+  async collections(
+    workspaceId: string,
+    now: Date,
+    teacherIds?: string[],
+  ): Promise<CollectionStats> {
     const at = now.toISOString();
     const rows = await this.inTenant(workspaceId, (tx) =>
       tx.execute<{ method: keyof Omit<MethodTotals, 'total'>; today: string; month: string }>(sql`
@@ -74,8 +78,9 @@ export class StatsRepository extends TenantRepository {
           sum(-e.amount_piastres) as month
         from ledger_entries e
         left join ledger_entries p on p.workspace_id = e.workspace_id and p.id = e.reverses_entry_id
+        join groups g on g.workspace_id = e.workspace_id and g.id = e.group_id
         cross join ctx
-        where e.workspace_id = ${workspaceId}
+        where e.workspace_id = ${workspaceId} ${visibleGroups(teacherIds)}
           and (e.type = 'payment' or p.type = 'payment')
           and e.created_at <= ${at}::timestamptz
           and (e.created_at at time zone ctx.tz) >= date_trunc('month', ctx.local)
