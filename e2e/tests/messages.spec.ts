@@ -1,4 +1,13 @@
-import { expect, PASSWORD, signIn, STAFF, test, openNav, workspaceChip } from './fixtures';
+import {
+  expect,
+  PASSWORD,
+  signIn,
+  STAFF,
+  test,
+  openNav,
+  workspaceChip,
+  enterWorkspace,
+} from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const MONA = { ar: 'دروس منى حسن', en: 'Mona Hassan Lessons' };
@@ -57,7 +66,7 @@ test('a cancelled session shows in the message log; the owner switches messages 
 
   // The owner's log, reached from Home.
   await signIn(page, t, STAFF.owner);
-  await page.getByRole('button', { name: CENTER[lang] }).click();
+  await enterWorkspace(page, t, CENTER[lang]);
   await openNav(page, t, t.nav.messages);
   const item = page.getByTestId('message-log').getByRole('listitem').filter({ hasText: name });
   await expect(item).toContainText(t.messages.triggers.session_cancelled);

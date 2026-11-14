@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, openNav, choose } from './fixtures';
+import { expect, signIn, STAFF, test, openNav, choose, enterWorkspace } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
@@ -14,7 +14,7 @@ test('assistant adds a student, finds them, and is warned about a reused phone',
   const phone = `010${n}`;
 
   await signIn(page, t, STAFF.assistant);
-  await page.getByRole('button', { name: CENTER[lang] }).click();
+  await enterWorkspace(page, t, CENTER[lang]);
   await openNav(page, t, t.nav.students);
   await page.getByRole('link', { name: t.students.new }).click();
 

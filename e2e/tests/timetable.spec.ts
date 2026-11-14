@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, openNav, choose } from './fixtures';
+import { expect, signIn, STAFF, test, openNav, choose, enterWorkspace } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -25,7 +25,7 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   const tomorrow = addDays(cairoDate(new Date()), 1);
 
   await signIn(page, t, STAFF.owner);
-  await page.getByRole('button', { name: CENTER[lang] }).click();
+  await enterWorkspace(page, t, CENTER[lang]);
   await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
   await choose(page, t.groups.subject, PHYSICS[lang]);

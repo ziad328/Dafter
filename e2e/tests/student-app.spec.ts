@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, openNav, choose } from './fixtures';
+import { expect, signIn, STAFF, test, openNav, choose, enterWorkspace } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -16,7 +16,7 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   const email = `s${n}@example.com`;
 
   await signIn(page, t, STAFF.owner);
-  await page.getByRole('button', { name: CENTER[lang] }).click();
+  await enterWorkspace(page, t, CENTER[lang]);
 
   // A group to enroll into (a fresh dev database has none).
   await openNav(page, t, t.nav.groups);
@@ -68,7 +68,8 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await student.getByLabel(t.studentApp.code).fill(code);
   await student.getByRole('button', { name: t.studentApp.verify }).click();
   await expect(student).toHaveURL(/\/s$/);
-  await expect(student.getByText(t.studentApp.bound)).toBeVisible();
+  // The check-in button appears only once the phone is bound.
+  await expect(student.getByRole('link', { name: t.scan.open })).toBeVisible();
   await phone.close();
 
   // Back at the center: the phone shows as bound, and the assistant flow can reset it.

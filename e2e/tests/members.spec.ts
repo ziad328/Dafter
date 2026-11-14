@@ -1,4 +1,14 @@
-import { expect, PASSWORD, signIn, STAFF, test, openNav, workspaceChip, choose } from './fixtures';
+import {
+  expect,
+  PASSWORD,
+  signIn,
+  STAFF,
+  test,
+  openNav,
+  workspaceChip,
+  choose,
+  enterWorkspace,
+} from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 
@@ -12,7 +22,7 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
   const name = `هاني ${n}`;
 
   await signIn(page, t, STAFF.owner);
-  await page.getByRole('button', { name: CENTER[lang] }).click();
+  await enterWorkspace(page, t, CENTER[lang]);
   await openNav(page, t, t.nav.staff);
   await choose(page, t.members.role, t.roles.assistant);
   await page.getByRole('button', { name: t.members.createLink }).click();

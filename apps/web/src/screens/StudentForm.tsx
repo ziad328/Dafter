@@ -5,6 +5,7 @@ import {
   studentStatus,
 } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -215,68 +216,81 @@ function StudentFormBody({
             ))}
           </SelectField>
 
-          <fieldset className="grid gap-3 rounded-md border p-3">
-            <legend className="px-1 text-sm font-medium">{t('students.guardian')}</legend>
-            <Field
-              label={t('students.guardianPhone')}
-              type="tel"
-              inputMode="tel"
-              dir="ltr"
-              autoComplete="off"
-              error={errors.guardian?.phone && t('form.invalid.mobile')}
-              {...register('guardian.phone', { setValueAs: phone })}
-            />
-            <PhoneMatches
-              phone={watch('guardian.phone')}
-              selfId={id}
-              message={t('students.sharedGuardian')}
-            />
-            <Field
-              label={`${t('students.guardianName')} ${t('form.optional')}`}
-              autoComplete="off"
-              error={errors.guardian?.name && t('form.invalid.name')}
-              {...register('guardian.name', { setValueAs: optional })}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <SelectField label={t('students.relation')} {...register('guardian.relation')}>
-                {(['father', 'mother', 'other'] as const).map((r) => (
-                  <option key={r} value={r}>
-                    {t(`students.relations.${r}`)}
-                  </option>
-                ))}
-              </SelectField>
-              <SelectField
-                label={t('students.preferredLocale')}
-                {...register('guardian.preferredLocale')}
-              >
-                <option value="ar">{t('students.locales.ar')}</option>
-                <option value="en">{t('students.locales.en')}</option>
-              </SelectField>
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4" {...register('guardian.whatsappOptIn')} />
-              {t('students.whatsappOptIn')}
-            </label>
-          </fieldset>
+          <Field
+            label={t('students.guardianPhone')}
+            type="tel"
+            inputMode="tel"
+            dir="ltr"
+            autoComplete="off"
+            error={errors.guardian?.phone && t('form.invalid.mobile')}
+            {...register('guardian.phone', { setValueAs: phone })}
+          />
+          <PhoneMatches
+            phone={watch('guardian.phone')}
+            selfId={id}
+            message={t('students.sharedGuardian')}
+          />
 
-          <Field
-            label={`${t('students.nameEn')} ${t('form.optional')}`}
-            dir="auto"
-            autoComplete="off"
-            error={errors.nameEn && t('form.invalid.name')}
-            {...register('nameEn', { setValueAs: optional })}
-          />
-          <Field
-            label={`${t('students.school')} ${t('form.optional')}`}
-            autoComplete="off"
-            {...register('school', { setValueAs: optional })}
-          />
-          {id && (
-            <SelectField label={t('students.status')} {...register('status')}>
-              <option value="active">{t('students.statuses.active')}</option>
-              <option value="archived">{t('students.statuses.archived')}</option>
-            </SelectField>
-          )}
+          {/* At the door only the four fields above matter; the rest can wait. Open when editing,
+              or when a field inside needs fixing. */}
+          <details
+            open={!!id || !!(errors.guardian?.name || errors.nameEn)}
+            className="group rounded-xl border bg-muted/40 px-3 py-2 [&[open]]:pb-3"
+          >
+            <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium">
+              {t('students.more')}
+              <ChevronDown
+                aria-hidden
+                className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="grid gap-4 pt-2">
+              <Field
+                label={`${t('students.guardianName')} ${t('form.optional')}`}
+                autoComplete="off"
+                error={errors.guardian?.name && t('form.invalid.name')}
+                {...register('guardian.name', { setValueAs: optional })}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <SelectField label={t('students.relation')} {...register('guardian.relation')}>
+                  {(['father', 'mother', 'other'] as const).map((r) => (
+                    <option key={r} value={r}>
+                      {t(`students.relations.${r}`)}
+                    </option>
+                  ))}
+                </SelectField>
+                <SelectField
+                  label={t('students.preferredLocale')}
+                  {...register('guardian.preferredLocale')}
+                >
+                  <option value="ar">{t('students.locales.ar')}</option>
+                  <option value="en">{t('students.locales.en')}</option>
+                </SelectField>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="size-4" {...register('guardian.whatsappOptIn')} />
+                {t('students.whatsappOptIn')}
+              </label>
+              <Field
+                label={`${t('students.nameEn')} ${t('form.optional')}`}
+                dir="auto"
+                autoComplete="off"
+                error={errors.nameEn && t('form.invalid.name')}
+                {...register('nameEn', { setValueAs: optional })}
+              />
+              <Field
+                label={`${t('students.school')} ${t('form.optional')}`}
+                autoComplete="off"
+                {...register('school', { setValueAs: optional })}
+              />
+              {id && (
+                <SelectField label={t('students.status')} {...register('status')}>
+                  <option value="active">{t('students.statuses.active')}</option>
+                  <option value="archived">{t('students.statuses.archived')}</option>
+                </SelectField>
+              )}
+            </div>
+          </details>
 
           <FormError message={error && t(errorKey(error))} />
           <Button type="submit" disabled={saving}>

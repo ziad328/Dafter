@@ -1,4 +1,5 @@
 import { ERROR_CODES, type ErrorCode, type Workspace } from '@dafter/contracts';
+import { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router';
 import { setWorkspaceId } from '@/api/base';
@@ -22,11 +23,14 @@ export function safeNext(next: string | null): string {
 export function useSelectWorkspace() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  return (id: string) => {
-    setWorkspaceId(id);
-    dispatch(api.util.resetApiState());
-    void navigate('/');
-  };
+  return useCallback(
+    (id: string) => {
+      setWorkspaceId(id);
+      dispatch(api.util.resetApiState());
+      void navigate('/');
+    },
+    [dispatch, navigate],
+  );
 }
 
 export function useSignOut() {

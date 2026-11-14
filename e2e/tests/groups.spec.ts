@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, openNav, choose } from './fixtures';
+import { expect, signIn, STAFF, test, openNav, choose, enterWorkspace } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -10,7 +10,7 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   const capacity = String(100 + Math.floor(Math.random() * 900));
 
   await signIn(page, t, STAFF.owner);
-  await page.getByRole('button', { name: CENTER[lang] }).click();
+  await enterWorkspace(page, t, CENTER[lang]);
   await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
 

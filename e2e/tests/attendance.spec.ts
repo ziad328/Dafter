@@ -1,4 +1,4 @@
-import { expect, PASSWORD, STAFF, test } from './fixtures';
+import { expect, PASSWORD, STAFF, test, enterWorkspace } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 type Hook = { __dafterScan?: (text: string) => Promise<void> };
@@ -77,7 +77,7 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await page.getByLabel(t.auth.login.login).fill(STAFF.owner);
   await page.getByLabel(t.auth.login.password).fill(PASSWORD);
   await page.getByRole('button', { name: t.auth.login.submit }).click();
-  await page.getByRole('button', { name: CENTER[lang] }).click();
+  await enterWorkspace(page, t, CENTER[lang]);
   await page.goto(`/sessions/${sessionId}/live`);
   const qr = page.getByTestId('session-qr');
   await expect(qr).toBeVisible();
@@ -109,7 +109,8 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   const code = ((await mail.json()) as { text: string }).text.match(/\d{6}/)![0];
   await s.getByLabel(t.studentApp.code).fill(code);
   await s.getByRole('button', { name: t.studentApp.verify }).click();
-  await expect(s.getByText(t.studentApp.bound)).toBeVisible();
+  // The check-in button appears only once the phone is bound.
+  await expect(s.getByRole('link', { name: t.scan.open })).toBeVisible();
   await s.getByRole('link', { name: t.scan.open }).click();
   await s.waitForFunction(() => !!(window as Hook).__dafterScan);
 

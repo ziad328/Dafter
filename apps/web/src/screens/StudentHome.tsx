@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ScanLine } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import type { MyAttendanceRecord, MySession } from '@dafter/contracts';
@@ -15,7 +16,7 @@ import { deviceKey, publicKeySpki } from '@/lib/device-key';
 import { itemName } from '@/lib/groups';
 import { isInstalled } from '@/lib/pwa';
 import { errorKey } from '@/lib/session';
-import { dayLabel, localDate, localTime } from '@/lib/time';
+import { dayLabel, displayTime, localDate } from '@/lib/time';
 
 type BindState = 'binding' | 'bound' | 'otherPhone' | 'failed';
 type Bind = ReturnType<typeof useBindDeviceMutation>[0];
@@ -65,14 +66,23 @@ export default function StudentHome() {
             <h1>{t('studentApp.welcome', { name: me.data?.name ?? '' })}</h1>
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-2">
-          <p role="status" className="text-sm">
-            {state === 'binding' && t('studentApp.binding')}
-            {state === 'bound' && t('studentApp.bound')}
-          </p>
+        <CardContent className="grid gap-3">
+          {/* Only say something while binding or when it failed; a bound phone just scans. */}
+          {state === 'binding' && (
+            <p role="status" className="text-sm text-muted-foreground">
+              {t('studentApp.binding')}
+            </p>
+          )}
           {state === 'bound' && (
-            <Button asChild>
-              <Link to="/s/scan">{t('scan.open')}</Link>
+            <Button
+              asChild
+              size="lg"
+              className="h-16 rounded-2xl text-lg font-semibold shadow-card"
+            >
+              <Link to="/s/scan">
+                <ScanLine aria-hidden className="size-6" />
+                {t('scan.open')}
+              </Link>
             </Button>
           )}
           {(state === 'otherPhone' || state === 'failed') && (
@@ -106,7 +116,7 @@ function Schedule() {
               <li key={s.id} className="grid gap-0.5 text-sm">
                 <span className="font-medium">
                   {`${dayLabel(localDate(s.startsAt, s.timezone), i18n.language)} · `}
-                  <bdi dir="ltr">{`${localTime(s.startsAt, s.timezone)}–${localTime(s.endsAt, s.timezone)}`}</bdi>
+                  <bdi>{`${displayTime(s.startsAt, s.timezone, i18n.language)} – ${displayTime(s.endsAt, s.timezone, i18n.language)}`}</bdi>
                 </span>
                 <span>
                   {[

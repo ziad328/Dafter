@@ -12,7 +12,7 @@ import { Field, FormError, SelectField, Skeleton } from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
-import { formatEgp, toPiastres } from '@/lib/money';
+import { egpText, formatEgp, toPiastres } from '@/lib/money';
 import { errorKey } from '@/lib/session';
 
 const METHODS = ['cash', 'vodafone_cash', 'instapay'] as const;
@@ -25,7 +25,8 @@ export function StudentFees({ studentId }: { studentId: string }) {
   const enrollments = useListEnrollmentsQuery({ id: studentId });
   const [pay, paying] = useCreatePaymentMutation();
   const [groupId, setGroupId] = useState('');
-  const [amount, setAmount] = useState('');
+  // undefined until the user types: then the field shows what the student owes (one group only).
+  const [amount, setAmount] = useState<string>();
   const [method, setMethod] = useState<(typeof METHODS)[number]>('cash');
   // One key per intended payment: a retry of the same tap reuses it, a new payment gets a new one.
   const [idem, setIdem] = useState(() => crypto.randomUUID());
@@ -36,8 +37,10 @@ export function StudentFees({ studentId }: { studentId: string }) {
       set(v);
       setIdem(crypto.randomUUID());
     };
-  const piastres = toPiastres(amount);
   const groups = enrollments.data?.filter((e) => e.status === 'active') ?? [];
+  const due = ledger.data?.balancePiastres ?? 0;
+  const shown = amount ?? (due > 0 && groups.length === 1 ? egpText(due) : '');
+  const piastres = toPiastres(shown);
   const group = groupId || groups[0]?.groupId || '';
 
   if (ledger.isLoading) return <Skeleton />;
@@ -50,7 +53,7 @@ export function StudentFees({ studentId }: { studentId: string }) {
       createPaymentRequest: { studentId, groupId: group, amountPiastres: piastres, method },
     });
     if (res.data) {
-      setAmount('');
+      setAmount(undefined);
       setIdem(crypto.randomUUID());
     }
   };
@@ -92,9 +95,9 @@ export function StudentFees({ studentId }: { studentId: string }) {
               label={t('fees.amount')}
               inputMode="decimal"
               dir="ltr"
-              value={amount}
+              value={shown}
               onChange={(ev) => edit(setAmount)(ev.target.value)}
-              error={amount && !piastres ? t('form.invalid.amount') : undefined}
+              error={shown && !piastres ? t('form.invalid.amount') : undefined}
             />
             <SelectField
               label={t('fees.method')}

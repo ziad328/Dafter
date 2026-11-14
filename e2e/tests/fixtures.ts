@@ -81,3 +81,15 @@ export async function choose(
     typeof option === 'string' ? items.filter({ hasText: option }).first() : items.nth(option.index)
   ).click();
 }
+
+/**
+ * Enters a workspace after sign-in: staff with one workspace land in it directly, staff with
+ * several pick it from the list.
+ */
+export async function enterWorkspace(page: Page, t: typeof ar, name: string) {
+  const button = page.getByRole('button', { name });
+  const chip = workspaceChip(page, t);
+  await expect(button.or(chip).first()).toBeVisible();
+  if (await button.isVisible()) await button.click();
+  await expect(chip).toContainText(name);
+}

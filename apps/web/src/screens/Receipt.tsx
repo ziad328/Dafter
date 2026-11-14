@@ -6,7 +6,7 @@ import { FormError, Skeleton } from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
-import { dayLabel, localDate, localTime } from '@/lib/time';
+import { dayLabel, displayTime, localDate } from '@/lib/time';
 
 /** Print-ready receipt (rule 12): the browser prints or saves it as PDF; the server makes no PDF. */
 export default function Receipt() {
@@ -36,7 +36,7 @@ export default function Receipt() {
         {row(t('receipt.student'), data.studentName)}
         {row(
           t('receipt.date'),
-          `${dayLabel(localDate(entry.createdAt, timezone), lang)} ${localTime(entry.createdAt, timezone)}`,
+          `${dayLabel(localDate(entry.createdAt, timezone), lang)} ${displayTime(entry.createdAt, timezone, lang)}`,
         )}
         {row(t('receipt.amount'), <bdi>{formatEgp(-entry.amountPiastres, lang)}</bdi>)}
         {row(t('fees.method'), t(`fees.methods.${entry.method ?? 'cash'}`))}

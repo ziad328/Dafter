@@ -103,7 +103,7 @@
     "groups": "Groups",
     "timetable": "Timetable",
     "students": "Students",
-    "phone": "Fake phone",
+    "phone": "Parent phone (demo)",
     "messages": "Parent messages",
     "members": "Staff"
   },
@@ -156,7 +156,7 @@
     "cancel": "Cancel session",
     "confirmCancel": "Confirm cancel",
     "keep": "Keep",
-    "move": "Move",
+    "move": "Change time",
     "date": "Date",
     "start": "Start",
     "end": "To",
@@ -206,7 +206,8 @@
     "save": "Save",
     "duplicatePhone": "This number is already used by:",
     "sharedGuardian": "This parent number is used by other students; the student will share the same parent:",
-    "cancelEdit": "Cancel"
+    "cancelEdit": "Back",
+    "more": "More details"
   },
   "enrollments": {
     "title": "Groups",
@@ -215,16 +216,16 @@
     "discount": "Discount %",
     "discountShort": "{pct}% off",
     "add": "Add to group",
-    "leave": "Leave"
+    "leave": "Remove from group"
   },
   "studentApp": {
     "activateTitle": "Activate the Dafter app",
     "loginTitle": "Student sign-in",
-    "emailHint": "We will email you a 6-digit code.",
-    "codeSent": "We sent a code to",
+    "emailHint": "We will email you a 6-digit sign-in code.",
+    "codeSent": "We sent a sign-in code to",
     "email": "Email",
     "sendCode": "Send code",
-    "code": "Code",
+    "code": "Sign-in code",
     "verify": "Sign in",
     "changeEmail": "Use another email",
     "welcome": "Welcome, {name}",
@@ -257,30 +258,30 @@
     "closed": "Session closed.",
     "back": "Back to timetable",
     "close": "Close session",
-    "confirmClose": "Tap again: absent students will be marked",
-    "qrAlt": "Session QR code. Scan it from the Dafter app.",
+    "confirmClose": "Tap again to mark everyone else absent",
+    "qrAlt": "Attendance code. Scan it from the Dafter app.",
     "status": {
       "present": "Present",
       "late": "Late",
       "absent": "Absent",
       "excused": "Excused",
-      "makeup": "Make-up"
+      "makeup": "Make-up class"
     },
     "expected": "of {count} enrolled",
     "present": "Mark present",
     "markPresent": "Mark {name} present"
   },
   "scan": {
-    "open": "Scan attendance",
-    "title": "Scan the screen",
-    "hint": "Point the camera at the QR on the teacher's screen.",
+    "open": "Check in",
+    "title": "Check in",
+    "hint": "Point the camera at the attendance code on the teacher's screen.",
     "cameraBlocked": "The camera is blocked. Allow it in the browser settings.",
     "again": "The code changed. Keep the camera on the screen.",
-    "back": "Done",
+    "back": "Back",
     "done": {
       "present": "You are checked in ✓",
       "late": "Checked in, late",
-      "makeup": "Checked in as make-up",
+      "makeup": "Recorded as a make-up class",
       "excused": "Marked as excused",
       "absent": "Marked absent"
     }
@@ -313,11 +314,11 @@
     "saving": "Saving…",
     "charge": "Fee {period}",
     "payment": "Payment, {method}",
-    "reversal": "Reversal",
+    "reversal": "Reversed payment",
     "receipt": "Receipt #",
     "reversed": "Reversed",
-    "reverse": "Reverse",
-    "confirmReverse": "Tap again to reverse"
+    "reverse": "Reverse payment",
+    "confirmReverse": "Tap again to reverse the payment"
   },
   "receipt": {
     "title": "Receipt #{no}",
@@ -328,9 +329,9 @@
     "print": "Print or save as PDF"
   },
   "phone": {
-    "title": "Fake phone",
+    "title": "Parent phone (demo)",
     "hint": "Parent messages sent by the console adapter. No real messages are sent.",
-    "empty": "No messages yet. Close a session with absences; the message shows up within a minute."
+    "empty": "No messages yet. Close a session with an absence and the message shows up here at once (or at 8 AM if it is night)."
   },
   "messages": {
     "title": "Parent messages",
@@ -372,7 +373,7 @@
     "groups": "Groups",
     "messages": "Parent messages",
     "staff": "Staff",
-    "phone": "Fake phone",
+    "phone": "Parent phone (demo)",
     "more": "More",
     "switchWorkspace": "Switch workspace",
     "live": "Live session",
@@ -393,14 +394,14 @@
     "enrolled": "{count, plural, =0 {No students enrolled yet} one {# student enrolled} other {# students enrolled}}",
     "startsIn": "Starts {when}",
     "started": "Started {when}",
-    "startQr": "Start and show the QR",
+    "startQr": "Start and show the attendance code",
     "findStudent": "Find a student",
     "recordPayment": "Record a payment",
     "quick": "Quick actions"
   },
   "stats": {
-    "sessions": "Sessions today",
-    "expected": "Students expected",
+    "sessions": "Sessions",
+    "expected": "Booked today",
     "checkedIn": "Checked in",
     "students": "Active students",
     "week": "Attendance this week"

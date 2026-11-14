@@ -1,5 +1,7 @@
 import { createWorkspaceRequest, type CreateWorkspaceRequest } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { getWorkspaceId } from '@/api/base';
@@ -15,8 +17,14 @@ export default function Workspaces() {
   const list = useListWorkspacesQuery();
   const select = useSelectWorkspace();
   const current = getWorkspaceId();
+  const [creating, setCreating] = useState(false);
+  const only = list.data?.length === 1 ? list.data[0]!.id : undefined;
+  // Most staff work in one place: skip this screen for them on first sign-in.
+  useEffect(() => {
+    if (!current && only) select(only);
+  }, [current, only, select]);
 
-  if (list.isLoading) return <Skeleton />;
+  if (list.isLoading || (!current && only)) return <Skeleton />;
 
   return (
     <div className="grid gap-6">
@@ -45,7 +53,14 @@ export default function Workspaces() {
           ))}
         </CardContent>
       </Card>
-      <CreateWorkspace onCreated={select} />
+      {creating ? (
+        <CreateWorkspace onCreated={select} />
+      ) : (
+        <Button variant="outline" className="justify-self-start" onClick={() => setCreating(true)}>
+          <Plus aria-hidden />
+          {t('workspaces.create.title')}
+        </Button>
+      )}
     </div>
   );
 }
