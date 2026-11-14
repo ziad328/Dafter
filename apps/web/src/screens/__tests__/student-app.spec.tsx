@@ -164,9 +164,10 @@ describe('student home', () => {
       publicKey: expect.any(String),
     });
     expect(screen.getByRole('region', { name: tr('today.next') })).toHaveTextContent(
-      fx.mySchedule[0]!.subject.nameAr,
+      `${fx.mySchedule[0]!.subject.nameAr} · مجموعة أ`,
     );
     const schedule = screen.getByTestId('my-schedule');
+    expect(within(schedule).getByText(/ · مجموعة أ · /)).toBeVisible();
     expect(within(schedule).getByText(tr('studentApp.today'))).toBeVisible();
     expect(within(schedule).getByText(tr('timetable.status.cancelled'))).toBeVisible();
     expect(screen.getByTestId('attendance-rate')).toHaveTextContent(

@@ -663,6 +663,7 @@ export type MySession = {
   };
   subject: CurriculumItem;
   gradeLevel: CurriculumItem;
+  groupLabel: string | null;
   teacherName: string;
   startsAt: string;
   endsAt: string;

@@ -54,6 +54,7 @@ export class MeRepository {
             center,
             subject: item(subjects),
             gradeLevel: item(grade),
+            groupLabel: groups.label,
             teacherName: users.name,
             startsAt: sessions.startsAt,
             endsAt: sessions.endsAt,

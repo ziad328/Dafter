@@ -3016,6 +3016,9 @@
           "gradeLevel": {
             "$ref": "#/components/schemas/CurriculumItem"
           },
+          "groupLabel": {
+            "type": ["string", "null"]
+          },
           "teacherName": {
             "type": "string"
           },
@@ -3042,6 +3045,7 @@
           "center",
           "subject",
           "gradeLevel",
+          "groupLabel",
           "teacherName",
           "startsAt",
           "endsAt",

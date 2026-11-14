@@ -12,6 +12,8 @@ export const mySession = z
     center,
     subject: curriculumItem,
     gradeLevel: curriculumItem,
+    // The group's optional short label («مجموعة أ»).
+    groupLabel: z.string().nullable(),
     teacherName: z.string(),
     startsAt: z.iso.datetime(),
     endsAt: z.iso.datetime(),

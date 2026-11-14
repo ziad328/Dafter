@@ -43,11 +43,16 @@ describe('live session', () => {
         recordedAt: now,
       },
     );
+    server.use(
+      http.get(route('sessions'), () =>
+        Response.json(fx.sessions.map((s) => ({ ...s, groupLabel: 'مجموعة أ' }))),
+      ),
+    );
     await renderAt(page);
     const qr = await screen.findByTestId('session-qr');
     expect(qr.dataset.code).toMatch(new RegExp(`^${id}\\.\\d+\\.`));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      fx.sessions[0]!.subject.nameAr,
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
+      `${fx.sessions[0]!.subject.nameAr} · ${fx.sessions[0]!.gradeLevel.nameAr} · مجموعة أ`,
     );
     expect(await screen.findByText(tr('live.count', { count: 2 }))).toBeVisible();
     expect(screen.getByText(tr('live.expected', { count: 2 }))).toBeVisible();

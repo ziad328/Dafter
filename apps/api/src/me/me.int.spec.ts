@@ -52,7 +52,11 @@ describe('the student app reads', () => {
       '2026-11-28T14:00:00.000Z',
       '2026-11-28T14:00:00.000Z',
     ]);
-    expect(schedule[0]).toMatchObject({ center: { nameAr: 'سنتر' }, timezone: 'Africa/Cairo' });
+    expect(schedule[0]).toMatchObject({
+      center: { nameAr: 'سنتر' },
+      groupLabel: null,
+      timezone: 'Africa/Cairo',
+    });
 
     const [today] = (await a.owner('GET', 'sessions?from=2026-11-21&to=2026-11-21')).json();
     await a.owner('POST', `sessions/${today.id}/open`);

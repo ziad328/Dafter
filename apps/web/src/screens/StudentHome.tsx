@@ -106,7 +106,10 @@ function NextSession() {
       className="grid gap-1 rounded-3xl bg-gradient-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] p-5 text-white shadow-card"
     >
       <span className="text-sm opacity-80">{t('today.next')}</span>
-      <h2 className="text-xl font-bold">{itemName(next.subject, lang)}</h2>
+      <h2 className="text-xl font-bold">
+        {itemName(next.subject, lang)}
+        {next.groupLabel && ` · ${next.groupLabel}`}
+      </h2>
       <p>
         {`${dayLabel(localDate(next.startsAt, next.timezone), lang)} · `}
         <bdi>{timeRange(next, lang)}</bdi>
@@ -168,6 +171,7 @@ function Schedule() {
                       <span className={cn(cancelled && 'line-through')}>
                         {[
                           itemName(s.subject, lang),
+                          ...(s.groupLabel ? [s.groupLabel] : []),
                           s.teacherName,
                           centerName(s.center, lang),
                         ].join(' · ')}

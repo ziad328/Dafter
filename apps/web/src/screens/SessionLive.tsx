@@ -186,6 +186,7 @@ function SessionTitle({ id }: { id: string }) {
     <header className="text-center">
       <h1 className="text-xl font-bold">
         {`${itemName(s.subject, i18n.language)} · ${itemName(s.gradeLevel, i18n.language)}`}
+        {s.groupLabel && ` · ${s.groupLabel}`}
       </h1>
       <p className="text-sm text-muted-foreground">
         {`${s.teacherName} · `}

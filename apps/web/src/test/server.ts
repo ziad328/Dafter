@@ -28,6 +28,7 @@ const mySession = (startsInMin: number, status: MySession['status'] = 'scheduled
   center: { nameAr: 'سنتر النور', nameEn: 'Al-Nour Center' },
   subject: captured.subjects[0]!,
   gradeLevel: captured.gradeLevels[0]!,
+  groupLabel: startsInMin === 30 ? 'مجموعة أ' : null,
   teacherName: 'أحمد محمود',
   startsAt: new Date(Date.now() + startsInMin * 60_000).toISOString(),
   endsAt: new Date(Date.now() + (startsInMin + 90) * 60_000).toISOString(),
