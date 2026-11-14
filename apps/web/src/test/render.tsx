@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { createMemoryRouter, RouterProvider } from 'react-router';
@@ -35,3 +35,13 @@ export async function renderAt(
 /** The current translation of a key, so tests read like the screen. */
 export const tr = (key: string, options?: Record<string, unknown>) =>
   String(i18n.t(key as never, options as never));
+
+/** Picks `option` in the custom dropdown labelled `label`. */
+export async function pick(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  option: string,
+) {
+  await user.click(screen.getByRole('combobox', { name: label }));
+  await user.click((await screen.findAllByRole('option', { name: option }))[0]!);
+}
