@@ -53,7 +53,7 @@ const STUDENTS: [string, string, string, string, 'ar' | 'en', number[]][] = [
  * with attendance. Safe to rerun: it skips when the center already has groups. Future sessions and
  * monthly charges come from the worker's jobs after the API starts.
  */
-async function main() {
+export async function main() {
   const url = databaseUrl();
   await runMigrations(url);
   const { db, pool } = createDb(url);
@@ -181,7 +181,10 @@ async function main() {
   }
 }
 
-main().catch((err: unknown) => {
-  console.error(err);
-  process.exit(1);
-});
+// Run by tsx from package.json; tests import main() instead.
+/* v8 ignore next 4 */
+if (require.main === module)
+  main().catch((err: unknown) => {
+    console.error(err);
+    process.exit(1);
+  });

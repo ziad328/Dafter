@@ -1,6 +1,6 @@
 import { ERROR_CODES } from '@dafter/contracts';
 import { describe, expect, it } from 'vitest';
-import { locales, resources } from './index.js';
+import { defaultLocale, isLocale, locales, resources } from './index.js';
 
 /** Dotted paths of every leaf, e.g. "shell.api.ok". */
 function leaves(obj: object, prefix = ''): [string, unknown][] {
@@ -30,5 +30,13 @@ describe('i18n key check', () => {
       );
       expect(empty, locale).toEqual([]);
     }
+  });
+});
+
+describe('isLocale', () => {
+  it('accepts only the supported locales, Arabic first', () => {
+    expect(defaultLocale).toBe('ar');
+    expect(isLocale('ar') && isLocale('en')).toBe(true);
+    for (const bad of ['fr', 'AR', '', undefined, 1]) expect(isLocale(bad)).toBe(false);
   });
 });

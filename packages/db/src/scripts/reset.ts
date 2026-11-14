@@ -5,7 +5,7 @@ import { databaseUrl } from './env.js';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
-async function main() {
+export async function main() {
   const url = databaseUrl();
   // Drops every table: refuse anything that is not a local database.
   const host = new URL(url).hostname;
@@ -26,7 +26,10 @@ async function main() {
   console.log('Database reset, migrated and seeded');
 }
 
-main().catch((err: unknown) => {
-  console.error(err);
-  process.exit(1);
-});
+// Run by tsx from package.json; tests import main() instead.
+/* v8 ignore next 4 */
+if (require.main === module)
+  main().catch((err: unknown) => {
+    console.error(err);
+    process.exit(1);
+  });

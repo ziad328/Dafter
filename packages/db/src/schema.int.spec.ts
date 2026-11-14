@@ -1,5 +1,7 @@
-import { sql } from 'drizzle-orm';
+import { is, sql } from 'drizzle-orm';
+import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
+import * as schema from './schema.js';
 import { assistantScopes, memberships, users } from './schema.js';
 import { makeMembership, makeUser, makeWorkspace, useTestDb } from './testing/index.js';
 
@@ -83,5 +85,19 @@ describe('memberships', () => {
       teacherMembershipId: teacherInB.id,
     });
     expect(await pgCode(crossTenant)).toBe('23503');
+  });
+});
+
+describe('schema definitions', () => {
+  it('builds every table: columns, indexes, checks and foreign-key targets', () => {
+    const tables = (Object.values(schema) as unknown[]).filter((v): v is PgTable => is(v, PgTable));
+    expect(tables.length).toBeGreaterThan(20);
+    for (const table of tables) {
+      const config = getTableConfig(table);
+      expect(config.columns.length).toBeGreaterThan(0);
+      // References are lazy (they may point at tables defined later); resolving checks them.
+      for (const fk of config.foreignKeys)
+        expect(fk.reference().foreignColumns.length).toBe(fk.reference().columns.length);
+    }
   });
 });
