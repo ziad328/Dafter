@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, openNav } from './fixtures';
+import { expect, signIn, STAFF, test, openNav, choose } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -28,9 +28,13 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   await page.getByRole('button', { name: CENTER[lang] }).click();
   await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
-  await page.getByLabel(t.groups.subject).selectOption({ label: PHYSICS[lang] });
-  await page.getByLabel(t.groups.gradeLevel).selectOption({ label: SEC3[lang] });
-  await page.getByLabel(t.groups.day).selectOption(String(new Date(tomorrow).getUTCDay()));
+  await choose(page, t.groups.subject, PHYSICS[lang]);
+  await choose(page, t.groups.gradeLevel, SEC3[lang]);
+  const weekday = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en', {
+    weekday: 'long',
+    timeZone: 'UTC',
+  }).format(Date.parse(tomorrow));
+  await choose(page, t.groups.day, weekday);
   await page.getByLabel(t.groups.start).fill(start);
   await page.getByLabel(t.groups.end).fill(end);
   await page.getByRole('button', { name: t.groups.create }).click();

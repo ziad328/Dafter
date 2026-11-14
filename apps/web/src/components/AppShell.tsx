@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { getWorkspaceId } from '@/api/base';
 import { useGetCurrentWorkspaceQuery, useGetMeQuery } from '@/api/generated';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Skeleton } from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { useSignOut, workspaceName } from '@/lib/session';
@@ -216,6 +217,7 @@ export function AppShell() {
             hasWorkspace && 'pb-28 lg:pb-8',
           )}
         >
+          <Breadcrumbs />
           <Suspense fallback={<Skeleton />}>
             <Outlet />
           </Suspense>

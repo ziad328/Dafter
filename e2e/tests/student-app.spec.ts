@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, openNav } from './fixtures';
+import { expect, signIn, STAFF, test, openNav, choose } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -21,9 +21,9 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   // A group to enroll into (a fresh dev database has none).
   await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
-  await page.getByLabel(t.groups.subject).selectOption({ label: PHYSICS[lang] });
-  await page.getByLabel(t.groups.gradeLevel).selectOption({ label: SEC3[lang] });
-  await page.getByLabel(t.groups.teacher).selectOption({ label: 'منى حسن' });
+  await choose(page, t.groups.subject, PHYSICS[lang]);
+  await choose(page, t.groups.gradeLevel, SEC3[lang]);
+  await choose(page, t.groups.teacher, 'منى حسن');
   await page.getByLabel(t.groups.start).fill('16:00');
   await page.getByLabel(t.groups.end).fill('17:30');
   await page.getByRole('button', { name: t.groups.create }).click();
@@ -31,14 +31,14 @@ test('owner enrolls a student and sends a link; the student activates and binds 
 
   await page.goto('/students/new');
   await page.getByLabel(t.students.nameAr, { exact: true }).fill(name);
-  await page.getByLabel(t.students.gradeLevel).selectOption({ label: SEC3[lang] });
+  await choose(page, t.students.gradeLevel, SEC3[lang]);
   await page.getByLabel(t.students.guardianPhone, { exact: true }).fill(`012${n}`);
   await page.getByRole('button', { name: t.students.create }).click();
   await expect(page).toHaveURL(/\/students\/[\w-]+$/);
   await expect(page.getByRole('heading', { name })).toBeVisible();
 
   // Enroll with a discount.
-  await page.getByLabel(t.enrollments.group).selectOption({ index: 1 });
+  await choose(page, t.enrollments.group, { index: 0 });
   await page.getByLabel(new RegExp(t.enrollments.discount.replace('%', ''))).fill('10');
   await page.getByRole('button', { name: t.enrollments.add }).click();
   await expect(page.getByRole('button', { name: t.enrollments.leave })).toBeVisible();

@@ -1,4 +1,4 @@
-import { expect, PASSWORD, signIn, STAFF, test } from './fixtures';
+import { expect, PASSWORD, signIn, STAFF, test, choose } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const egp = (lang: 'ar' | 'en', pounds: number) =>
@@ -52,7 +52,7 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
 
   // The student is in one group, so no group picker: amount, method, save.
   await page.getByLabel(t.fees.amount).fill('200');
-  await page.getByLabel(t.fees.method).selectOption({ label: t.fees.methods.vodafone_cash });
+  await choose(page, t.fees.method, t.fees.methods.vodafone_cash);
   await page.getByRole('button', { name: t.fees.save }).click();
   await expect(balance).toContainText(egp(lang, 300));
 

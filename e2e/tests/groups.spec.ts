@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, openNav } from './fixtures';
+import { expect, signIn, STAFF, test, openNav, choose } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -14,9 +14,9 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
 
-  await page.getByLabel(t.groups.subject).selectOption({ label: PHYSICS[lang] });
-  await page.getByLabel(t.groups.gradeLevel).selectOption({ label: SEC3[lang] });
-  await page.getByLabel(t.groups.teacher).selectOption({ label: 'منى حسن' });
+  await choose(page, t.groups.subject, PHYSICS[lang]);
+  await choose(page, t.groups.gradeLevel, SEC3[lang]);
+  await choose(page, t.groups.teacher, 'منى حسن');
   await page.getByLabel(new RegExp(t.groups.capacity)).fill(capacity);
   await page.getByLabel(t.groups.start).fill('16:00');
   await page.getByLabel(t.groups.end).fill('17:30');

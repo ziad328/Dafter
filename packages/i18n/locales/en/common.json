@@ -373,7 +373,10 @@
     "staff": "Staff",
     "phone": "Fake phone",
     "more": "More",
-    "switchWorkspace": "Switch workspace"
+    "switchWorkspace": "Switch workspace",
+    "live": "Live session",
+    "receipt": "Receipt",
+    "breadcrumbs": "You are here"
   },
   "today": {
     "next": "Next session",

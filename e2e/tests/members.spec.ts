@@ -1,4 +1,4 @@
-import { expect, PASSWORD, signIn, STAFF, test, openNav, workspaceChip } from './fixtures';
+import { expect, PASSWORD, signIn, STAFF, test, openNav, workspaceChip, choose } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 
@@ -14,7 +14,7 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
   await signIn(page, t, STAFF.owner);
   await page.getByRole('button', { name: CENTER[lang] }).click();
   await openNav(page, t, t.nav.staff);
-  await page.getByLabel(t.members.role).selectOption('assistant');
+  await choose(page, t.members.role, t.roles.assistant);
   await page.getByRole('button', { name: t.members.createLink }).click();
   const link = (await page.getByTestId('staff-invite-link').textContent())!;
   expect(link).toMatch(/\/invite\/[\w-]+$/);

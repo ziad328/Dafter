@@ -174,11 +174,6 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
       aria-labelledby="next-session"
       className="relative grid gap-5 overflow-hidden rounded-3xl bg-linear-to-br from-ink via-[#4a4ff0] to-violet p-6 text-white shadow-card sm:p-7"
     >
-      {/* Faint notebook rules behind the text: Dafter is the center's notebook. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-15 [background:repeating-linear-gradient(to_bottom,transparent_0_31px,white_31px_32px)]"
-      />
       <div
         aria-hidden
         className="pointer-events-none absolute -end-16 -top-16 size-56 rounded-full bg-white/10 blur-2xl"

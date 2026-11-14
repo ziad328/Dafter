@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Locator, type Page } from '@playwright/test';
 // Direct JSON imports: Node ESM needs the attribute, and @dafter/i18n's index only works under Vite.
 import ar from '../../packages/i18n/locales/ar/common.json' with { type: 'json' };
 import en from '../../packages/i18n/locales/en/common.json' with { type: 'json' };
@@ -64,3 +64,20 @@ export async function openNav(page: Page, t: typeof ar, label: string) {
 /** The header's workspace chip: its accessible name is "Switch workspace"; it shows the name. */
 export const workspaceChip = (page: Page, t: typeof ar) =>
   page.getByRole('link', { name: t.nav.switchWorkspace });
+
+/**
+ * Picks an item in one of the app's dropdowns (a combobox named by its label, with a list of
+ * options). `{ index }` counts real items, the placeholder not included.
+ */
+export async function choose(
+  scope: Page | Locator,
+  label: string,
+  option: string | { index: number },
+) {
+  await scope.getByRole('combobox', { name: label, exact: true }).click();
+  const page = 'page' in scope ? scope.page() : scope;
+  const items = page.getByRole('option');
+  await (
+    typeof option === 'string' ? items.filter({ hasText: option }).first() : items.nth(option.index)
+  ).click();
+}

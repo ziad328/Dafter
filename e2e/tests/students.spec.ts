@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, openNav } from './fixtures';
+import { expect, signIn, STAFF, test, openNav, choose } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
@@ -20,7 +20,7 @@ test('assistant adds a student, finds them, and is warned about a reused phone',
 
   await page.getByLabel(t.students.nameAr, { exact: true }).fill(name);
   await page.getByLabel(t.students.phone, { exact: true }).fill(phone);
-  await page.getByLabel(t.students.gradeLevel).selectOption({ label: SEC3[lang] });
+  await choose(page, t.students.gradeLevel, SEC3[lang]);
   await page.getByLabel(t.students.guardianPhone, { exact: true }).fill(`012${n}`);
   await page.getByRole('button', { name: t.students.create }).click();
 
