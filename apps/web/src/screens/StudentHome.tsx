@@ -103,7 +103,7 @@ function NextSession() {
   return (
     <section
       aria-label={t('today.next')}
-      className="grid gap-1 rounded-3xl bg-gradient-to-br from-ink to-violet dark:from-[#3a56c8] dark:to-[#5b47c4] p-5 text-white shadow-card"
+      className="grid gap-1 rounded-3xl bg-gradient-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] p-5 text-white shadow-card"
     >
       <span className="text-sm opacity-80">{t('today.next')}</span>
       <h2 className="text-xl font-bold">{itemName(next.subject, lang)}</h2>

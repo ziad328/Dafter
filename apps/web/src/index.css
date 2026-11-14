@@ -103,101 +103,103 @@
 }
 
 /*
- * Dafter's palette: a vivid blue for actions on pale blue-grey, a navy sidebar, and four soft
- * accents (violet, teal, amber, rose) kept for stat tiles and charts. Red stays for absence.
+ * Dafter's palette ("Nature Harmony"): olive for actions on a pale sage paper, a deep olive
+ * sidebar, and earthy accents (brown, olive, khaki, terracotta) for stat tiles and charts. The
+ * token names (ink, violet, teal, amber, rose) are kept so screens did not change.
  */
 :root {
   --radius: 0.75rem;
-  --ink: #2f5bea;
-  --ink-soft: #eaf0ff;
-  --paper: #f4f6fb;
-  --rule: #e4e9f2;
-  --graphite: #18213a;
-  --margin-red: #e5484d;
-  --present: #12a150;
-  --present-soft: #e2f6ea;
-  --late: #b45309;
-  --late-soft: #fef3dc;
-  --absent-soft: #fdecec;
-  --navy: #0f1b3d;
-  --violet: #7c5cfc;
-  --violet-soft: #f0ebff;
-  --teal: #0e9f9b;
-  --teal-soft: #dff5f3;
-  --amber: #e08a00;
-  --amber-soft: #fff1d6;
-  --rose: #e5484d;
-  --rose-soft: #ffe8e9;
+  --ink: #5d6838;
+  --ink-soft: #e8ebdc;
+  --paper: #eef0eb;
+  --rule: #dde1d3;
+  --graphite: #23271a;
+  --margin-red: #b4533c;
+  --present: #4f7a32;
+  --present-soft: #e2edd6;
+  --late: #94650f;
+  --late-soft: #f4ebd2;
+  --absent-soft: #f5e2db;
+  --navy: #3a4024;
+  --violet: #785f50;
+  --violet-soft: #efe6df;
+  --teal: #717a45;
+  --teal-soft: #eaedda;
+  --amber: #8f8440;
+  --amber-soft: #f0eed8;
+  --rose: #b4533c;
+  --rose-soft: #f5e2db;
 
   --background: var(--paper);
   --foreground: var(--graphite);
-  --card: #ffffff;
+  --card: #fbfbf7;
   --card-foreground: var(--graphite);
-  --popover: #ffffff;
+  --popover: #fbfbf7;
   --popover-foreground: var(--graphite);
   --primary: var(--ink);
   --primary-foreground: #ffffff;
   --secondary: var(--ink-soft);
   --secondary-foreground: var(--ink);
-  --muted: #eef2f8;
-  --muted-foreground: #5b6578;
+  --muted: #e7e9df;
+  --muted-foreground: #5f6455;
   --accent: var(--ink-soft);
   --accent-foreground: var(--ink);
   --destructive: var(--margin-red);
   --border: var(--rule);
-  --input: #d3dbea;
-  --ring: #8aa4f5;
+  --input: #cdd2c0;
+  --ring: #a3ad78;
   --chart-1: var(--ink);
   --chart-2: var(--present);
   --chart-3: var(--late);
   --chart-4: var(--margin-red);
-  --chart-5: #5b6578;
-  --sidebar: #ffffff;
+  --chart-5: #5f6455;
+  --sidebar: #fbfbf7;
   --sidebar-foreground: var(--graphite);
   --sidebar-primary: var(--ink);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: var(--ink-soft);
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--rule);
-  --sidebar-ring: #8aa4f5;
+  --sidebar-ring: #a3ad78;
 }
 
 /*
- * Dark mode: a soft slate-navy, not black, so the app stays calm at night without feeling heavy.
- * The blue gets lighter to keep contrast; the soft accents become dim tints of the same hues.
+ * Dark mode: a soft deep olive, not black, so the app stays calm at night without feeling heavy.
+ * The olive gets lighter to keep contrast; the soft accents become dim tints of the same hues.
  */
 .dark {
   color-scheme: dark;
-  --ink: #7b98f8;
-  --ink-soft: #2b3756;
-  --paper: #1e2638;
-  --rule: #343f57;
-  --graphite: #e4e9f4;
-  --present: #4cc788;
-  --present-soft: #1f3b33;
-  --late: #f0a54a;
-  --late-soft: #3d3324;
-  --absent-soft: #43282e;
-  --navy: #141b2c;
-  --violet: #a08cff;
-  --violet-soft: #33304f;
-  --teal: #4cc9c4;
-  --teal-soft: #1e3c43;
-  --amber: #f3b54a;
-  --amber-soft: #403524;
-  --rose: #f47a7e;
-  --rose-soft: #452a31;
+  --ink: #b3c07c;
+  --ink-soft: #384026;
+  --paper: #22261a;
+  --rule: #3c4330;
+  --graphite: #e8eade;
+  --margin-red: #e08a72;
+  --present: #92c46c;
+  --present-soft: #2e3c24;
+  --late: #ddb35c;
+  --late-soft: #3e3820;
+  --absent-soft: #452c25;
+  --navy: #1a1e11;
+  --violet: #c9a690;
+  --violet-soft: #3e3229;
+  --teal: #b3c07c;
+  --teal-soft: #333a23;
+  --amber: #d5cb88;
+  --amber-soft: #3c3a24;
+  --rose: #e08a72;
+  --rose-soft: #452c25;
 
-  --card: #262f44;
-  --popover: #262f44;
-  --primary-foreground: #10172a;
-  --muted: #2d374d;
-  --muted-foreground: #a7b1c6;
-  --input: #3f4b66;
-  --ring: #5d7ad6;
-  --sidebar: #262f44;
-  --sidebar-primary-foreground: #10172a;
-  --sidebar-ring: #5d7ad6;
+  --card: #2c3122;
+  --popover: #2c3122;
+  --primary-foreground: #1c2012;
+  --muted: #343a29;
+  --muted-foreground: #b0b4a2;
+  --input: #4a5238;
+  --ring: #7d8a4f;
+  --sidebar: #2c3122;
+  --sidebar-primary-foreground: #1c2012;
+  --sidebar-ring: #7d8a4f;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 10px 30px -14px rgb(0 0 0 / 0.45);
 }
 

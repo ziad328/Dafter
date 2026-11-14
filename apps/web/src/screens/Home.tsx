@@ -173,7 +173,7 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
   return (
     <section
       aria-labelledby="next-session"
-      className="relative grid gap-5 overflow-hidden rounded-3xl bg-linear-to-br from-ink via-[#4a4ff0] to-violet dark:from-[#3a56c8] dark:via-[#4446c0] dark:to-[#5b47c4] p-6 text-white shadow-card sm:p-7"
+      className="relative grid gap-5 overflow-hidden rounded-3xl bg-linear-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] p-6 text-white shadow-card sm:p-7"
     >
       <div
         aria-hidden
@@ -200,7 +200,7 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
       <Button
         asChild
         size="lg"
-        className="relative h-13 justify-self-start bg-white px-8 text-base font-semibold text-ink shadow-lg transition-transform hover:scale-[1.02] hover:bg-white active:scale-[0.98]"
+        className="relative h-13 justify-self-start bg-white px-8 text-base font-semibold text-[#3a4024] shadow-lg transition-transform hover:scale-[1.02] hover:bg-white active:scale-[0.98]"
       >
         <Link to={`/sessions/${s.id}/live`}>
           <Play aria-hidden className="fill-current" />
