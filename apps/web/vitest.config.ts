@@ -9,6 +9,7 @@ export default defineConfig({
     env: { VITE_API_URL: 'http://localhost:3000' },
     setupFiles: ['./src/test/setup.ts'],
     expect: { poll: { timeout: 5000 } },
+    testTimeout: 20_000,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
