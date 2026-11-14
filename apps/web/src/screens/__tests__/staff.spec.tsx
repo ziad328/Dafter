@@ -96,6 +96,11 @@ describe('messages', () => {
     );
     const { user } = await renderAt('/messages');
     const log = await screen.findByTestId('message-log');
+    // Closed at night: held for quiet hours, and it says so (sendAfter is 06:00Z = 8:00 Cairo).
+    expect(
+      within(log).getAllByText(tr('messages.heldUntil', { time: '8:00 ص' }).replace(/\s/g, ' ')),
+    ).toHaveLength(fx.messages.length);
+    expect(within(log).getAllByText(tr('messages.triggers.absence'))).not.toHaveLength(0);
     expect(within(log).getAllByText('علي')).toHaveLength(2);
     expect(within(log).getByText(tr('messages.attempts', { count: 3 }))).toBeVisible();
     expect(within(log).getAllByText(full.body)).toHaveLength(2);

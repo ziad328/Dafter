@@ -373,6 +373,7 @@
       "session_cancelled": "Cancelled",
       "session_moved": "Moved"
     },
+    "heldUntil": "Sends at {time}, after quiet hours",
     "attempts": "{count, plural, one {# attempt} other {# attempts}}"
   },
   "members": {

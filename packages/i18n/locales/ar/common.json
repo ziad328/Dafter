@@ -373,6 +373,7 @@
       "session_cancelled": "إلغاء حصة",
       "session_moved": "تغيير موعد"
     },
+    "heldUntil": "سيُرسل {time} (بعد ساعات الهدوء)",
     "attempts": "{count, plural, one {محاولة واحدة} two {محاولتان} few {# محاولات} many {# محاولة} other {# محاولة}}"
   },
   "members": {

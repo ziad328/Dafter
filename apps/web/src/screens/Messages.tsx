@@ -11,7 +11,7 @@ import {
 import { FormError, Skeleton } from '@/components/Field';
 import { PageHeader, Panel } from '@/components/Page';
 import { errorKey } from '@/lib/session';
-import { intlLocale } from '@/lib/time';
+import { dayLabel, displayTime, localDate } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
 type Status = NonNullable<ListMessagesApiArg['status']>;
@@ -27,7 +27,9 @@ const TOGGLES: (keyof MessageSettings)[] = ['absence', 'sessionChange'];
 export default function Messages() {
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<Status | ''>('');
-  const isOwner = useGetCurrentWorkspaceQuery().data?.role === 'owner';
+  const workspace = useGetCurrentWorkspaceQuery().data;
+  const isOwner = workspace?.role === 'owner';
+  const tz = workspace?.timezone ?? 'Africa/Cairo';
   const settings = useGetMessageSettingsQuery();
   const [update, saving] = useUpdateMessageSettingsMutation();
   // Shown at once; dropped (back to the server's value) if the save fails.
@@ -41,10 +43,9 @@ export default function Messages() {
   };
   const log = useListMessagesQuery(status ? { status } : {});
   const names = new Intl.ListFormat(i18n.language, { type: 'conjunction' });
-  const time = new Intl.DateTimeFormat(intlLocale(i18n.language), {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
+  // The same "السبت 14 نوفمبر · 8:00 ص" as the rest of the app.
+  const when = (at: string) =>
+    `${dayLabel(localDate(at, tz), i18n.language)} · ${displayTime(at, tz, i18n.language)}`;
 
   return (
     <div className="grid gap-5">
@@ -100,9 +101,11 @@ export default function Messages() {
             {log.data?.map((m) => (
               <li key={m.id} className="grid gap-1 px-4 py-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="flex flex-wrap gap-x-2 font-semibold">
-                    <span>{t(`messages.triggers.${m.trigger}`)}</span>
-                    <span>{names.format(m.students)}</span>
+                  <span className="grid">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {t(`messages.triggers.${m.trigger}`)}
+                    </span>
+                    <span className="font-semibold">{names.format(m.students)}</span>
                   </span>
                   <span
                     className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', PILL[m.status])}
@@ -113,8 +116,18 @@ export default function Messages() {
                 <div className="flex flex-wrap gap-x-3 text-muted-foreground">
                   <bdi>{m.phone}</bdi>
                   {m.guardianName && <span>{m.guardianName}</span>}
-                  <bdi>{time.format(new Date(m.sentAt ?? m.sendAfter))}</bdi>
+                  <bdi>{when(m.sentAt ?? m.sendAfter)}</bdi>
                 </div>
+                {/* Held, not stuck: closed at night, it waits for quiet hours to end. */}
+                {m.status === 'queued' &&
+                  m.attempts === 0 &&
+                  Date.parse(m.sendAfter) - Date.parse(m.createdAt) > 60_000 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('messages.heldUntil', {
+                        time: displayTime(m.sendAfter, tz, i18n.language),
+                      })}
+                    </p>
+                  )}
                 {m.body && (
                   <p dir={m.locale === 'en' ? 'ltr' : 'rtl'} className="text-start">
                     {m.body}
