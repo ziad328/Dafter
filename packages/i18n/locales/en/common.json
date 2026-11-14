@@ -8,7 +8,9 @@
     "logout": "Sign out",
     "loading": "Loading…",
     "morning": "Good morning, {name}",
-    "evening": "Good evening, {name}"
+    "evening": "Good evening, {name}",
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode"
   },
   "form": {
     "optional": "(optional)",
@@ -299,12 +301,18 @@
     "title": "Install the Dafter app first",
     "why": "Your login and attendance key live inside the installed app, so sign in there, not in the browser.",
     "button": "Install the app",
-    "ios": "Tap the Share button, then \"Add to Home Screen\". Open Dafter from your home screen.",
-    "other": "Open the browser menu and choose \"Install app\" or \"Add to Home Screen\". Then open Dafter from your home screen.",
-    "then": "If the app asks for it, copy the same invite link again and paste it there.",
     "paste": "First time? Paste your invite link",
     "pasteInvalid": "This is not a Dafter invite link.",
-    "activate": "Activate"
+    "activate": "Activate",
+    "steps": {
+      "iosShare": "In Safari, tap the Share button at the bottom of the screen.",
+      "iosAdd": "Scroll down and tap “Add to Home Screen”, then “Add”.",
+      "menu": "Open the browser menu (the three dots).",
+      "install": "Tap “Install app” or “Add to Home screen”.",
+      "open": "Open Dafter from your home screen. If it asks, paste the invite link there."
+    },
+    "copyLink": "Copy the invite link first",
+    "copied": "Link copied. Paste it inside the app."
   },
   "fees": {
     "title": "Fees",

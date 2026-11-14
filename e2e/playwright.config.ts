@@ -10,6 +10,9 @@ const phone = { viewport: { width: 375, height: 812 }, hasTouch: true, isMobile:
 export default defineConfig({
   testDir: 'tests',
   fullyParallel: true,
+  // One dev server (Vite + API + PostgreSQL) serves every worker; more than 6 at once makes the
+  // first sign-ins of a cold run time out.
+  workers: 6,
   forbidOnly: CI,
   retries: CI ? 1 : 0,
   reporter: CI ? [['list'], ['html', { open: 'never' }]] : 'list',

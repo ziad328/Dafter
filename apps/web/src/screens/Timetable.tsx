@@ -82,7 +82,7 @@ export default function Timetable() {
             <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               {dayLabel(date, lang)}
               {date === today && (
-                <span className="rounded-full bg-ink px-2 py-0.5 text-xs text-white">
+                <span className="rounded-full bg-ink px-2 py-0.5 text-xs text-primary-foreground">
                   {t('nav.today')}
                 </span>
               )}

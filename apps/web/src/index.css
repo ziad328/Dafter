@@ -162,38 +162,43 @@
   --sidebar-ring: #8aa4f5;
 }
 
+/*
+ * Dark mode: a soft slate-navy, not black, so the app stays calm at night without feeling heavy.
+ * The blue gets lighter to keep contrast; the soft accents become dim tints of the same hues.
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+  --ink: #7b98f8;
+  --ink-soft: #2b3756;
+  --paper: #1e2638;
+  --rule: #343f57;
+  --graphite: #e4e9f4;
+  --present: #4cc788;
+  --present-soft: #1f3b33;
+  --late: #f0a54a;
+  --late-soft: #3d3324;
+  --absent-soft: #43282e;
+  --navy: #141b2c;
+  --violet: #a08cff;
+  --violet-soft: #33304f;
+  --teal: #4cc9c4;
+  --teal-soft: #1e3c43;
+  --amber: #f3b54a;
+  --amber-soft: #403524;
+  --rose: #f47a7e;
+  --rose-soft: #452a31;
+
+  --card: #262f44;
+  --popover: #262f44;
+  --primary-foreground: #10172a;
+  --muted: #2d374d;
+  --muted-foreground: #a7b1c6;
+  --input: #3f4b66;
+  --ring: #5d7ad6;
+  --sidebar: #262f44;
+  --sidebar-primary-foreground: #10172a;
+  --sidebar-ring: #5d7ad6;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 10px 30px -14px rgb(0 0 0 / 0.45);
 }
 
 @layer base {

@@ -78,7 +78,9 @@ export default function Messages() {
             onClick={() => setStatus(s)}
             className={cn(
               'h-9 rounded-full border px-4 text-sm font-medium transition-colors',
-              status === s ? 'border-ink bg-ink text-white' : 'bg-card hover:bg-ink-soft',
+              status === s
+                ? 'border-ink bg-ink text-primary-foreground'
+                : 'bg-card hover:bg-ink-soft',
             )}
           >
             {s ? t(`messages.status.${s}`) : t('messages.all')}

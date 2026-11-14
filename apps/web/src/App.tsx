@@ -4,6 +4,7 @@ import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } fr
 import { useGetMeQuery } from './api/generated';
 import { AppShell } from './components/AppShell';
 import { FormError, Skeleton } from './components/Field';
+import { ThemeToggle } from './components/ThemeToggle';
 import { Button } from './components/ui/button';
 import { errorKey, useSignOut } from './lib/session';
 
@@ -40,7 +41,8 @@ function Layout() {
     <div className="min-h-dvh bg-background font-sans text-foreground">
       <header className="flex items-center justify-between gap-2 border-b-2 border-margin-red bg-card px-4 py-3 print:hidden">
         <span className="text-2xl font-bold tracking-tight text-ink">{t('app.name')}</span>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button
             variant="outline"
             size="sm"

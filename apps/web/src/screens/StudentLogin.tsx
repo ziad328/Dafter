@@ -1,4 +1,13 @@
-import { Download, Smartphone } from 'lucide-react';
+import {
+  ClipboardCopy,
+  ClipboardPaste,
+  Download,
+  EllipsisVertical,
+  type LucideIcon,
+  Share,
+  Smartphone,
+  SquarePlus,
+} from 'lucide-react';
 import { normalizeArabic, otpRequest, otpVerifyRequest } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
@@ -78,9 +87,41 @@ function SignIn({ token }: { token?: string }) {
 }
 
 /** In a browser tab: install first (Android button, iPhone instructions). */
+const IOS_STEPS = [
+  { icon: Share, key: 'iosShare' },
+  { icon: SquarePlus, key: 'iosAdd' },
+  { icon: ClipboardPaste, key: 'open' },
+] as const;
+const OTHER_STEPS = [
+  { icon: EllipsisVertical, key: 'menu' },
+  { icon: Download, key: 'install' },
+  { icon: ClipboardPaste, key: 'open' },
+] as const;
+
+/** One step: a small phone drawing with the button to look for, and what to do. */
+function InstallStep({ n, icon: Icon, text }: { n: number; icon: LucideIcon; text: string }) {
+  return (
+    <li className="flex items-center gap-3">
+      <span
+        aria-hidden
+        className="grid h-20 w-12 shrink-0 grid-rows-[1fr_auto] overflow-hidden rounded-xl border-2 border-foreground/25 bg-muted"
+      >
+        <span className="grid place-items-center text-xs font-bold text-muted-foreground">{n}</span>
+        <span className="grid place-items-center bg-ink-soft py-1.5 text-ink">
+          <Icon className="size-5" />
+        </span>
+      </span>
+      <span>{text}</span>
+    </li>
+  );
+}
+
 function InstallGate() {
   const { t } = useTranslation();
   const install = useInstallPrompt();
+  const { token } = useParams();
+  const ios = isIos();
+  const [copied, setCopied] = useState(false);
   return (
     <Card>
       <CardHeader>
@@ -90,13 +131,26 @@ function InstallGate() {
         </CardTitle>
         <CardDescription>{t('install.why')}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-3 text-sm">
-        {install ? (
-          <Button onClick={install}>{t('install.button')}</Button>
-        ) : (
-          <p>{t(isIos() ? 'install.ios' : 'install.other')}</p>
+      <CardContent className="grid gap-4 text-sm">
+        {install && <Button onClick={install}>{t('install.button')}</Button>}
+        {/* Three pictures, one per tap: the hardest step for a 15-year-old (audit S7). */}
+        <ol className="grid gap-3" data-testid="install-steps">
+          {(ios ? IOS_STEPS : OTHER_STEPS).map(({ icon, key }, i) => (
+            <InstallStep key={key} n={i + 1} icon={icon} text={t(`install.steps.${key}`)} />
+          ))}
+        </ol>
+        {/* The installed app on iPhone can't see this tab's link, so keep it ready to paste. */}
+        {token && (
+          <Button
+            variant="outline"
+            onClick={() =>
+              void navigator.clipboard?.writeText(location.href).then(() => setCopied(true))
+            }
+          >
+            <ClipboardCopy aria-hidden />
+            {t(copied ? 'install.copied' : 'install.copyLink')}
+          </Button>
         )}
-        <p className="text-muted-foreground">{t('install.then')}</p>
       </CardContent>
     </Card>
   );

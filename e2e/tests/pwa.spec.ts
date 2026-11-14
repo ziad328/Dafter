@@ -6,6 +6,9 @@ test('in a browser tab the student app asks to install first (rule 13)', async (
   await page.goto(`/s/activate/${token}`);
   await expect(page.getByRole('heading', { name: t.install.title })).toBeVisible();
   await expect(page.getByLabel(t.studentApp.email)).toHaveCount(0);
+  // Three pictured steps, and the invite link ready to copy before installing.
+  await expect(page.getByTestId('install-steps').getByRole('listitem')).toHaveCount(3);
+  await expect(page.getByRole('button', { name: t.install.copyLink })).toBeVisible();
 });
 
 test('inside the app, a pasted invite link opens activation', async ({ page, t }) => {

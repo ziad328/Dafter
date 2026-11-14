@@ -19,6 +19,7 @@ import { getWorkspaceId } from '@/api/base';
 import { useGetCurrentWorkspaceQuery, useGetMeQuery } from '@/api/generated';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Skeleton } from '@/components/Field';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { useSignOut, workspaceName } from '@/lib/session';
 import { cn } from '@/lib/utils';
@@ -61,6 +62,10 @@ export function AccountActions({ className, dark }: { className?: string; dark?:
       >
         {t('shell.switchLanguage')}
       </Button>
+      <ThemeToggle
+        withLabel
+        className={cn(dark && 'border-white/15 bg-white/5 text-white hover:bg-white/10')}
+      />
       <Button
         variant="ghost"
         className={cn(dark && 'text-white/70 hover:bg-white/10 hover:text-white')}
@@ -160,7 +165,7 @@ function TopBar() {
 const sideLink = ({ isActive }: { isActive: boolean }) =>
   cn(
     'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/8 hover:text-white',
-    isActive && 'bg-ink text-white shadow-lg shadow-ink/30 hover:bg-ink',
+    isActive && 'bg-ink text-primary-foreground shadow-lg shadow-ink/30 hover:bg-ink',
   );
 
 const tabLink = ({ isActive }: { isActive: boolean }) =>

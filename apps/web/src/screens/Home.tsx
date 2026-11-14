@@ -173,7 +173,7 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
   return (
     <section
       aria-labelledby="next-session"
-      className="relative grid gap-5 overflow-hidden rounded-3xl bg-linear-to-br from-ink via-[#4a4ff0] to-violet p-6 text-white shadow-card sm:p-7"
+      className="relative grid gap-5 overflow-hidden rounded-3xl bg-linear-to-br from-ink via-[#4a4ff0] to-violet dark:from-[#3a56c8] dark:via-[#4446c0] dark:to-[#5b47c4] p-6 text-white shadow-card sm:p-7"
     >
       <div
         aria-hidden
