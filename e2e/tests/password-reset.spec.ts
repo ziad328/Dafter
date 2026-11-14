@@ -10,9 +10,13 @@ test('staff resets a forgotten password from the emailed link', async ({ page, r
 
   await page.goto('/login');
   await page.getByRole('link', { name: t.auth.login.forgot }).click();
-  await page.getByLabel(t.auth.forgot.email).fill(email);
-  await page.getByRole('button', { name: t.auth.forgot.submit }).click();
-  await expect(page.getByRole('status')).toHaveText(t.auth.forgot.sent);
+  // Retried: on a cold dev server Vite may reload the page as the lazy screen first loads,
+  // which empties the field between fill and submit.
+  await expect(async () => {
+    await page.getByLabel(t.auth.forgot.email).fill(email);
+    await page.getByRole('button', { name: t.auth.forgot.submit }).click();
+    await expect(page.getByRole('status')).toHaveText(t.auth.forgot.sent, { timeout: 3000 });
+  }).toPass({ timeout: 20_000 });
 
   const mail = await page.request.get(`/api/v1/dev/mail?to=${encodeURIComponent(email)}`);
   const link = ((await mail.json()) as { text: string }).text.match(
