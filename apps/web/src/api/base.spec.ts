@@ -5,6 +5,7 @@ import type { baseQuery as BaseQuery } from './base';
 let valid = '';
 let issued = 0;
 let refreshes = 0;
+let refreshFails = false;
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
@@ -13,6 +14,7 @@ vi.stubGlobal('fetch', async (req: Request) => {
   if (path === '/api/v1/auth/refresh') {
     refreshes++;
     await new Promise((r) => setTimeout(r, 10)); // keep it in flight while others arrive
+    if (refreshFails) return json(401, { code: 'UNAUTHENTICATED' });
     valid = `t${++issued}`;
     return json(200, { accessToken: valid });
   }
@@ -39,6 +41,7 @@ beforeAll(async () => {
 });
 beforeEach(() => {
   refreshes = 0;
+  refreshFails = false;
 });
 
 describe('baseQuery single-flight refresh', () => {
@@ -49,6 +52,8 @@ describe('baseQuery single-flight refresh', () => {
   });
 
   it('parallel 401s on an expired token refresh once, then retry', async () => {
+    await call('/api/v1/me');
+    refreshes = 0;
     valid = 'expired-on-the-server';
     const results = await Promise.all([1, 2, 3].map(() => call('/api/v1/me')));
     expect(results.map((r) => r.error)).toEqual([undefined, undefined, undefined]);
@@ -59,5 +64,26 @@ describe('baseQuery single-flight refresh', () => {
     const result = await baseQuery({ url: '/api/v1/auth/login', method: 'POST' }, api, {});
     expect(result.error).toMatchObject({ status: 401, data: { code: 'INVALID_CREDENTIALS' } });
     expect(refreshes).toBe(0);
+  });
+
+  it('answers 401 when the refresh fails, with or without a token', async () => {
+    await call('/api/v1/me');
+    valid = 'expired-on-the-server';
+    refreshFails = true;
+    expect((await call('/api/v1/me')).error).toMatchObject({ status: 401 });
+    expect((await call('/api/v1/me')).error).toEqual({
+      status: 401,
+      data: { code: 'UNAUTHENTICATED' },
+    });
+  });
+
+  it('starts without a workspace when storage is blocked', async () => {
+    vi.resetModules();
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const fresh = await import('./base');
+    expect(fresh.getWorkspaceId()).toBeNull();
+    spy.mockRestore();
   });
 });
