@@ -1,10 +1,18 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { hash, verify } from '@node-rs/argon2';
-import type { AuthResponse, LoginRequest, Me, RegisterRequest } from '@dafter/contracts';
+import type {
+  AuthResponse,
+  ForgotPasswordRequest,
+  LoginRequest,
+  Me,
+  RegisterRequest,
+  ResetPasswordRequest,
+} from '@dafter/contracts';
 import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';
+import { Mailer } from '../student-auth/mailer.js';
 import { AuthRepository, type User } from './auth.repository.js';
 import { RateLimiter } from './rate-limiter.js';
 
@@ -13,6 +21,9 @@ export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export const REGISTER_PER_HOUR = 10;
+export const RESET_TTL_MS = 30 * 60 * 1000;
+// Per email and per IP; every request counts, so the endpoint cannot be used to flood an inbox.
+export const RESETS_PER_HOUR = 5;
 // Local tools and tests register from loopback; a real client never has it (Render sets the
 // client address through X-Forwarded-For, read with TRUST_PROXY=1).
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
@@ -31,14 +42,18 @@ export interface Session extends AuthResponse {
 export class AuthService {
   private readonly limiter: RateLimiter;
   private readonly registrations: RateLimiter;
+  private readonly resets: RateLimiter;
+  private readonly logger = new Logger('Auth');
 
   constructor(
     @Inject(AuthRepository) private readonly repo: AuthRepository,
     @Inject(JwtService) private readonly jwt: JwtService,
     @Inject(Clock) private readonly clock: Clock,
+    @Inject(Mailer) private readonly mailer: Mailer,
   ) {
     this.limiter = new RateLimiter(clock, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
     this.registrations = new RateLimiter(clock, REGISTER_PER_HOUR, 60 * 60 * 1000);
+    this.resets = new RateLimiter(clock, RESETS_PER_HOUR, 60 * 60 * 1000);
   }
 
   async register(input: RegisterRequest, ip: string): Promise<Session> {
@@ -87,6 +102,40 @@ export class AuthService {
 
   async logout(token: string | undefined) {
     if (token) await this.repo.revokeFamilyOf(hashToken(token), this.clock.now());
+  }
+
+  /** Same answer for every email: the link goes out only if a staff account (with a password) has it. */
+  async forgotPassword({ email }: ForgotPasswordRequest, ip: string, appUrl: string) {
+    const keys = [`reset:${email.toLowerCase()}`, `reset-ip:${ip}`];
+    if (this.resets.isBlocked(keys)) throw new AppError('RATE_LIMITED');
+    this.resets.fail(keys);
+    const user = await this.repo.findUserByLogin(email);
+    if (!user?.passwordHash) return;
+    const token = randomBytes(32).toString('base64url');
+    await this.repo.insertPasswordReset({
+      userId: user.id,
+      tokenHash: hashToken(token),
+      expiresAt: new Date(this.clock.now().getTime() + RESET_TTL_MS),
+    });
+    const link = `${appUrl}/reset/${token}`;
+    // Not awaited: a slow provider would otherwise tell an attacker that the email exists.
+    void this.mailer
+      .send(
+        user.email!,
+        `لتعيين كلمة مرور جديدة لدفتر افتح الرابط خلال 30 دقيقة: ${link}
+` + `To set a new Dafter password, open this link within 30 minutes: ${link}`,
+        'كلمة مرور جديدة لدفتر · Reset your Dafter password',
+      )
+      .catch((err: unknown) => this.logger.error(`reset mail failed: ${String(err)}`));
+  }
+
+  async resetPassword({ token, password }: ResetPasswordRequest) {
+    const ok = await this.repo.resetPassword(
+      hashToken(token),
+      await hash(password),
+      this.clock.now(),
+    );
+    if (!ok) throw new AppError('RESET_INVALID');
   }
 
   async me(userId: string): Promise<Me> {

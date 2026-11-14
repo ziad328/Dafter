@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, sql } from 'drizzle-orm';
-import { type Db, refreshTokens, users } from '@dafter/db';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
+import { type Db, passwordResets, refreshTokens, users } from '@dafter/db';
 import { DB } from '../db.js';
 
 export type User = typeof users.$inferSelect;
@@ -67,6 +67,42 @@ export class AuthRepository {
       .from(refreshTokens)
       .where(eq(refreshTokens.tokenHash, tokenHash));
     if (row) await revokeFamily(this.db, row.familyId, now);
+  }
+
+  async insertPasswordReset(values: typeof passwordResets.$inferInsert) {
+    await this.db.insert(passwordResets).values(values);
+  }
+
+  /**
+   * Uses a reset token once: under a row lock, marks every open reset of the user used, sets the
+   * password and revokes all refresh tokens, so every device is signed out. False if the token is
+   * unknown, used or expired.
+   */
+  async resetPassword(tokenHash: string, passwordHash: string, now: Date): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ userId: passwordResets.userId })
+        .from(passwordResets)
+        .where(
+          and(
+            eq(passwordResets.tokenHash, tokenHash),
+            isNull(passwordResets.usedAt),
+            gt(passwordResets.expiresAt, now),
+          ),
+        )
+        .for('update');
+      if (!row) return false;
+      await tx
+        .update(passwordResets)
+        .set({ usedAt: now })
+        .where(and(eq(passwordResets.userId, row.userId), isNull(passwordResets.usedAt)));
+      await tx.update(users).set({ passwordHash }).where(eq(users.id, row.userId));
+      await tx
+        .update(refreshTokens)
+        .set({ revokedAt: now })
+        .where(and(eq(refreshTokens.userId, row.userId), isNull(refreshTokens.revokedAt)));
+      return true;
+    });
   }
 }
 

@@ -1,20 +1,22 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { hash } from '@node-rs/argon2';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { refreshTokens } from '@dafter/db';
 import { makeUser, useTestDb } from '@dafter/db/testing';
 import { createApp } from '../app.js';
 import { FakeClock } from '../clock.js';
+import { ConsoleMailer } from '../student-auth/mailer.js';
 import { REFRESH_COOKIE } from './auth.controller.js';
-import { hashToken, REGISTER_PER_HOUR } from './auth.service.js';
+import { hashToken, REGISTER_PER_HOUR, RESET_TTL_MS, RESETS_PER_HOUR } from './auth.service.js';
 
 const testDb = useTestDb();
 const clock = new FakeClock();
+const mailer = new ConsoleMailer();
 let app: NestFastifyApplication;
 
 beforeAll(async () => {
-  app = await createApp({ logger: false, db: testDb().db, clock });
+  app = await createApp({ logger: false, db: testDb().db, clock, mailer });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 });
@@ -256,5 +258,96 @@ describe('logout', () => {
 
   it('succeeds without a cookie', async () => {
     expect((await post('logout')).statusCode).toBe(204);
+  });
+});
+
+describe('password reset', () => {
+  let m = 0;
+  async function staff() {
+    const email = `reset${++m}@example.com`;
+    const res = await post('register', { name: 'منى حسن', phone: uniquePhone(), email, password });
+    return { email, rt: refreshCookie(res)!.value };
+  }
+  // Each test asks from its own IP, so the per-IP limit of one test never blocks another.
+  const ask = (email: string, ip = `10.1.0.${m}`) =>
+    post('password-reset', { email }, undefined, ip);
+  const tokenFor = (email: string) => mailer.last(email)!.text.match(/\/reset\/([\w-]+)/)![1]!;
+  const confirm = (token: string, newPassword = 'new horse battery') =>
+    post('password-reset/confirm', { token, password: newPassword });
+
+  it('emails a link; the new password works, the old one does not, every device is signed out', async () => {
+    const { email, rt } = await staff();
+    const otherDevice = refreshCookie(await post('login', { login: email, password }))!.value;
+    expect((await ask(email.toUpperCase())).statusCode).toBe(204);
+    const token = tokenFor(email);
+    expect(mailer.last(email)!.text).toContain(`http://localhost:5173/reset/${token}`);
+
+    expect((await confirm(token)).statusCode).toBe(204);
+    expect((await post('login', { login: email, password })).statusCode).toBe(401);
+    expect((await post('login', { login: email, password: 'new horse battery' })).statusCode).toBe(
+      200,
+    );
+    expect((await post('refresh', undefined, rt)).statusCode).toBe(401);
+    expect((await post('refresh', undefined, otherDevice)).statusCode).toBe(401);
+  });
+
+  it('answers 204 for an unknown email or a student, and sends nothing', async () => {
+    const before = mailer.inbox.length;
+    expect((await ask('nobody@example.com')).statusCode).toBe(204);
+    await makeUser(testDb().db, { email: 'student-reset@example.com' }); // no password
+    expect((await ask('student-reset@example.com')).statusCode).toBe(204);
+    expect(mailer.inbox.length).toBe(before);
+  });
+
+  it('is single use: a second confirm, or an older link, gets RESET_INVALID', async () => {
+    const { email } = await staff();
+    await ask(email);
+    const older = tokenFor(email);
+    await ask(email);
+    const newer = tokenFor(email);
+    expect((await confirm(newer)).statusCode).toBe(204);
+    const again = await confirm(newer, 'another horse');
+    expect(again.statusCode).toBe(410);
+    expect(again.json().code).toBe('RESET_INVALID');
+    expect((await confirm(older, 'another horse')).statusCode).toBe(410);
+  });
+
+  it('lets only one of two concurrent confirms succeed', async () => {
+    const { email } = await staff();
+    await ask(email);
+    const token = tokenFor(email);
+    const results = await Promise.all([confirm(token), confirm(token, 'another horse')]);
+    expect(results.map((r) => r.statusCode).sort()).toEqual([204, 410]);
+  });
+
+  it('expires after 30 minutes and rejects an unknown token', async () => {
+    const { email } = await staff();
+    await ask(email);
+    const token = tokenFor(email);
+    clock.advance(RESET_TTL_MS);
+    expect((await confirm(token)).statusCode).toBe(410);
+    expect((await confirm('not-a-token')).statusCode).toBe(410);
+    expect((await post('login', { login: email, password })).statusCode).toBe(200);
+  });
+
+  it('rate-limits per email and per IP, then recovers after the hour', async () => {
+    const { email } = await staff();
+    for (let i = 0; i < RESETS_PER_HOUR; i++)
+      expect((await ask(email, `10.2.0.${i}`)).statusCode).toBe(204);
+    expect((await ask(email, '10.2.1.1')).statusCode).toBe(429);
+    for (let i = 0; i < RESETS_PER_HOUR; i++) await ask(`x${i}@example.com`, '10.2.2.2');
+    expect((await ask('other@example.com', '10.2.2.2')).statusCode).toBe(429);
+    clock.advance(60 * 60 * 1000);
+    expect((await ask(email, '10.2.1.1')).statusCode).toBe(204);
+  });
+
+  it('still answers 204 when the mail provider fails', async () => {
+    const { email } = await staff();
+    vi.spyOn(mailer, 'send').mockRejectedValueOnce(new Error('provider down'));
+    expect((await ask(email)).statusCode).toBe(204);
+  });
+
+  it('rejects a short new password', async () => {
+    expect((await confirm('whatever', 'short')).json().code).toBe('VALIDATION_FAILED');
   });
 });

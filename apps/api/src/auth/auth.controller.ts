@@ -3,11 +3,15 @@ import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res, UseGuards } fr
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   type AuthResponse,
+  type ForgotPasswordRequest,
+  forgotPasswordRequest,
   type LoginRequest,
   loginRequest,
   type Me,
   type RegisterRequest,
   registerRequest,
+  type ResetPasswordRequest,
+  resetPasswordRequest,
 } from '@dafter/contracts';
 import { ZodPipe } from '../zod-pipe.js';
 import { AuthGuard, type AuthedRequest } from './auth.guard.js';
@@ -49,6 +53,23 @@ export class AuthController {
       reply.clearCookie(REFRESH_COOKIE, { path: COOKIE_PATH });
       throw err;
     }
+  }
+
+  @Post('password-reset')
+  @HttpCode(204)
+  async forgotPassword(
+    @Body(new ZodPipe(forgotPasswordRequest)) body: ForgotPasswordRequest,
+    @Req() req: FastifyRequest,
+  ) {
+    // From config, never the request's Host or Origin, which an attacker could point at their site.
+    const appUrl = process.env.APP_URL ?? 'http://localhost:5173';
+    await this.auth.forgotPassword(body, req.ip, appUrl);
+  }
+
+  @Post('password-reset/confirm')
+  @HttpCode(204)
+  async resetPassword(@Body(new ZodPipe(resetPasswordRequest)) body: ResetPasswordRequest) {
+    await this.auth.resetPassword(body);
   }
 
   @Post('logout')

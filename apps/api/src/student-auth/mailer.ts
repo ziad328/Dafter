@@ -3,7 +3,7 @@ import { AppError } from '../errors.js';
 
 /** Port for outgoing email. Development and tests use ConsoleMailer; production uses BrevoMailer. */
 export abstract class Mailer {
-  abstract send(to: string, text: string): Promise<void>;
+  abstract send(to: string, text: string, subject?: string): Promise<void>;
 }
 
 export class ConsoleMailer extends Mailer {
@@ -36,14 +36,14 @@ export class BrevoMailer extends Mailer {
     super();
   }
 
-  async send(to: string, text: string) {
+  async send(to: string, text: string, subject = 'رمز الدخول إلى دفتر · Your Dafter code') {
     const res = await this.fetchFn('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': this.apiKey, 'content-type': 'application/json' },
       body: JSON.stringify({
         sender: { email: this.from, name: 'دفتر Dafter' },
         to: [{ email: to }],
-        subject: 'رمز الدخول إلى دفتر · Your Dafter code',
+        subject,
         textContent: text,
       }),
       signal: AbortSignal.timeout(10_000),

@@ -17,6 +17,8 @@ import { errorKey, useSignOut } from './lib/session';
 
 const Login = lazy(() => import('./screens/Login'));
 const Register = lazy(() => import('./screens/Register'));
+const ForgotPassword = lazy(() => import('./screens/ForgotPassword'));
+const ResetPassword = lazy(() => import('./screens/ResetPassword'));
 const AcceptInvite = lazy(() => import('./screens/AcceptInvite'));
 const Workspaces = lazy(() => import('./screens/Workspaces'));
 const Members = lazy(() => import('./screens/Members'));
@@ -95,6 +97,8 @@ export const routes: RouteObject[] = [
     children: [
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Register /> },
+      { path: '/forgot', element: <ForgotPassword /> },
+      { path: '/reset/:token', element: <ResetPassword /> },
       { path: '/invite/:token', element: <AcceptInvite /> },
       // Student app (Day 14 makes it the installable PWA).
       { path: '/s/login', element: <StudentLogin /> },

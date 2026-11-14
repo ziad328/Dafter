@@ -53,6 +53,9 @@ export default function Login() {
           <Button type="submit" disabled={isLoading}>
             {t('auth.login.submit')}
           </Button>
+          <Link className="justify-self-start text-sm underline" to="/forgot">
+            {t('auth.login.forgot')}
+          </Link>
         </CardContent>
       </form>
       <CardFooter className="mt-6 gap-1 text-sm">

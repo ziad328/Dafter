@@ -17,6 +17,8 @@ const NON_TENANT_ROUTES = new Set([
   'POST /api/v1/auth/login',
   'POST /api/v1/auth/refresh',
   'POST /api/v1/auth/logout',
+  'POST /api/v1/auth/password-reset',
+  'POST /api/v1/auth/password-reset/confirm',
   'GET /api/v1/me',
   // Cross-workspace by design: create a workspace, list my workspaces.
   'POST /api/v1/workspaces',

@@ -1,6 +1,13 @@
 import * as z from 'zod';
 import { createDocument } from 'zod-openapi';
-import { authResponse, loginRequest, me, registerRequest } from './auth.js';
+import {
+  authResponse,
+  forgotPasswordRequest,
+  loginRequest,
+  me,
+  registerRequest,
+  resetPasswordRequest,
+} from './auth.js';
 import { errorResponse } from './errors.js';
 import {
   createGroupRequest,
@@ -105,6 +112,25 @@ export function buildOpenApi() {
           operationId: 'logout',
           tags: ['auth'],
           responses: { 204: { description: 'Refresh family revoked, cookie cleared' }, ...errors },
+        },
+      },
+      '/api/v1/auth/password-reset': {
+        post: {
+          operationId: 'forgotPassword',
+          tags: ['auth'],
+          description:
+            'Emails a single-use reset link (30 minutes) if a staff account has this email. Always 204, so it never reveals which emails have accounts. Rate limited.',
+          requestBody: { required: true, content: json(forgotPasswordRequest) },
+          responses: { 204: { description: 'Accepted' }, ...errors },
+        },
+      },
+      '/api/v1/auth/password-reset/confirm': {
+        post: {
+          operationId: 'resetPassword',
+          tags: ['auth'],
+          description: 'Sets the new password and signs the user out everywhere.',
+          requestBody: { required: true, content: json(resetPasswordRequest) },
+          responses: { 204: { description: 'Password changed' }, ...errors },
         },
       },
       '/api/v1/me': {

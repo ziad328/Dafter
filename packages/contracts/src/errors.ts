@@ -19,6 +19,8 @@ export const ERROR_STATUS = {
   WORKSPACE_NOT_FOUND: 404,
   // Unknown, used and expired tokens look the same, so tokens cannot be probed.
   INVITE_INVALID: 410,
+  // Password reset link: unknown, used and expired look the same, like invites.
+  RESET_INVALID: 410,
   ALREADY_MEMBER: 409,
   MEMBER_NOT_ASSISTANT: 409,
   // A scope target is missing from the workspace or is not a teacher.

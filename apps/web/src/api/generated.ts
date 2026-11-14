@@ -48,6 +48,22 @@ const injectedRtkApi = api
         query: () => ({ url: `/api/v1/auth/logout`, method: 'POST' }),
         invalidatesTags: ['auth'],
       }),
+      forgotPassword: build.mutation<ForgotPasswordApiResponse, ForgotPasswordApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/auth/password-reset`,
+          method: 'POST',
+          body: queryArg.forgotPasswordRequest,
+        }),
+        invalidatesTags: ['auth'],
+      }),
+      resetPassword: build.mutation<ResetPasswordApiResponse, ResetPasswordApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/auth/password-reset/confirm`,
+          method: 'POST',
+          body: queryArg.resetPasswordRequest,
+        }),
+        invalidatesTags: ['auth'],
+      }),
       getMe: build.query<GetMeApiResponse, GetMeApiArg>({
         query: () => ({ url: `/api/v1/me` }),
         providesTags: ['auth'],
@@ -358,6 +374,14 @@ export type RefreshApiResponse = /** status 200 Signed in; sets the refresh cook
 export type RefreshApiArg = void;
 export type LogoutApiResponse = unknown;
 export type LogoutApiArg = void;
+export type ForgotPasswordApiResponse = unknown;
+export type ForgotPasswordApiArg = {
+  forgotPasswordRequest: ForgotPasswordRequest;
+};
+export type ResetPasswordApiResponse = unknown;
+export type ResetPasswordApiArg = {
+  resetPasswordRequest: ResetPasswordRequest;
+};
 export type GetMeApiResponse = /** status 200 The signed-in user */ Me;
 export type GetMeApiArg = void;
 export type GetMyScheduleApiResponse = /** status 200 My sessions */ MySchedule;
@@ -557,6 +581,7 @@ export type ErrorCode =
   | 'EMAIL_TAKEN'
   | 'WORKSPACE_NOT_FOUND'
   | 'INVITE_INVALID'
+  | 'RESET_INVALID'
   | 'ALREADY_MEMBER'
   | 'MEMBER_NOT_ASSISTANT'
   | 'SCOPE_TEACHER_INVALID'
@@ -610,6 +635,13 @@ export type RegisterRequest = {
 };
 export type LoginRequest = {
   login: string;
+  password: string;
+};
+export type ForgotPasswordRequest = {
+  email: string;
+};
+export type ResetPasswordRequest = {
+  token: string;
   password: string;
 };
 export type CurriculumItem = {
@@ -943,6 +975,8 @@ export const {
   useLoginMutation,
   useRefreshMutation,
   useLogoutMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
   useGetMeQuery,
   useGetMyScheduleQuery,
   useGetMyAttendanceQuery,

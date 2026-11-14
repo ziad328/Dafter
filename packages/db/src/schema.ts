@@ -70,6 +70,22 @@ export const refreshTokens = pgTable(
   ],
 );
 
+// Staff password reset links: single use, short-lived, only the SHA-256 of the token is stored.
+export const passwordResets = pgTable(
+  'password_resets',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: tz('expires_at').notNull(),
+    usedAt: tz('used_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('password_resets_user_idx').on(t.userId)],
+);
+
 // Tenancy.
 
 export const workspaces = pgTable('workspaces', {

@@ -158,6 +158,70 @@
         }
       }
     },
+    "/api/v1/auth/password-reset": {
+      "post": {
+        "operationId": "forgotPassword",
+        "tags": ["auth"],
+        "description": "Emails a single-use reset link (30 minutes) if a staff account has this email. Always 204, so it never reveals which emails have accounts. Rate limited.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Accepted"
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password-reset/confirm": {
+      "post": {
+        "operationId": "resetPassword",
+        "tags": ["auth"],
+        "description": "Sets the new password and signs the user out everywhere.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed"
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me": {
       "get": {
         "operationId": "getMe",
@@ -2281,6 +2345,31 @@
         },
         "required": ["login", "password"]
       },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": ["email"]
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": ["token", "password"]
+      },
       "CreateWorkspaceRequest": {
         "type": "object",
         "properties": {
@@ -2768,6 +2857,7 @@
           "EMAIL_TAKEN",
           "WORKSPACE_NOT_FOUND",
           "INVITE_INVALID",
+          "RESET_INVALID",
           "ALREADY_MEMBER",
           "MEMBER_NOT_ASSISTANT",
           "SCOPE_TEACHER_INVALID",

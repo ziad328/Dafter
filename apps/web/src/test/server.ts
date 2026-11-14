@@ -91,6 +91,8 @@ export const handlers = [
   http.post(api('auth/login'), log(fx.auth)),
   http.post(api('auth/register'), log(fx.auth, 201)),
   http.post(api('auth/logout'), log(null, 204)),
+  http.post(api('auth/password-reset'), log(null, 204)),
+  http.post(api('auth/password-reset/confirm'), log(null, 204)),
   http.post(api('auth/otp/request'), log(null, 204)),
   http.post(api('auth/otp/verify'), log(fx.auth)),
   http.get(api('me'), log(fx.me)),

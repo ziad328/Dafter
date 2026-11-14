@@ -39,6 +39,16 @@ export const authResponse = z
   .object({ accessToken: z.string(), user: me })
   .meta({ id: 'AuthResponse' });
 
+export const forgotPasswordRequest = z
+  .object({ email: z.string().trim().pipe(email) })
+  .meta({ id: 'ForgotPasswordRequest' });
+
+export const resetPasswordRequest = z
+  .object({ token: z.string().min(1).max(100), password })
+  .meta({ id: 'ResetPasswordRequest' });
+
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequest>;
+export type ResetPasswordRequest = z.infer<typeof resetPasswordRequest>;
 export type RegisterRequest = z.infer<typeof registerRequest>;
 export type LoginRequest = z.infer<typeof loginRequest>;
 export type Me = z.infer<typeof me>;

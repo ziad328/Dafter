@@ -241,6 +241,7 @@ describe('AuthService.register', () => {
       stub({ createUser: () => Promise.reject(dup) }),
       stub({}),
       clock,
+      stub({}),
     );
     await expect(
       service.register({ name: 'مدرس', phone: '01000000099', password: 'correct horse' }, '::1'),

@@ -43,7 +43,8 @@
       "password": "Password",
       "submit": "Sign in",
       "noAccount": "Don't have an account?",
-      "register": "Create one"
+      "register": "Create one",
+      "forgot": "Forgot your password?"
     },
     "register": {
       "title": "Create account",
@@ -55,6 +56,21 @@
       "submit": "Create account",
       "haveAccount": "Already have an account?",
       "login": "Sign in"
+    },
+    "forgot": {
+      "title": "Reset password",
+      "body": "Enter your account's email. We'll send you a link to set a new password.",
+      "email": "Email",
+      "submit": "Send the link",
+      "sent": "If an account has this email, a link is on its way. It works once, for 30 minutes.",
+      "back": "Back to sign in"
+    },
+    "reset": {
+      "title": "New password",
+      "password": "New password",
+      "submit": "Save the password",
+      "done": "Your password is changed and you're signed out on every device. Sign in with the new one.",
+      "again": "Request a new link"
     }
   },
   "invite": {
@@ -157,7 +173,8 @@
     "IDEMPOTENCY_KEY_REUSED": "This was already sent with different details. Reload and try again.",
     "ENTRY_NOT_FOUND": "Entry not found.",
     "ENTRY_ALREADY_REVERSED": "This entry was already reversed.",
-    "ENTRY_NOT_REVERSIBLE": "A reversal cannot be reversed. Record a new entry instead."
+    "ENTRY_NOT_REVERSIBLE": "A reversal cannot be reversed. Record a new entry instead.",
+    "RESET_INVALID": "This link is invalid, expired or already used."
   },
   "timetable": {
     "title": "Timetable",

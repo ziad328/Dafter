@@ -100,3 +100,14 @@ Two, because each tells them something new. The key includes the new start time,
 
 **3. Where do templates live, and why not in the database?**
 In code, one fixed sentence per trigger and language, rendered at send time from a payload snapshot taken at the event. WhatsApp only allows pre-approved templates anyway, so editable wording would mislead centers. A snapshot (names, subject, time) keeps the message true to what happened, even if a student is renamed before the send.
+
+## After v0 · Staff password reset
+
+**1. Why does "forgot password" answer 204 for every email, and why isn't the email sent with `await`?**
+So the endpoint can't be used to find out which emails have accounts. The same status is not enough on its own: waiting on the mail provider would make a real account answer slower than an unknown one, so the send runs in the background and a failure is only logged. The rate limit (5 an hour per email and per IP, every request counted) stops inbox flooding and guessing at scale.
+
+**2. How is the reset token stored and made single use?**
+32 random bytes in the link, only its SHA-256 in `password_resets` (a fast hash is fine for 256 random bits; argon2 is for guessable passwords). The confirm locks the row with `FOR UPDATE` where it is unused and unexpired, marks every open reset of that user used, sets the argon2id hash and revokes all refresh tokens, in one transaction. Two concurrent confirms: the second waits for the lock, re-checks `used_at` and gets `RESET_INVALID`.
+
+**3. Why build the link from `APP_URL` and not from the request's Host header, and what stays valid after a reset?**
+An attacker could send a reset request with their own Host, and the victim would get a real token pointing at the attacker's site (host-header poisoning). After the reset, refresh tokens are dead, but an access token already issued keeps working for up to 15 minutes, the trade-off of stateless JWTs.
