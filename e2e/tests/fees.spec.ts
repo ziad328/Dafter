@@ -14,6 +14,7 @@ const egp = (lang: 'ar' | 'en', pounds: number) =>
   new Intl.NumberFormat(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en', {
     style: 'currency',
     currency: 'EGP',
+    minimumFractionDigits: pounds % 1 ? 2 : 0,
   }).format(pounds);
 
 test('owner records a payment, prints its receipt, and reverses it', async ({
@@ -86,6 +87,7 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
   const payment = page.getByTestId('ledger').getByRole('listitem').filter({
     hasText: t.fees.methods.vodafone_cash,
   });
+  await payment.getByRole('button', { name: t.fees.actions }).click();
   await payment.getByRole('button', { name: t.fees.reverse }).click();
   await payment.getByRole('button', { name: t.fees.confirmReverse }).click();
   await expect(balance).toContainText(egp(lang, 500));

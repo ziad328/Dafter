@@ -210,6 +210,8 @@ describe('enrolments', () => {
         call(`DELETE /api/v1/students/${student.id}/enrollments/${fx.enrollments[0]!.id}`),
       )
       .toBeDefined();
+    expect(within(card).queryByRole('combobox')).toBeNull();
+    await user.click(within(card).getByRole('button', { name: tr('enrollments.open') }));
     const add = within(card).getByRole('button', { name: tr('enrollments.add') });
     expect(add).toBeDisabled();
     await pick(user, tr('enrollments.group'), groupName(fx.groups[0]!));
@@ -224,13 +226,15 @@ describe('enrolments', () => {
     await expect
       .poll(() => call(`POST /api/v1/students/${student.id}/enrollments`)?.body)
       .toEqual({ groupId: fx.groups[0]!.id, discountPct: 5 });
-    await expect.poll(() => discount).toHaveValue('');
+    // Added: the form folds away again.
+    await expect.poll(() => within(card).queryByRole('combobox')).toBeNull();
   });
 
   it('shows a failed enrolment', async () => {
     server.use(http.post(route('students/:id/enrollments'), fail('ENROLLMENT_EXISTS', 409)));
     const { user } = await renderAt(page);
     await screen.findByRole('heading', { name: tr('enrollments.title') });
+    await user.click(screen.getByRole('button', { name: tr('enrollments.open') }));
     await pick(user, tr('enrollments.group'), groupName(fx.groups[0]!));
     await user.click(screen.getByRole('button', { name: tr('enrollments.add') }));
     expect(await screen.findByText(tr('errors.ENROLLMENT_EXISTS'))).toBeInTheDocument();
@@ -251,8 +255,14 @@ describe('fees', () => {
       'href',
       `/receipts/${fx.ledger.entries[1]!.id}`,
     );
-    const reverse = within(ledger).getByRole('button', { name: tr('fees.reverse') });
-    await user.click(reverse);
+    expect(within(ledger).queryByRole('button', { name: tr('fees.reverse') })).toBeNull();
+    const menu = within(ledger).getByRole('button', { name: tr('fees.actions') });
+    await user.click(menu);
+    await user.click(within(ledger).getByRole('button', { name: tr('fees.reverse') }));
+    await user.click(menu);
+    expect(within(ledger).queryByRole('button', { name: tr('fees.reverse') })).toBeNull();
+    await user.click(menu);
+    await user.click(within(ledger).getByRole('button', { name: tr('fees.reverse') }));
     await user.click(within(ledger).getByRole('button', { name: tr('fees.confirmReverse') }));
     await expect
       .poll(() => call(`POST /api/v1/ledger/${fx.ledger.entries[2]!.id}/reverse`))
@@ -320,6 +330,7 @@ describe('fees', () => {
     );
     const second = await renderAt(page);
     expect(await screen.findByTestId('balance')).toHaveTextContent(tr('fees.credit'));
+    await second.user.click(screen.getByRole('button', { name: tr('fees.actions') }));
     await second.user.click(screen.getByRole('button', { name: tr('fees.reverse') }));
     await second.user.click(screen.getByRole('button', { name: tr('fees.confirmReverse') }));
     expect(await screen.findByText(tr('errors.FORBIDDEN'))).toBeInTheDocument();

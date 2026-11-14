@@ -26,6 +26,8 @@ export function Enrollments({ studentId }: { studentId: string }) {
   const [leave, left] = useLeaveEnrollmentMutation();
   const [groupId, setGroupId] = useState('');
   const [discount, setDiscount] = useState('');
+  // The form opens on demand, so the card reads as a list first (audit ST1).
+  const [adding, setAdding] = useState(false);
   const active = list.data?.filter((e) => e.status === 'active') ?? [];
   const name = (e: Pick<Enrollment, 'subject' | 'gradeLevel' | 'teacherName'>) =>
     `${itemName(e.subject, i18n.language)} · ${itemName(e.gradeLevel, i18n.language)} · ${e.teacherName}`;
@@ -41,6 +43,7 @@ export function Enrollments({ studentId }: { studentId: string }) {
     if (res.data) {
       setGroupId('');
       setDiscount('');
+      setAdding(false);
     }
   };
 
@@ -80,38 +83,46 @@ export function Enrollments({ studentId }: { studentId: string }) {
             </li>
           ))}
         </ul>
-        <SelectField
-          label={t('enrollments.group')}
-          value={groupId}
-          onChange={(ev) => setGroupId(ev.target.value)}
-        >
-          <option value="">{t('form.choose')}</option>
-          {groups.data
-            ?.filter((g) => g.status === 'active' && !active.some((e) => e.groupId === g.id))
-            .map((g) => (
-              <option key={g.id} value={g.id}>
-                {name(g)}
-              </option>
-            ))}
-        </SelectField>
-        <Field
-          label={`${t('enrollments.discount')} ${t('form.optional')}`}
-          inputMode="numeric"
-          dir="ltr"
-          value={discount}
-          onChange={(ev) => setDiscount(ev.target.value.replace(/\D/g, '').slice(0, 3))}
-          error={pct > 100 ? t('form.invalid.discount') : undefined}
-        />
-        <FormError
-          message={(enrolled.error ?? left.error) && t(errorKey(enrolled.error ?? left.error))}
-        />
-        <Button
-          type="button"
-          disabled={!groupId || pct > 100 || enrolled.isLoading}
-          onClick={() => void onAdd()}
-        >
-          {t('enrollments.add')}
-        </Button>
+        {adding ? (
+          <>
+            <SelectField
+              label={t('enrollments.group')}
+              value={groupId}
+              onChange={(ev) => setGroupId(ev.target.value)}
+            >
+              <option value="">{t('form.choose')}</option>
+              {groups.data
+                ?.filter((g) => g.status === 'active' && !active.some((e) => e.groupId === g.id))
+                .map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {name(g)}
+                  </option>
+                ))}
+            </SelectField>
+            <Field
+              label={`${t('enrollments.discount')} ${t('form.optional')}`}
+              inputMode="numeric"
+              dir="ltr"
+              value={discount}
+              onChange={(ev) => setDiscount(ev.target.value.replace(/\D/g, '').slice(0, 3))}
+              error={pct > 100 ? t('form.invalid.discount') : undefined}
+            />
+            <FormError
+              message={(enrolled.error ?? left.error) && t(errorKey(enrolled.error ?? left.error))}
+            />
+            <Button
+              type="button"
+              disabled={!groupId || pct > 100 || enrolled.isLoading}
+              onClick={() => void onAdd()}
+            >
+              {t('enrollments.add')}
+            </Button>
+          </>
+        ) : (
+          <Button type="button" variant="outline" onClick={() => setAdding(true)}>
+            {t('enrollments.open')}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

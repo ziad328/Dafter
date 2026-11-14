@@ -1,4 +1,5 @@
 import type { LedgerEntry } from '@dafter/contracts';
+import { MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -149,6 +150,7 @@ export function PaymentForm({
 function Entry({ entry: e }: { entry: LedgerEntry }) {
   const { t, i18n } = useTranslation();
   const [reverse, reversing] = useReverseEntryMutation();
+  const [menu, setMenu] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [idem] = useState(() => crypto.randomUUID());
   const reversible = e.type !== 'reversal' && !e.reversedById;
@@ -165,7 +167,24 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
         <span className={e.reversedById ? 'line-through' : undefined}>
           {`${what} · ${itemName(e.subject, i18n.language)}`}
         </span>
-        <bdi dir="ltr">{formatEgp(Math.abs(e.amountPiastres), i18n.language)}</bdi>
+        <span className="flex items-center gap-1">
+          <bdi dir="ltr">{formatEgp(Math.abs(e.amountPiastres), i18n.language)}</bdi>
+          {/* Reversing waits behind a menu, like the timetable, so it is never a stray tap. */}
+          {reversible && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={t('fees.actions')}
+              aria-expanded={menu}
+              onClick={() => {
+                setMenu(!menu);
+                setConfirming(false);
+              }}
+            >
+              <MoreHorizontal aria-hidden />
+            </Button>
+          )}
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {e.receiptNo && (
@@ -174,7 +193,7 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
           </Link>
         )}
         {e.reversedById && <span className="text-muted-foreground">{t('fees.reversed')}</span>}
-        {reversible && (
+        {reversible && menu && (
           <Button
             size="sm"
             variant={confirming ? 'destructive' : 'ghost'}

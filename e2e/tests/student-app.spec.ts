@@ -40,6 +40,7 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await expect(page.getByRole('heading', { name })).toBeVisible();
 
   // Enroll with a discount.
+  await page.getByRole('button', { name: t.enrollments.open }).click();
   await choose(page, t.enrollments.group, { index: 0 });
   await page.getByLabel(new RegExp(t.enrollments.discount.replace('%', ''))).fill('10');
   await page.getByRole('button', { name: t.enrollments.add }).click();

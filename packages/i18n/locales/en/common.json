@@ -221,6 +221,7 @@
     "discount": "Discount %",
     "discountShort": "{pct}% off",
     "add": "Add to group",
+    "open": "Add to a group…",
     "leave": "Remove from group",
     "notJoined": "The student was saved, but not added to the group."
   },
@@ -338,6 +339,7 @@
     "reversal": "Reversed payment",
     "receipt": "Receipt #",
     "reversed": "Reversed",
+    "actions": "Options",
     "reverse": "Reverse payment",
     "confirmReverse": "Tap again to reverse the payment"
   },
