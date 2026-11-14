@@ -3,6 +3,7 @@ import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { clearAccessToken, setWorkspaceId } from '@/api/base';
 import { i18n } from '@/i18n';
+import { fakeIndexedDb } from './idb';
 import { sent, server } from './server';
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
@@ -42,3 +43,5 @@ Element.prototype.releasePointerCapture = () => {};
 Element.prototype.scrollIntoView = () => {};
 // The full suite runs files in parallel; give slow renders (QR, lazy screens) more than 1 s.
 configure({ asyncUtilTimeout: 5000 });
+// jsdom has no IndexedDB; the device key lives there.
+Object.assign(globalThis, { indexedDB: fakeIndexedDb });
