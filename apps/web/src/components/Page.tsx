@@ -35,7 +35,11 @@ const TONES = [
 
 /** Initials in a circle; the colour follows the name, so a person keeps theirs everywhere. */
 export function Avatar({ name, className }: { name: string; className?: string }) {
-  const words = name.trim().split(/\s+/);
+  // «ال» is the article, not the word: «سنتر النور» is «سن», not «سا».
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .map((w) => (w.startsWith('ال') && w.length > 3 ? w.slice(2) : w));
   const initials = (words[0]?.[0] ?? '') + (words[1]?.[0] ?? '');
   let hash = 0;
   for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) | 0;

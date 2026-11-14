@@ -41,8 +41,7 @@ function SheetBody() {
         </p>
         <Button asChild>
           <Link to={`/receipts/${paid.id}`}>
-            {t('fees.receipt')}
-            <bdi className="ms-1">{paid.receiptNo}</bdi>
+            {t('fees.receipt')} <bdi>{paid.receiptNo}</bdi>
           </Link>
         </Button>
         <Button

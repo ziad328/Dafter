@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
 import { egpText, formatEgp, toPiastres } from '@/lib/money';
 import { errorKey } from '@/lib/session';
+import { monthLabel } from '@/lib/time';
 
 const METHODS = ['cash', 'vodafone_cash', 'instapay'] as const;
 
@@ -153,7 +154,7 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
   const reversible = e.type !== 'reversal' && !e.reversedById;
   const what =
     e.type === 'charge'
-      ? t('fees.charge', { period: e.period ?? '' })
+      ? t('fees.charge', { period: e.period ? monthLabel(e.period, i18n.language) : '' })
       : e.type === 'payment'
         ? t('fees.payment', { method: t(`fees.methods.${e.method ?? 'cash'}`) })
         : t('fees.reversal');
@@ -169,8 +170,7 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
       <div className="flex flex-wrap items-center gap-2">
         {e.receiptNo && (
           <Link className="underline" to={`/receipts/${e.id}`}>
-            {t('fees.receipt')}
-            <bdi className="ms-1">{e.receiptNo}</bdi>
+            {t('fees.receipt')} <bdi>{e.receiptNo}</bdi>
           </Link>
         )}
         {e.reversedById && <span className="text-muted-foreground">{t('fees.reversed')}</span>}

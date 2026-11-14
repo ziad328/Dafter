@@ -37,6 +37,14 @@ export const addDays = (date: string, n: number) =>
 export const weekStart = (date: string) =>
   addDays(date, -((new Date(Date.parse(date)).getUTCDay() + 1) % 7));
 
+/** A billing period "2026-11" as "نوفمبر 2026" / "November 2026". */
+export const monthLabel = (period: string, lang: string) =>
+  new Intl.DateTimeFormat(intlLocale(lang), {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(Date.parse(`${period}-01`));
+
 /** "السبت 21 نوفمبر" / "Saturday 21 November". */
 export const dayLabel = (date: string, lang: string) =>
   new Intl.DateTimeFormat(intlLocale(lang), {

@@ -43,15 +43,25 @@ export default function Receipt() {
       <header className="text-center">
         <h1 className="text-xl font-bold">{centerName}</h1>
         <p>{t('receipt.title', { no: entry.receiptNo ?? '' })}</p>
+        {entry.reversedById && (
+          <p
+            role="status"
+            className="mx-auto mt-3 w-fit -rotate-6 rounded-md border-2 border-rose px-4 py-1 text-2xl font-bold text-rose"
+          >
+            {t('receipt.voided')}
+          </p>
+        )}
       </header>
       <dl>
         {row(t('receipt.student'), data.studentName)}
         {row(t('receipt.date'), date)}
-        {row(t('receipt.amount'), <bdi>{amount}</bdi>)}
+        {row(
+          t('receipt.amount'),
+          <bdi className={entry.reversedById ? 'line-through' : undefined}>{amount}</bdi>,
+        )}
         {row(t('fees.method'), method)}
         {row(t('receipt.receivedBy'), entry.createdByName ?? '')}
       </dl>
-      {entry.reversedById && <p className="text-center font-bold">{t('fees.reversed')}</p>}
       <div className="grid gap-2 print:hidden">
         <Button onClick={() => window.print()}>{t('receipt.print')}</Button>
         {!entry.reversedById && <ShareButton text={shareText} />}

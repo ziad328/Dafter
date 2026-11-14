@@ -19,8 +19,10 @@ export function toPiastres(text: string): number | undefined {
 export const egpText = (piastres: number) =>
   `${Math.trunc(piastres / 100)}.${String(Math.abs(piastres) % 100).padStart(2, '0')}`;
 
-/** Display only: "‏150٫50 ج.م.‏" / "EGP 150.50". */
+/** Display only: "‏150٫50 ج.م.‏" / "EGP 150.50"; whole pounds without ".00". */
 export const formatEgp = (piastres: number, lang: string) =>
-  new Intl.NumberFormat(intlLocale(lang), { style: 'currency', currency: 'EGP' }).format(
-    piastres / 100,
-  );
+  new Intl.NumberFormat(intlLocale(lang), {
+    style: 'currency',
+    currency: 'EGP',
+    minimumFractionDigits: piastres % 100 ? 2 : 0,
+  }).format(piastres / 100);

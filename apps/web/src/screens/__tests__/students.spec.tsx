@@ -243,6 +243,10 @@ describe('fees', () => {
     expect(await screen.findByTestId('balance')).toHaveTextContent(tr('fees.owes'));
     const ledger = screen.getByTestId('ledger');
     expect(within(ledger).getByText(tr('fees.reversed'))).toBeInTheDocument();
+    expect(
+      within(ledger).getByText(new RegExp(tr('fees.charge', { period: 'نوفمبر 2026' }))),
+    ).toBeVisible();
+    expect(within(ledger).getByRole('link', { name: `${tr('fees.receipt')} 21` })).toBeVisible();
     expect(within(ledger).getByRole('link', { name: /21/ })).toHaveAttribute(
       'href',
       `/receipts/${fx.ledger.entries[1]!.id}`,

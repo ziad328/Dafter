@@ -274,7 +274,7 @@
       "excused": "بعذر",
       "makeup": "حصة تعويضية"
     },
-    "expected": "من {count} مسجّلين",
+    "expected": "{count, plural, one {من طالب واحد مسجّل} two {من طالبين مسجّلَين} few {من # طلاب مسجّلين} many {من # طالبًا مسجّلًا} other {من # طالب مسجّل}}",
     "present": "تحضير",
     "markPresent": "تحضير {name}",
     "fullScreen": "الكود بملء الشاشة",
@@ -343,6 +343,7 @@
     "student": "الطالب",
     "date": "التاريخ",
     "amount": "المبلغ",
+    "voided": "ملغي",
     "receivedBy": "استلمه",
     "print": "طباعة أو حفظ PDF"
   },

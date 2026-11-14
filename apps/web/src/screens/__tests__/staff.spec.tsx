@@ -262,7 +262,8 @@ describe('receipt', () => {
     vi.stubGlobal('print', print);
     const { user } = await renderAt(page);
     expect(await screen.findByRole('heading', { name: fx.receipt.center.nameAr })).toBeVisible();
-    expect(screen.getByText(tr('fees.reversed'))).toBeVisible();
+    expect(screen.getByRole('status')).toHaveTextContent(tr('receipt.voided'));
+    expect(screen.getByText(/200/)).toHaveClass('line-through');
     expect(screen.queryByRole('button', { name: tr('share.copy') })).toBeNull();
     await user.click(screen.getByRole('button', { name: tr('receipt.print') }));
     expect(print).toHaveBeenCalled();

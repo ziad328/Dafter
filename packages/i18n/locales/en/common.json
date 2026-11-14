@@ -274,7 +274,7 @@
       "excused": "Excused",
       "makeup": "Make-up class"
     },
-    "expected": "of {count} enrolled",
+    "expected": "{count, plural, one {of # enrolled} other {of # enrolled}}",
     "present": "Mark present",
     "markPresent": "Mark {name} present",
     "fullScreen": "Full-screen code",
@@ -343,6 +343,7 @@
     "student": "Student",
     "date": "Date",
     "amount": "Amount",
+    "voided": "VOID",
     "receivedBy": "Received by",
     "print": "Print or save as PDF"
   },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { egpText, toPiastres } from './money';
+import { egpText, formatEgp, toPiastres } from './money';
 
 describe('money input', () => {
   it('turns EGP text into whole piastres without floats', () => {
@@ -19,5 +19,11 @@ describe('money input', () => {
   it('formats piastres back for an input', () => {
     expect(egpText(15050)).toBe('150.50');
     expect(egpText(7)).toBe('0.07');
+  });
+
+  it('shows whole pounds without decimals, and piastres when there are some', () => {
+    expect(formatEgp(50000, 'en')).toMatch(/^EGP\s500$/);
+    expect(formatEgp(15050, 'en')).toMatch(/^EGP\s150\.50$/);
+    expect(formatEgp(50000, 'ar')).toMatch(/^‏500\sج\.م\.‏$/);
   });
 });

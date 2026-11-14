@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, localDate, localTime, weekStart } from './time';
+import { addDays, localDate, localTime, monthLabel, weekStart } from './time';
 
 describe('time helpers', () => {
   it('finds the Saturday that starts the week', () => {
@@ -18,5 +18,10 @@ describe('time helpers', () => {
     expect(localTime('2027-05-01T13:00:00Z', 'Africa/Cairo')).toBe('16:00');
     // 23:30 UTC on Friday is already Saturday in Cairo.
     expect(localDate('2026-11-20T23:30:00Z', 'Africa/Cairo')).toBe('2026-11-21');
+  });
+
+  it('names a billing month', () => {
+    expect(monthLabel('2026-11', 'en')).toBe('November 2026');
+    expect(monthLabel('2026-11', 'ar')).toBe('نوفمبر 2026');
   });
 });
