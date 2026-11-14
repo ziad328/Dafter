@@ -19,3 +19,24 @@ afterEach(() => {
   document.documentElement.className = '';
 });
 afterAll(() => server.close());
+
+// Browser APIs jsdom lacks; a test that needs another answer overrides them.
+window.matchMedia = (query: string) =>
+  ({
+    matches: false,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }) as unknown as MediaQueryList;
+HTMLDialogElement.prototype.showModal = function () {
+  this.setAttribute('open', '');
+};
+HTMLDialogElement.prototype.close = function () {
+  if (!this.open) return;
+  this.removeAttribute('open');
+  this.dispatchEvent(new Event('close'));
+};
+// Radix Select measures and captures the pointer.
+Element.prototype.hasPointerCapture = () => false;
+Element.prototype.releasePointerCapture = () => {};
+Element.prototype.scrollIntoView = () => {};
