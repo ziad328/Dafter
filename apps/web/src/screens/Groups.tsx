@@ -1,4 +1,4 @@
-import { BookOpen, Plus } from 'lucide-react';
+import { BookOpen, Plus, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useGetCurrentWorkspaceQuery, useListGroupsQuery } from '@/api/generated';
@@ -6,6 +6,7 @@ import { FormError, Skeleton } from '@/components/Field';
 import { Avatar, PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { itemName, sortedSlots, weekdayName } from '@/lib/groups';
+import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
 import { clockLabel } from '@/lib/time';
 import { cn } from '@/lib/utils';
@@ -78,12 +79,21 @@ export default function Groups() {
               <div className="flex items-center gap-2 border-t pt-3 text-sm">
                 <Avatar name={g.teacherName} className="size-8 text-xs" />
                 <span className="truncate">{g.teacherName}</span>
-                {g.capacity !== null && (
-                  <span className="ms-auto text-muted-foreground">
-                    {t('groups.capacity')} <bdi>{g.capacity}</bdi>
-                  </span>
-                )}
+                {/* Students and fee tell apart a teacher's groups of one subject (audit G1). */}
+                <span className="ms-auto flex shrink-0 items-center gap-2 text-muted-foreground">
+                  <Users className="size-4" aria-hidden />
+                  {g.capacity === null ? (
+                    t('groups.students', { count: g.studentCount })
+                  ) : (
+                    <bdi>{t('groups.seats', { count: g.studentCount, capacity: g.capacity })}</bdi>
+                  )}
+                </span>
               </div>
+              {g.monthlyFeePiastres !== null && (
+                <p className="-mt-2 text-sm text-muted-foreground">
+                  {t('groups.perMonth', { fee: formatEgp(g.monthlyFeePiastres, lang) })}
+                </p>
+              )}
             </Panel>
           );
           return (

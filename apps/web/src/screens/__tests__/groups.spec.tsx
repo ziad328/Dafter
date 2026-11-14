@@ -1,6 +1,7 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, getDefaultNormalizer, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { weekdayName } from '@/lib/groups';
+import { formatEgp } from '@/lib/money';
 import { addDays, localDate, weekStart } from '@/lib/time';
 import { fail, fx, http, route, sent, server } from '@/test/server';
 import { pick, renderAt, tr } from '@/test/render';
@@ -31,7 +32,12 @@ describe('groups', () => {
     );
     await renderAt('/groups');
     expect(await screen.findByText(tr('groups.archived'))).toBeInTheDocument();
-    expect(screen.getByText('20')).toBeInTheDocument();
+    expect(screen.getByText(tr('groups.seats', { count: 12, capacity: 20 }))).toBeVisible();
+    expect(screen.getAllByText(tr('groups.students', { count: 12 }))).toHaveLength(1);
+    // Currency text keeps its no-break space, so compare it uncollapsed.
+    const fee = tr('groups.perMonth', { fee: formatEgp(fx.group.monthlyFeePiastres!, 'ar') });
+    const exact = { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) };
+    expect(screen.getAllByText(fee, exact)).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: new RegExp(fx.group.subject.nameAr) })).toHaveLength(
       2,
     );

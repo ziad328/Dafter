@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { aliasedTable, and, asc, eq, inArray } from 'drizzle-orm';
+import { aliasedTable, and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { Group, GroupSlot, UpdateGroupRequest, Workspace } from '@dafter/contracts';
 import {
   assistantScopes,
+  enrollments,
   gradeLevels,
   groupSlots,
   groups,
@@ -160,6 +161,10 @@ export class GroupsRepository extends TenantRepository {
         capacity: groups.capacity,
         monthlyFeePiastres: groups.monthlyFeePiastres,
         status: groups.status,
+        studentCount: sql<number>`(
+          select count(*)::int from ${enrollments}
+          where ${enrollments.groupId} = ${groups.id} and ${enrollments.status} = 'active'
+        )`.mapWith(Number),
       })
       .from(groups)
       .innerJoin(subject, eq(subject.id, groups.subjectId))

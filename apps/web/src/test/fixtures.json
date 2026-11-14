@@ -136,7 +136,8 @@
           "startTime": "18:00",
           "endTime": "19:30"
         }
-      ]
+      ],
+      "studentCount": 12
     },
     {
       "id": "74167ef0-a5b5-4616-9a80-2ee7f1ed9447",
@@ -161,7 +162,8 @@
           "startTime": "10:00",
           "endTime": "11:00"
         }
-      ]
+      ],
+      "studentCount": 3
     },
     {
       "id": "9ec9385c-822f-46e0-98e9-615b77f9e1f7",
@@ -186,7 +188,8 @@
           "startTime": "03:18",
           "endTime": "23:59"
         }
-      ]
+      ],
+      "studentCount": 0
     }
   ],
   "group": {
@@ -212,7 +215,8 @@
         "startTime": "18:00",
         "endTime": "19:30"
       }
-    ]
+    ],
+    "studentCount": 12
   },
   "sessions": [
     {

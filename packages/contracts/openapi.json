@@ -3107,6 +3107,11 @@
             "items": {
               "$ref": "#/components/schemas/GroupSlotOutput"
             }
+          },
+          "studentCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -3118,7 +3123,8 @@
           "capacity",
           "monthlyFeePiastres",
           "status",
-          "slots"
+          "slots",
+          "studentCount"
         ],
         "additionalProperties": false
       },

@@ -689,6 +689,7 @@ export type Group = {
   monthlyFeePiastres: number | null;
   status: 'active' | 'archived';
   slots: GroupSlotOutput[];
+  studentCount: number;
 };
 export type GroupList = Group[];
 export type GroupSlot = {

@@ -14,7 +14,7 @@ beforeAll(async () => {
 });
 afterAll(() => app.close());
 
-type Method = 'GET' | 'POST' | 'PATCH';
+type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 let n = 0;
 
 async function register() {
@@ -203,5 +203,45 @@ describe('PATCH /groups/:id', () => {
     expect(byAssistant.json().code).toBe('FORBIDDEN');
     const byOwner = await c.owner('PATCH', `groups/${g.id}`, { teacherMembershipId: c.t2.id });
     expect(byOwner.json().teacherMembershipId).toBe(c.t2.id);
+  });
+});
+
+describe('student count', () => {
+  it('counts active enrollments only', async () => {
+    const id = (
+      await c.owner(
+        'POST',
+        'groups',
+        body({ slots: [{ weekday: 5, startTime: '08:00', endTime: '09:00' }] }),
+      )
+    ).json().id as string;
+    const student = async (k: number) =>
+      (
+        await c.owner('POST', 'students', {
+          nameAr: `طالب ${k}`,
+          gradeLevelId: c.grades[11].id,
+          guardian: {
+            phone: `0120000${String(k).padStart(4, '0')}`,
+            relation: 'father',
+            preferredLocale: 'ar',
+            whatsappOptIn: false,
+          },
+        })
+      ).json().id as string;
+    const [a, b] = [await student(1), await student(2)];
+    const joined = await c.owner('POST', `students/${a}/enrollments`, { groupId: id });
+    expect(joined.json()).toMatchObject({ status: 'active' });
+    const left = (await c.owner('POST', `students/${b}/enrollments`, { groupId: id })).json().id;
+    await c.owner('DELETE', `students/${b}/enrollments/${left}`);
+    expect((await c.owner('GET', `groups/${id}`)).json().studentCount).toBe(1);
+    expect(
+      (
+        await c.owner(
+          'POST',
+          'groups',
+          body({ slots: [{ weekday: 4, startTime: '08:00', endTime: '09:00' }] }),
+        )
+      ).json().studentCount,
+    ).toBe(0);
   });
 });

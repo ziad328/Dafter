@@ -75,6 +75,8 @@ export const group = z
     monthlyFeePiastres: z.int().nullable(),
     status: z.enum(['active', 'archived']),
     slots: z.array(groupSlot),
+    // Active enrollments, so a card can say «12/20 طالب».
+    studentCount: z.int(),
   })
   .meta({ id: 'Group' });
 
