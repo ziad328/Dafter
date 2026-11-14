@@ -54,6 +54,10 @@ Priority: high (hurts a daily job), medium, low. Size: S (under an hour), M (a f
 - No password reset at all (A1).
 - WhatsApp login (S8 from the first audit) still waits for the real WhatsApp provider.
 
+## Status (Nov 14)
+
+Done, each with unit tests (and e2e where a flow changed): F1–F5, M1–M3, LV1, AV1, A2, A3, W1, MO1, T1, G1, G2, TT1, TT2, MB1, ST1–ST4, and the show-password half of A1. Not done: G1's optional per-group label (needs a new column), password reset (A1, below), and the product gaps below.
+
 ## Suggested order
 
 1. **Quick wins (half a day):** F1, F2, F3, F4, M1, M2, M3, LV1, AV1, A2, A3, W1, MO1, T1.
