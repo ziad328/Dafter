@@ -54,6 +54,35 @@ describe('groups', () => {
     expect(screen.queryByRole('link', { name: new RegExp(tr('groups.new')) })).toBeNull();
   });
 
+  it('filters by teacher and grade, and searches by text', async () => {
+    const math = {
+      ...fx.group,
+      id: crypto.randomUUID(),
+      teacherMembershipId: fx.members[1]!.id,
+      teacherName: fx.members[1]!.name,
+      subject: fx.subjects[2]!,
+      gradeLevel: fx.gradeLevels[1]!,
+    };
+    server.use(http.get(route('groups'), () => Response.json([fx.group, math])));
+    const { user } = await renderAt('/groups');
+    const cards = async () => (await screen.findAllByRole('heading', { level: 2 })).length;
+    expect(await cards()).toBe(2);
+    const teachers = screen.getByRole('group', { name: tr('groups.teacher') });
+    await user.click(within(teachers).getByRole('button', { name: fx.members[1]!.name }));
+    expect(await cards()).toBe(1);
+    await user.click(within(teachers).getByRole('button', { name: tr('filters.all') }));
+    const grades = screen.getByRole('group', { name: tr('groups.gradeLevel') });
+    await user.click(within(grades).getByRole('button', { name: fx.gradeLevels[0]!.nameAr }));
+    expect(await cards()).toBe(1);
+    await user.click(within(grades).getByRole('button', { name: tr('filters.all') }));
+    const search = screen.getByRole('searchbox', { name: tr('groups.search') });
+    await user.type(search, 'رياضيات');
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(fx.subjects[2]!.nameAr);
+    await user.clear(search);
+    await user.type(search, 'zzz');
+    expect(screen.getByText(tr('groups.noMatch'))).toBeVisible();
+  });
+
   it('says when there are none, and when the list fails', async () => {
     server.use(http.get(route('groups'), () => Response.json([])));
     const { unmount } = await renderAt('/groups');
@@ -186,6 +215,27 @@ describe('timetable', () => {
     expect(screen.getAllByRole('link', { name: tr('timetable.start') })).toHaveLength(2);
     expect(screen.getByText(new RegExp(tr('timetable.moved')))).toBeInTheDocument();
     expect(screen.getByText(new RegExp(tr('timetable.status.closed')))).toBeInTheDocument();
+  });
+
+  it('narrows the week to one teacher or one grade', async () => {
+    withWeek([
+      session(today, 'scheduled'),
+      session(today, 'scheduled', {
+        teacherMembershipId: fx.members[0]!.id,
+        teacherName: fx.members[0]!.name,
+        gradeLevel: fx.gradeLevels[1]!,
+      }),
+    ]);
+    const { user } = await renderAt('/timetable');
+    const cards = async () => (await screen.findAllByRole('heading', { level: 3 })).length;
+    expect(await cards()).toBe(2);
+    const teachers = screen.getByRole('group', { name: tr('groups.teacher') });
+    await user.click(within(teachers).getByRole('button', { name: fx.members[0]!.name }));
+    expect(await cards()).toBe(1);
+    await user.click(within(teachers).getByRole('button', { name: tr('filters.all') }));
+    const grades = screen.getByRole('group', { name: tr('groups.gradeLevel') });
+    await user.click(within(grades).getByRole('button', { name: fx.gradeLevels[1]!.nameAr }));
+    expect(await cards()).toBe(1);
   });
 
   it('pages between weeks', async () => {

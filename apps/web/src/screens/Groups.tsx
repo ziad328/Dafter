@@ -1,8 +1,11 @@
+import { normalizeArabic } from '@dafter/contracts';
 import { BookOpen, Plus, Users } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useGetCurrentWorkspaceQuery, useListGroupsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
+import { FilterChips, uniqueOptions } from '@/components/FilterChips';
 import { Avatar, PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { itemName, sortedSlots, weekdayName } from '@/lib/groups';
@@ -18,8 +21,25 @@ export default function Groups() {
   const role = useGetCurrentWorkspaceQuery().data?.role;
   // Assistants read their teachers' groups but never edit them.
   const canWrite = role === 'owner' || role === 'teacher';
+  // A center has hundreds of groups: narrow by teacher, grade or text (audit G2).
+  const [teacher, setTeacher] = useState('');
+  const [grade, setGrade] = useState('');
+  const [q, setQ] = useState('');
 
   if (list.isLoading) return <Skeleton />;
+  const all = list.data ?? [];
+  const needle = normalizeArabic(q.trim()).toLowerCase();
+  const shown = all.filter(
+    (g) =>
+      (!teacher || g.teacherMembershipId === teacher) &&
+      (!grade || g.gradeLevel.id === grade) &&
+      (!needle ||
+        normalizeArabic(
+          `${g.subject.nameAr} ${g.subject.nameEn} ${g.gradeLevel.nameAr} ${g.gradeLevel.nameEn} ${g.teacherName}`,
+        )
+          .toLowerCase()
+          .includes(needle)),
+  );
 
   return (
     <div className="grid gap-5">
@@ -37,11 +57,41 @@ export default function Groups() {
         }
       />
       <FormError message={list.error && t(errorKey(list.error))} />
-      {list.data?.length === 0 && (
-        <Panel className="p-8 text-center text-muted-foreground">{t('groups.empty')}</Panel>
+      {all.length > 1 && (
+        <div className="grid gap-3">
+          <input
+            type="search"
+            aria-label={t('groups.search')}
+            placeholder={t('groups.search')}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="h-11 w-full rounded-2xl border bg-card px-4 text-base shadow-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <FilterChips
+            label={t('groups.teacher')}
+            value={teacher}
+            onChange={setTeacher}
+            options={uniqueOptions(
+              all.map((g) => ({ value: g.teacherMembershipId, label: g.teacherName })),
+            )}
+          />
+          <FilterChips
+            label={t('groups.gradeLevel')}
+            value={grade}
+            onChange={setGrade}
+            options={uniqueOptions(
+              all.map((g) => ({ value: g.gradeLevel.id, label: itemName(g.gradeLevel, lang) })),
+            )}
+          />
+        </div>
+      )}
+      {(all.length === 0 || shown.length === 0) && (
+        <Panel className="p-8 text-center text-muted-foreground">
+          {t(all.length ? 'groups.noMatch' : 'groups.empty')}
+        </Panel>
       )}
       <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {list.data?.map((g, i) => {
+        {shown.map((g, i) => {
           const card = (
             <Panel className="grid h-full gap-4 p-5 transition-all hover:-translate-y-0.5 hover:border-ink/40">
               <div className="flex items-start gap-3">

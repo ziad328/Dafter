@@ -12,6 +12,7 @@ import {
   useMoveSessionMutation,
 } from '@/api/generated';
 import { Field, FormError, Skeleton } from '@/components/Field';
+import { FilterChips, uniqueOptions } from '@/components/FilterChips';
 import { PageHeader } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,10 +38,16 @@ export default function Timetable() {
     el?.scrollIntoView({ block: 'start' });
   }, []);
   const goTo = (week: string) => setParams(week === thisWeek ? {} : { week }, { replace: true });
+  // One teacher's or one grade's week (audit TT2).
+  const [teacher, setTeacher] = useState('');
+  const [grade, setGrade] = useState('');
+  const all = list.data ?? [];
 
   // Sessions come sorted by start, so days come out in order. (Map.groupBy needs iOS 17.4.)
   const days = new Map<string, Session[]>();
-  for (const s of list.data ?? []) {
+  for (const s of all) {
+    if ((teacher && s.teacherMembershipId !== teacher) || (grade && s.gradeLevel.id !== grade))
+      continue;
     const date = localDate(s.startsAt, tz);
     days.set(date, [...(days.get(date) ?? []), s]);
   }
@@ -66,6 +73,22 @@ export default function Timetable() {
           <ChevronLeft aria-hidden className="ltr:-scale-x-100" />
         </Button>
       </nav>
+      <FilterChips
+        label={t('groups.teacher')}
+        value={teacher}
+        onChange={setTeacher}
+        options={uniqueOptions(
+          all.map((s) => ({ value: s.teacherMembershipId, label: s.teacherName })),
+        )}
+      />
+      <FilterChips
+        label={t('groups.gradeLevel')}
+        value={grade}
+        onChange={setGrade}
+        options={uniqueOptions(
+          all.map((s) => ({ value: s.gradeLevel.id, label: itemName(s.gradeLevel, lang) })),
+        )}
+      />
       <FormError message={list.error && t(errorKey(list.error))} />
       {list.isLoading || !workspace.data ? (
         <Skeleton />
