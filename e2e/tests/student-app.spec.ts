@@ -10,6 +10,8 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   lang,
   t,
 }) => {
+  // Two browsers and an email round trip: the default 30 s is tight under the full parallel run.
+  test.setTimeout(60_000);
   // The dev database is not reset between runs, so this run's records have unique digits.
   const n = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');
   const name = `سارة ${n}`;
@@ -70,6 +72,14 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await expect(student).toHaveURL(/\/s$/);
   // The check-in button appears only once the phone is bound.
   await expect(student.getByRole('link', { name: t.scan.open })).toBeVisible();
+  // Sign-out is folded into settings and needs a second tap, not sitting in the header.
+  await expect(
+    student.getByRole('banner').getByRole('button', { name: t.shell.logout }),
+  ).toHaveCount(0);
+  await student.getByText(t.studentApp.settings).click();
+  await student.getByRole('button', { name: t.shell.logout }).click();
+  await student.getByRole('button', { name: t.studentApp.confirmLogout }).click();
+  await expect(student).toHaveURL(/\/s\/login/);
   await phone.close();
 
   // Back at the center: the phone shows as bound, and the assistant flow can reset it.

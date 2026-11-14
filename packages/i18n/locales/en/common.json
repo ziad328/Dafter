@@ -250,7 +250,11 @@
     "noSessions": "No sessions in the next two weeks.",
     "history": "My attendance",
     "noHistory": "No attendance yet.",
-    "checkSpam": "No email after a minute? Check your spam (junk) folder, and move the Dafter email to your inbox."
+    "checkSpam": "No email after a minute? Check your spam (junk) folder, and move the Dafter email to your inbox.",
+    "today": "Today",
+    "rate": "Attended {attended} of {total}",
+    "settings": "Settings",
+    "confirmLogout": "Tap again to sign out"
   },
   "live": {
     "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",

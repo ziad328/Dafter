@@ -33,13 +33,13 @@ export function useSelectWorkspace() {
   );
 }
 
-export function useSignOut() {
+export function useSignOut(to = '/login') {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [logout] = useLogoutMutation();
   return async () => {
     await logout();
     dispatch(api.util.resetApiState());
-    void navigate('/login');
+    void navigate(to);
   };
 }

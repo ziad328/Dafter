@@ -33,6 +33,8 @@ function Layout() {
   const me = useGetMeQuery();
   const signOut = useSignOut();
   const other = i18n.language === 'ar' ? 'en' : 'ar';
+  const { pathname } = useLocation();
+  const isStudentApp = pathname === '/s' || pathname.startsWith('/s/');
 
   return (
     <div className="min-h-dvh bg-background font-sans text-foreground">
@@ -47,7 +49,8 @@ function Layout() {
           >
             {t('shell.switchLanguage')}
           </Button>
-          {me.data && (
+          {/* The student app keeps sign-out in its settings, away from the header (audit S3). */}
+          {me.data && !isStudentApp && (
             <Button variant="ghost" size="sm" onClick={() => void signOut()}>
               {t('shell.logout')}
             </Button>

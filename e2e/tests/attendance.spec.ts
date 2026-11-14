@@ -130,6 +130,9 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await s.getByRole('link', { name: t.scan.back }).click();
   await expect(s.getByTestId('my-schedule')).toContainText(subjectName);
   await expect(s.getByTestId('my-attendance')).toContainText(t.live.status.present);
+  await expect(s.getByTestId('attendance-rate')).toHaveText(
+    t.studentApp.rate.replace('{attended}', '1').replace('{total}', '1'),
+  );
   await phone.close();
 
   // Live: the teacher sees the scan without reloading.
