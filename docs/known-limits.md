@@ -13,7 +13,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Vercel doesn't run migrations; they run from a laptop (`pnpm demo:seed:neon`) before pushing | Forgetting breaks the deploy until it's run | later (a CI step) |
 | The live list polls the database every second per open teacher screen | Up to 1 s delay; Neon stays awake while a class is live | later (LISTEN/NOTIFY on a long-running host) |
 | The first request after a quiet spell starts NestJS (cold start) | About 1–2 s wait | — |
-| CI has never run green on GitHub (remote has up to Day 9; nothing since is pushed); `oasdiff` contract check not set up | Workflow errors are unknown until the first push | D17b (push) |
+| CI checks that `openapi.json` and the generated client match the Zod contracts, but has no breaking-change check (`oasdiff`) | A renamed or removed field passes CI; the PWA keeps an old client until it updates | centers |
 | Rate limits are in process memory | They reset on restart and count per instance | later (Redis at the VPS stage) |
 | Every job loops over all workspaces in one pass (sessions, charges, outbox) | Slow with thousands of workspaces | later |
 | Test harness: cloned test databases are never dropped, and the global setup always starts a container | Slower local runs only | later |
@@ -65,14 +65,26 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| No cash summary or unpaid report | Owners can't see who owes | centers |
 | No proration for mid-month joins | A student who joins on the 25th pays the full month | centers |
 | No nightly balance check | Drift would go unnoticed (the ledger is append-only) | later |
 | Students don't see their balance | Parents ask the center | later |
 | Fee model (one monthly fee per group) and who sees money are guesses | May change after center interviews | centers |
 | Cash summary: no "handed over" step; the owner can't mark a day as received or see who hasn't handed over | The handover itself is still on paper | centers |
 | Cash summary: a reversal counts on the day it was made, so voiding an older payment can make a day's total negative | Shown as is (real money out); can surprise at first | — |
+| Cash summary: the owner sees every staff member on one page, with no filter by person or a date range (one day at a time) | Fine for a small center | later |
+| Cash summary: checked at 375 px in Playwright only; the printed page / saved PDF and a real phone are not checked by eye | Print layout may need tweaks | centers |
 | Cash summary: payments sit under whoever recorded them; one assistant typing in another's takings shows under the wrong person | Rare; fix by reversing and re-entering | — |
+
+## Exams and dashboard (v1)
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| No CSV import or export of exam scores | Big groups are typed by hand | centers (export first, import later) |
+| A corrected score resends the same sentence with «تصحيح:» only | Parents don't see the old score | — |
+| Dashboard: last 8 weeks and 6 months only, no date range | No term view | later (a `weeks` param, max 26) |
+| Dashboard: archived groups are left out | Last term's groups disappear | later (include them with a filter) |
+| Dashboard bars are plain CSS, no chart library | No tooltips or axis | — |
+| The exam grid, "My grades", the dashboard and the fee-reminder switch were checked by the 375 px tests only | Not checked by eye on a real phone | centers |
 
 ## Messages (Day 15)
 
@@ -99,4 +111,6 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | The `run-dafter` screenshot command doesn't sign in | Only public screens can be shot | later |
 | Message e2e is skipped during Cairo quiet hours (22:00–08:00) | Night runs check less | — |
 | `fee-reminders.spec.ts` is skipped from the 1st to the 6th of the month (Cairo), and makes a new workspace for the seeded owner on every run | Early-month runs check less; the dev owner's workspace list grows (until `pnpm db:reset`) | — |
+| `students.spec.ts` [ar] "assistant adds a student…" failed once in the full run (2 workers, `toHaveCount`), then passed alone; CI retries once | Possible flake | later (watch; if it repeats, look at what the count waits on) |
+| The GitHub CLI (`gh`) isn't installed on the dev laptop; CI status is read from the public Actions API with `curl` | No PR or log commands from Claude Code | — |
 | `student-app.spec.ts` timed out once (40 s) with the full suite on 6 workers, then passed alone | Possible flake under load | later (watch in CI) |
