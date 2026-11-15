@@ -46,7 +46,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Rooms work in independent workspaces too (the data model said centers only) | Harmless; the screen sits under More for everyone | — |
 | Curriculum (subjects, grades) can't be edited | Centers with other subjects are stuck | centers |
 | A full group is a confirm, not a hard stop (`force: true` adds anyway) | Staff can still over-fill on purpose | — |
-| Group slots don't check the teacher's other groups (only a session move does) | A new group can double-book its teacher | later (move the e2e groups at Saturday 16:00 to distinct times first) |
+| A teacher clash on a group's slots is a warning the owner can save past (`force`); twin groups saved that way then refuse each other's session moves (`TEACHER_BOOKED`, moves have no force) | Move such a session to a free hour, or save the groups apart | — |
 | The teacher check uses each group's current teacher; a past session keeps no teacher of its own | A teacher change re-labels old sessions | — |
 | `GET /groups/:id/sessions` not built | Not needed by the timetable | later |
 | No cursor pagination (groups, students: first 50) | Big centers can't see everyone | later |

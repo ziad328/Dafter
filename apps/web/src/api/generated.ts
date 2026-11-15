@@ -1033,6 +1033,7 @@ export type CreateGroupRequest = {
   monthlyFeePiastres?: number | null;
   roomId?: string | null;
   slots: GroupSlot[];
+  force?: boolean;
 };
 export type UpdateGroupRequest = {
   teacherMembershipId?: string;
@@ -1044,6 +1045,7 @@ export type UpdateGroupRequest = {
   roomId?: string | null;
   status?: 'active' | 'archived';
   slots?: GroupSlot[];
+  force?: boolean;
 };
 export type Exam = {
   id: string;

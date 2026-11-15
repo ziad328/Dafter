@@ -47,6 +47,7 @@ test('the owner invites an assistant with their teacher, removes the teacher, an
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   await api.post('groups', {
+    force: true,
     teacherMembershipId: teacher.id,
     subjectId: subject.id,
     gradeLevelId: grade.id,

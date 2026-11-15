@@ -1,4 +1,13 @@
-import { choose, enterWorkspace, expect, openNav, signIn, STAFF, test } from './fixtures';
+import {
+  choose,
+  enterWorkspace,
+  expect,
+  openNav,
+  signIn,
+  STAFF,
+  submitGroup,
+  test,
+} from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -32,13 +41,16 @@ test('owner adds a room, books a group in it, and a clashing group is refused', 
     await choose(page, t.groups.subject, PHYSICS[lang]);
     await choose(page, t.groups.gradeLevel, SEC3[lang]);
     await choose(page, `${t.groups.room} ${t.form.optional}`, room);
-    await page.getByRole('button', { name: t.groups.create }).click();
   };
   await newGroup();
+  // The owner also teaches the seeded Saturday 16:00 group: saved anyway.
+  await submitGroup(page, t);
   await expect(page).toHaveURL(/\/groups$/);
   await expect(page.getByRole('link').filter({ hasText: room })).toHaveCount(1);
 
   await newGroup();
+  // The room is checked before the teacher, and can't be saved past.
+  await page.getByRole('button', { name: t.groups.create }).click();
   // "The room is taken on Saturday 4:00 PM – 5:30 PM by another group": the text before {day}.
   await expect(page.getByRole('alert')).toContainText(t.groups.roomBookedAt.split('{')[0]!.trim());
   await expect(page).toHaveURL(/\/groups\/new$/);

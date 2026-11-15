@@ -14,6 +14,7 @@ test('the owner opens the dashboard and finds a group with its exam average; a t
   const [grade] = await api.get('grade-levels');
   const label = `لوحة ${n}`;
   const group = await api.post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     label,

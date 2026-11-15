@@ -34,7 +34,8 @@ async function setup() {
   const room = async (name: string) =>
     (await c.owner('POST', 'rooms', { name })).json().id as string;
   const group = (roomId: string | null, slots: Slot[], call: Center['owner'] = c.owner) =>
-    call('POST', 'groups', { subjectId, gradeLevelId, roomId, slots });
+    // One teacher (the owner) in every room: force skips the teacher check, never the room's.
+    call('POST', 'groups', { subjectId, gradeLevelId, roomId, slots, force: true });
   const sessionsOn = async (date: string) =>
     (await c.owner('GET', `sessions?from=${date}&to=${date}`)).json() as {
       id: string;
@@ -150,7 +151,10 @@ describe('groups in rooms', () => {
     expect(into.json().code).toBe('ROOM_BOOKED');
     // New slots that clash in its own room: refused.
     const c2 = (await group(r2, [SAT('18:00', '19:00')])).json();
-    const slots = await c.owner('PATCH', `groups/${c2.id}`, { slots: [SAT('17:00', '18:30')] });
+    const slots = await c.owner('PATCH', `groups/${c2.id}`, {
+      slots: [SAT('17:00', '18:30')],
+      force: true,
+    });
     expect(slots.json().code).toBe('ROOM_BOOKED');
 
     // Moving C to r1 at 18:00 is fine and takes its future sessions along.
@@ -171,7 +175,11 @@ describe('groups in rooms', () => {
     const back = await c.owner('PATCH', `groups/${b.id}`, { status: 'active' });
     expect(back.json().code).toBe('ROOM_BOOKED');
     // Without a room it can.
-    const freed = await c.owner('PATCH', `groups/${b.id}`, { roomId: null, status: 'active' });
+    const freed = await c.owner('PATCH', `groups/${b.id}`, {
+      roomId: null,
+      status: 'active',
+      force: true,
+    });
     expect(freed.json()).toMatchObject({ room: null, status: 'active' });
   });
 

@@ -50,6 +50,7 @@ test('owner registers a student straight into a group, with a discount', async (
   const grades = (await get('grade-levels')) as { id: string; nameAr: string; nameEn: string }[];
   const grade = grades.at(-1)!;
   await post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [{ weekday: 3, startTime: '16:00', endTime: '17:30' }],

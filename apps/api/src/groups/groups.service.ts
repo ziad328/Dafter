@@ -54,7 +54,13 @@ export class GroupsService {
       roomId: body.roomId ?? null,
     };
     await this.checkReferences(ctx, values);
-    const id = await this.repo.create(ctx.workspaceId, values, body.slots, this.clock.now());
+    const id = await this.repo.create(
+      ctx.workspaceId,
+      values,
+      body.slots,
+      this.clock.now(),
+      body.force,
+    );
     return this.get(ctx, id);
   }
 
@@ -63,7 +69,7 @@ export class GroupsService {
     const mine = group.teacherMembershipId === ctx.membershipId;
     if (ctx.role === 'assistant' || (ctx.role === 'teacher' && !mine))
       throw new AppError('FORBIDDEN');
-    const { slots, ...patch } = body;
+    const { slots, force, ...patch } = body;
     if (
       patch.teacherMembershipId &&
       patch.teacherMembershipId !== group.teacherMembershipId &&
@@ -75,7 +81,7 @@ export class GroupsService {
       ...patch,
       roomId: patch.roomId === group.room?.id ? undefined : patch.roomId,
     });
-    await this.repo.update(ctx.workspaceId, id, patch, slots, this.clock.now());
+    await this.repo.update(ctx.workspaceId, id, patch, slots, this.clock.now(), force);
     return this.get(ctx, id);
   }
 

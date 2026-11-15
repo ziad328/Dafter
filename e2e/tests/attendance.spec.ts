@@ -45,6 +45,7 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   const subjectName = (lang === 'en' ? subject.nameEn : subject.nameAr) as string;
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [{ weekday, startTime: hhmm(startMin), endTime: '23:59' }],

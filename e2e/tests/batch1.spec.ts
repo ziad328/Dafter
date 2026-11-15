@@ -1,13 +1,18 @@
 import {
   enterWorkspace,
   expect,
+  GROUP_CONFLICT,
   openNav,
   ownerApi,
   PASSWORD,
   signIn,
   STAFF,
+  submitGroup,
   test,
 } from './fixtures';
+
+// Restoring in the seeded center may meet the owner's other groups: answered with Save anyway.
+test.use({ expectedErrors: GROUP_CONFLICT });
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 
@@ -22,6 +27,7 @@ test('owner archives a group, and it leaves the active list', async ({
   const [grade] = await api.get('grade-levels');
   const label = `أرشيف ${Math.floor(Math.random() * 1e6)}`;
   const group = await api.post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     label,
@@ -39,7 +45,7 @@ test('owner archives a group, and it leaves the active list', async ({
 
   // Restore it again in one tap.
   await card.click();
-  await page.getByRole('button', { name: t.groups.restore }).click();
+  await submitGroup(page, t, t.groups.restore);
   await expect(page).toHaveURL(/\/groups$/);
   await expect(page.getByRole('link').filter({ hasText: label })).not.toContainText(
     t.groups.archived,

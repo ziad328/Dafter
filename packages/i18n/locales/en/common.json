@@ -127,6 +127,8 @@
     "labelHint": "Tells two groups of the same subject and grade apart, e.g. Group A.",
     "room": "Room",
     "noRoom": "No room",
+    "teacherBusyAt": "The teacher has another group on {day} {time}. Save anyway?",
+    "saveAnyway": "Save anyway",
     "roomBookedAt": "The room is taken on {day} {time} by another group",
     "archive": "Archive group",
     "confirmArchive": "Tap again to archive",

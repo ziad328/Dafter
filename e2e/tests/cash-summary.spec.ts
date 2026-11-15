@@ -13,6 +13,7 @@ test("assistant hands over today's cash summary, and the owner sees it", async (
   const [subject] = await teacher.get('subjects');
   const [grade] = await teacher.get('grade-levels');
   const group = await teacher.post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 30_000,

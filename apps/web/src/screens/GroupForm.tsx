@@ -1,6 +1,6 @@
 import { createGroupRequest, type CreateGroupRequest, type Group } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useFieldArray, useForm, type FieldError } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -73,13 +73,17 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
   // Archiving takes a second tap; restoring doesn't.
   const [confirming, setConfirming] = useState(false);
   const archived = group?.status === 'archived';
+  // Which save TEACHER_BOOKED's "Save anyway" repeats with force: the form, or the restore.
+  const lastSave = useRef<'form' | 'restore'>('form');
+  const setStatus = async (force?: boolean) => {
+    lastSave.current = 'restore';
+    const status = archived ? 'active' : 'archived';
+    const res = await update({ id: id!, updateGroupRequest: { status, force } });
+    if (res.data) void navigate('/groups');
+  };
   const toggleArchive = async () => {
     if (!archived && !confirming) return setConfirming(true);
-    const res = await update({
-      id: id!,
-      updateGroupRequest: { status: archived ? 'active' : 'archived' },
-    });
-    if (res.data) void navigate('/groups');
+    await setStatus();
   };
   const error = created.error ?? updated.error;
 
@@ -94,23 +98,33 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
   const overRoom = !!room?.capacity && !!capacity && capacity > room.capacity;
   const { errors } = formState;
 
-  const onSubmit = handleSubmit(async (body) => {
-    const res = id
-      ? await update({ id, updateGroupRequest: body })
-      : await create({ createGroupRequest: body });
-    if (res.data) void navigate('/groups');
-  });
+  const save = (force?: boolean) =>
+    handleSubmit(async (body) => {
+      lastSave.current = 'form';
+      const res = id
+        ? await update({ id, updateGroupRequest: { ...body, force } })
+        : await create({ createGroupRequest: { ...body, force } });
+      if (res.data) void navigate('/groups');
+    });
+  const onSubmit = save();
+  // The form as it is now (edited since the warning or not), never a copy from the first try.
+  const saveAnyway = () =>
+    lastSave.current === 'restore' ? void setStatus(true) : void save(true)();
 
   // ROOM_BOOKED from a group's slots says when the room is taken.
   const data = (error as { data?: { code?: string; details?: Record<string, string> } })?.data;
   const clash = data?.code === 'ROOM_BOOKED' ? data.details : undefined;
-  const errorText = clash
-    ? t('groups.roomBookedAt', {
-        day: weekdayName(lang, Number(clash.weekday)),
-        // Isolated, so the times keep their order inside an Arabic sentence (rule 5).
-        time: `\u2068${clockLabel(clash.startTime!, lang)} – ${clockLabel(clash.endTime!, lang)}\u2069`,
-      })
-    : error && t(errorKey(error));
+  // TEACHER_BOOKED from slots (a weekday, not a date): a warning the owner can save past.
+  const busy = data?.code === 'TEACHER_BOOKED' ? data.details : undefined;
+  const errorText = busy
+    ? undefined
+    : clash
+      ? t('groups.roomBookedAt', {
+          day: weekdayName(lang, Number(clash.weekday)),
+          // Isolated, so the times keep their order inside an Arabic sentence (rule 5).
+          time: `\u2068${clockLabel(clash.startTime!, lang)} – ${clockLabel(clash.endTime!, lang)}\u2069`,
+        })
+      : error && t(errorKey(error));
 
   // Zod messages are our own codes (SLOT_OVERLAP, SLOT_ENDS_BEFORE_START), never shown raw.
   const slotError = (e?: FieldError) =>
@@ -282,6 +296,29 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
             </fieldset>
 
             <FormError message={errorText} />
+            {busy && (
+              <div
+                role="alert"
+                className="grid gap-2 rounded-md border border-late/40 bg-late-soft p-3 text-sm"
+              >
+                <p>
+                  {t('groups.teacherBusyAt', {
+                    day: weekdayName(lang, Number(busy.weekday)),
+                    // Isolated, so the times keep their order inside an Arabic sentence (rule 5).
+                    time: `\u2068${clockLabel(busy.startTime!, lang)} – ${clockLabel(busy.endTime!, lang)}\u2069`,
+                  })}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="justify-self-start"
+                  disabled={saving}
+                  onClick={saveAnyway}
+                >
+                  {t('groups.saveAnyway')}
+                </Button>
+              </div>
+            )}
             <Button type="submit" disabled={saving}>
               {t(id ? 'groups.save' : 'groups.create')}
             </Button>

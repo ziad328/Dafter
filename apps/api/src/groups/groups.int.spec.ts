@@ -74,6 +74,8 @@ const body = (extra: object = {}) => ({
     { weekday: 6, startTime: '16:00', endTime: '17:30' },
     { weekday: 2, startTime: '18:00', endTime: '19:30' },
   ],
+  // These suites make many groups per teacher at one time; the teacher check has its own tests.
+  force: true,
   ...extra,
 });
 
@@ -219,8 +221,69 @@ describe('PATCH /groups/:id', () => {
     expect(byTeacher.json().code).toBe('FORBIDDEN');
     const byAssistant = await c.assistant.call('PATCH', `groups/${g.id}`, { capacity: 5 });
     expect(byAssistant.json().code).toBe('FORBIDDEN');
-    const byOwner = await c.owner('PATCH', `groups/${g.id}`, { teacherMembershipId: c.t2.id });
+    const byOwner = await c.owner('PATCH', `groups/${g.id}`, {
+      teacherMembershipId: c.t2.id,
+      force: true,
+    });
     expect(byOwner.json().teacherMembershipId).toBe(c.t2.id);
+  });
+});
+
+describe('teacher double-booking', () => {
+  it("refuses a slot that overlaps the same teacher's other active group, unless forced", async () => {
+    const d = await center();
+    const SAT = (startTime: string, endTime: string) => ({ weekday: 6, startTime, endTime });
+    const make = (call: typeof d.t1.call, slots: object[], extra: object = {}) =>
+      call('POST', 'groups', {
+        subjectId: d.subjects[5].id,
+        gradeLevelId: d.grades[11].id,
+        slots,
+        ...extra,
+      });
+    const a = await make(d.t1.call, [SAT('16:00', '17:30')]);
+    expect(a.statusCode).toBe(201);
+
+    const clash = await make(d.t1.call, [SAT('17:00', '18:00')]);
+    expect([clash.statusCode, clash.json()]).toEqual([
+      409,
+      { code: 'TEACHER_BOOKED', details: { weekday: 6, startTime: '16:00', endTime: '17:30' } },
+    ]);
+    // Touching is fine; another teacher at the same time is fine; force saves anyway.
+    const b = (await make(d.t1.call, [SAT('17:30', '18:30')])).json();
+    const other = (await make(d.t2.call, [SAT('16:00', '17:30')])).json();
+    expect((await make(d.t1.call, [SAT('17:00', '18:00')], { force: true })).statusCode).toBe(201);
+
+    // New slots, a new teacher and a restore are checked the same way.
+    const moved = await d.t1.call('PATCH', `groups/${b.id}`, { slots: [SAT('16:30', '17:00')] });
+    expect(moved.json().code).toBe('TEACHER_BOOKED');
+    const reassigned = await d.owner('PATCH', `groups/${other.id}`, {
+      teacherMembershipId: d.t1.id,
+    });
+    expect(reassigned.json().code).toBe('TEACHER_BOOKED');
+    await d.t1.call('PATCH', `groups/${a.json().id}`, { status: 'archived' });
+    const restored = await d.t1.call('PATCH', `groups/${a.json().id}`, { status: 'active' });
+    expect(restored.json().code).toBe('TEACHER_BOOKED');
+    const forced = await d.t1.call('PATCH', `groups/${a.json().id}`, {
+      status: 'active',
+      force: true,
+    });
+    expect(forced.json().status).toBe('active');
+    // A field that moves no time is never checked.
+    expect((await d.t1.call('PATCH', `groups/${b.id}`, { capacity: 9 })).statusCode).toBe(200);
+  });
+
+  it('lets only one of two saves at the same moment take the free hour', async () => {
+    const d = await center();
+    const sun = (subject: number) => ({
+      subjectId: d.subjects[subject].id,
+      gradeLevelId: d.grades[11].id,
+      slots: [{ weekday: 0, startTime: '10:00', endTime: '11:00' }],
+    });
+    const results = await Promise.all([
+      d.t1.call('POST', 'groups', sun(1)),
+      d.t1.call('POST', 'groups', sun(2)),
+    ]);
+    expect(results.map((r) => r.statusCode).sort()).toEqual([201, 409]);
   });
 });
 

@@ -1,4 +1,17 @@
-import { choose, enterWorkspace, expect, openNav, PASSWORD, signIn, STAFF, test } from './fixtures';
+import {
+  choose,
+  enterWorkspace,
+  expect,
+  GROUP_CONFLICT,
+  openNav,
+  PASSWORD,
+  signIn,
+  STAFF,
+  submitGroup,
+  test,
+} from './fixtures';
+
+test.use({ expectedErrors: GROUP_CONFLICT });
 
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
@@ -52,7 +65,7 @@ test('owner sees generated sessions, then moves and cancels one', async ({
   await choose(page, t.groups.day, weekday);
   await page.getByLabel(t.groups.start).fill(start);
   await page.getByLabel(t.groups.end).fill(end);
-  await page.getByRole('button', { name: t.groups.create }).click();
+  await submitGroup(page, t);
   await expect(page).toHaveURL(/\/groups$/);
 
   await page.goto('/');

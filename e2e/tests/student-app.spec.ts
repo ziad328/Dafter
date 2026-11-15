@@ -1,4 +1,16 @@
-import { expect, signIn, STAFF, test, openNav, choose, enterWorkspace } from './fixtures';
+import {
+  expect,
+  signIn,
+  STAFF,
+  test,
+  openNav,
+  choose,
+  enterWorkspace,
+  GROUP_CONFLICT,
+  submitGroup,
+} from './fixtures';
+
+test.use({ expectedErrors: GROUP_CONFLICT });
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -28,7 +40,7 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await choose(page, t.groups.teacher, 'منى حسن');
   await page.getByLabel(t.groups.start).fill('16:00');
   await page.getByLabel(t.groups.end).fill('17:30');
-  await page.getByRole('button', { name: t.groups.create }).click();
+  await submitGroup(page, t);
   await expect(page).toHaveURL(/\/groups$/);
 
   await page.goto('/students/new');

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { aliasedTable, and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { aliasedTable, and, asc, eq, inArray, type SQL, sql } from 'drizzle-orm';
 import type { Group, GroupSlot, UpdateGroupRequest, Workspace } from '@dafter/contracts';
 import {
   assistantScopes,
@@ -129,9 +129,10 @@ export class GroupsRepository extends TenantRepository {
     });
   }
 
-  create(workspaceId: string, values: GroupValues, slots: GroupSlot[], now: Date) {
+  create(workspaceId: string, values: GroupValues, slots: GroupSlot[], now: Date, force = false) {
     return this.inTenant(workspaceId, async (tx) => {
       if (values.roomId) await this.checkRoom(tx, workspaceId, values.roomId, slots);
+      if (!force) await this.checkTeacher(tx, workspaceId, values.teacherMembershipId, slots);
       const [row] = await tx
         .insert(groups)
         .values({ workspaceId, ...values })
@@ -145,7 +146,8 @@ export class GroupsRepository extends TenantRepository {
   /**
    * Updates the group; `slots`, when given, replace all of its slots in the same transaction.
    * New slots or a status change regenerate the group's untouched future sessions. A new room
-   * moves the future scheduled sessions there; an active group's slots must fit its room.
+   * moves the future scheduled sessions there; an active group's slots must fit its room, and
+   * (unless `force`) its teacher's other groups.
    */
   update(
     workspaceId: string,
@@ -153,20 +155,30 @@ export class GroupsRepository extends TenantRepository {
     patch: Omit<UpdateGroupRequest, 'slots'>,
     slots: GroupSlot[] | undefined,
     now: Date,
+    force = false,
   ) {
     return this.inTenant(workspaceId, async (tx) => {
       const where = and(eq(groups.workspaceId, workspaceId), eq(groups.id, id));
       const [cur] = await tx
-        .select({ roomId: groups.roomId, status: groups.status })
+        .select({
+          roomId: groups.roomId,
+          status: groups.status,
+          teacherId: groups.teacherMembershipId,
+        })
         .from(groups)
         .where(where);
       const roomId = patch.roomId === undefined ? cur!.roomId : patch.roomId;
       const newRoom = patch.roomId !== undefined && patch.roomId !== cur!.roomId;
       const active = (patch.status ?? cur!.status) === 'active';
-      if (roomId && active && (newRoom || slots || patch.status)) {
-        const all = slots ?? (await this.slotsOf(tx, workspaceId, id));
-        await this.checkRoom(tx, workspaceId, roomId, all, id);
-      }
+      // The group's slots after this save, read once for both checks.
+      let all = slots;
+      const after = async () => (all ??= await this.slotsOf(tx, workspaceId, id));
+      if (roomId && active && (newRoom || slots || patch.status))
+        await this.checkRoom(tx, workspaceId, roomId, await after(), id);
+      const teacherId = patch.teacherMembershipId ?? cur!.teacherId;
+      const newTeacher = teacherId !== cur!.teacherId;
+      if (!force && active && (newTeacher || slots || patch.status))
+        await this.checkTeacher(tx, workspaceId, teacherId, await after(), id);
       if (Object.keys(patch).length) await tx.update(groups).set(patch).where(where);
       if (slots) {
         await tx
@@ -209,6 +221,46 @@ export class GroupsRepository extends TenantRepository {
     await tx.execute(
       sql`select 1 from rooms where workspace_id = ${workspaceId} and id = ${roomId} for update`,
     );
+    const clash = await this.firstClash(
+      tx,
+      workspaceId,
+      sql`g.room_id = ${roomId}`,
+      slots,
+      exceptGroupId,
+    );
+    if (clash) throw new AppError('ROOM_BOOKED', { ...clash });
+  }
+
+  /**
+   * TEACHER_BOOKED with the first clash when another active group of the same teacher meets on
+   * the same weekday at an overlapping local time (touching is fine). A transaction advisory lock
+   * on the teacher, the one session moves take, makes two saves for one teacher run in turn.
+   */
+  private async checkTeacher(
+    tx: Tx,
+    workspaceId: string,
+    teacherId: string,
+    slots: GroupSlot[],
+    exceptGroupId?: string,
+  ) {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${teacherId}::text, 0))`);
+    const filter = sql`g.teacher_membership_id = ${teacherId}`;
+    const clash = await this.firstClash(tx, workspaceId, filter, slots, exceptGroupId);
+    if (clash) throw new AppError('TEACHER_BOOKED', { ...clash });
+  }
+
+  /**
+   * The first slot of another active group (matching `filter`) that meets on the same weekday
+   * at an overlapping local time as one of `slots`; touching slots (17:30 end, 17:30 start) are
+   * fine.
+   */
+  private async firstClash(
+    tx: Tx,
+    workspaceId: string,
+    filter: SQL,
+    slots: GroupSlot[],
+    exceptGroupId?: string,
+  ) {
     const { rows } = await tx.execute<GroupSlot>(sql`
       select s.weekday, to_char(s.start_time, 'HH24:MI') as "startTime",
         to_char(s.end_time, 'HH24:MI') as "endTime"
@@ -216,13 +268,13 @@ export class GroupsRepository extends TenantRepository {
       join groups g on g.workspace_id = s.workspace_id and g.id = s.group_id
       cross join jsonb_to_recordset(${JSON.stringify(slots)}::jsonb)
         as n(weekday int, "startTime" text, "endTime" text)
-      where s.workspace_id = ${workspaceId} and g.room_id = ${roomId} and g.status = 'active'
+      where s.workspace_id = ${workspaceId} and ${filter} and g.status = 'active'
         ${exceptGroupId ? sql`and g.id <> ${exceptGroupId}` : sql``}
         and s.weekday = n.weekday
         and s.start_time < n."endTime"::time and n."startTime"::time < s.end_time
       order by s.weekday, s.start_time
       limit 1`);
-    if (rows[0]) throw new AppError('ROOM_BOOKED', { ...rows[0] });
+    return rows[0];
   }
 
   private async slotsOf(tx: Tx, workspaceId: string, groupId: string): Promise<GroupSlot[]> {

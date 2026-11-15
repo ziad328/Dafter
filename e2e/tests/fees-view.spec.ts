@@ -12,6 +12,7 @@ test('owner opens the fees view and finds a student who owes', async ({
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   const group = await api.post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 50_000,

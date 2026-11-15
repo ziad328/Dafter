@@ -207,3 +207,11 @@ Anything the API sends is readable in the browser's network tab, so masking in R
 
 **3. CI migrates Neon before Vercel promotes the build. What does that require of each migration?**
 Between the migration and the promotion the old code runs on the new schema, so a migration may only add things (tables, nullable or defaulted columns, enum values). A drop or rename waits for a later push, once no live code uses the old name: expand first, contract later.
+
+## Teacher double-booking on group slots
+
+**1. Why is a teacher clash a warning with `force`, but a room clash a hard error?**
+A room can't hold two classes, so ROOM_BOOKED is a fact. A teacher at two groups at once is usually a mistake but sometimes deliberate (two halls sharing one lesson, an assistant covering), so the owner confirms it. The room is checked first, so a forced save never skips the room.
+
+**2. How do two saves at the same moment not both take the teacher's free hour?**
+Both take `pg_advisory_xact_lock` on the teacher's membership id before checking, the same lock a session move takes. The second waits until the first commits, then its check sees the first group's slots and answers TEACHER_BOOKED.

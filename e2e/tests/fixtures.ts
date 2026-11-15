@@ -48,6 +48,26 @@ export const test = base.extend<{ lang: Lang; t: typeof ar; expectedErrors: stri
 
 export { expect };
 
+/**
+ * Clicks Create (or Save) on the group form. The seeded owner already teaches at many times, so
+ * the teacher warning (TEACHER_BOOKED) is answered with "Save anyway"; a test using this lists
+ * GROUP_CONFLICT in `expectedErrors`.
+ */
+export async function submitGroup(page: Page, t: typeof ar, button = t.groups.create) {
+  await page.getByRole('button', { name: button }).click();
+  const anyway = page.getByRole('button', { name: t.groups.saveAnyway });
+  await expect
+    .poll(async () => (await anyway.isVisible()) || new URL(page.url()).pathname === '/groups')
+    .toBe(true);
+  if (await anyway.isVisible()) await anyway.click();
+}
+
+/** The 409 a group save answers with when the teacher (or the room) is taken. */
+export const GROUP_CONFLICT = [
+  `409 ${process.env.E2E_BASE_URL ?? 'http://localhost:5173'}/api/v1/groups`,
+  'status of 409 (Conflict)',
+];
+
 export async function signIn(page: Page, t: typeof ar, login: string) {
   await page.goto('/login');
   await page.getByLabel(t.auth.login.login).fill(login);

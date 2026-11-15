@@ -46,6 +46,7 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
   const [subject] = await get('subjects');
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 50_000,
@@ -106,6 +107,7 @@ test('a payment from Today: find the student, the amount is what they owe, save,
   const [subject] = await get('subjects');
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 40_000,

@@ -53,6 +53,9 @@ export const createGroupRequest = z
     // An active room of the workspace; its other groups' slots must not overlap (ROOM_BOOKED).
     roomId: z.uuid().nullable().optional(),
     slots: slotList,
+    // Save even when the teacher has another group at an overlapping time (they confirmed
+    // TEACHER_BOOKED).
+    force: z.boolean().optional(),
   })
   .meta({ id: 'CreateGroupRequest' });
 
@@ -69,6 +72,8 @@ export const updateGroupRequest = z
     status: z.enum(['active', 'archived']),
     // Replaces every slot of the group.
     slots: slotList,
+    // Save even when the teacher has another group at an overlapping time.
+    force: z.boolean(),
   })
   .partial()
   .meta({ id: 'UpdateGroupRequest' });

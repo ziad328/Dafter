@@ -50,7 +50,8 @@ export const ERROR_STATUS = {
   // A move to a time that has already passed.
   SESSION_TIME_INVALID: 400,
   // A move onto another non-cancelled session of the same teacher (details: the clash's local
-  // date, startTime and endTime).
+  // date, startTime and endTime). From a group's slots: the teacher's other active group meets
+  // then (details: weekday, startTime, endTime); resend with force: true to save anyway.
   TEACHER_BOOKED: 409,
   // Unknown id or another workspace's student: never 403.
   STUDENT_NOT_FOUND: 404,

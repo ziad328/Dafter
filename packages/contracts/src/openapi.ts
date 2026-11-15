@@ -354,7 +354,8 @@ export function buildOpenApi() {
         post: {
           operationId: 'createGroup',
           tags: ['groups'],
-          description: 'Owner or teacher. A teacher always creates their own group.',
+          description:
+            'Owner or teacher. A teacher always creates their own group. TEACHER_BOOKED (weekday, startTime, endTime) when the teacher has another active group at an overlapping time; resend with force: true to save anyway.',
           security: [{ bearer: [] }],
           requestBody: { required: true, content: json(createGroupRequest) },
           responses: { 201: { description: 'Created', content: json(group) }, ...errors },
@@ -371,7 +372,8 @@ export function buildOpenApi() {
         patch: {
           operationId: 'updateGroup',
           tags: ['groups'],
-          description: 'Owner, or the teacher of the group. Only the owner reassigns the teacher.',
+          description:
+            'Owner, or the teacher of the group. Only the owner reassigns the teacher. New slots, a new teacher or a restore are checked against the other active groups of the teacher (TEACHER_BOOKED; force: true saves anyway).',
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           requestBody: { required: true, content: json(updateGroupRequest) },

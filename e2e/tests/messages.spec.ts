@@ -40,6 +40,7 @@ test('a cancelled session shows in the message log; the owner switches messages 
   const [subject] = await get('subjects');
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [

@@ -16,6 +16,7 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   const group = await api.post('groups', {
+    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     label: `امتحانات ${n}`,

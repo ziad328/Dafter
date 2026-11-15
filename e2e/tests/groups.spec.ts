@@ -1,4 +1,16 @@
-import { expect, signIn, STAFF, test, openNav, choose, enterWorkspace } from './fixtures';
+import {
+  expect,
+  signIn,
+  STAFF,
+  test,
+  openNav,
+  choose,
+  enterWorkspace,
+  GROUP_CONFLICT,
+  submitGroup,
+} from './fixtures';
+
+test.use({ expectedErrors: GROUP_CONFLICT });
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
@@ -20,7 +32,7 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   await page.getByLabel(new RegExp(t.groups.capacity)).fill(capacity);
   await page.getByLabel(t.groups.start).fill('16:00');
   await page.getByLabel(t.groups.end).fill('17:30');
-  await page.getByRole('button', { name: t.groups.create }).click();
+  await submitGroup(page, t);
 
   await expect(page).toHaveURL(/\/groups$/);
   // "0/485": the bare digits can also sit inside another group's label.

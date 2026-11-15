@@ -43,6 +43,7 @@ async function freshCenter(request: APIRequestContext, prefix: string) {
 test('a new student joins a full group after the confirm', async ({ page, request, lang, t }) => {
   const c = await freshCenter(request, 'سنتر السعة');
   const group = await c.api.post('groups', {
+    force: true,
     subjectId: c.subject.id,
     gradeLevelId: c.grade.id,
     capacity: 1,
@@ -90,6 +91,7 @@ test('moving a session onto the teacher’s other session is refused', async ({
   const later = addDays(tomorrow, 1);
   const make = (weekday: number, startTime: string, endTime: string, label: string) =>
     c.api.post('groups', {
+      force: true,
       subjectId: c.subject.id,
       gradeLevelId: c.grade.id,
       label,
