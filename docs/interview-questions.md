@@ -130,3 +130,14 @@ The outbox rows are inserted in the same transaction that stamps `notified_at`, 
 
 **3. Why is the score-above-max rule in the service and not a database check?**
 A check constraint can only see its own row, and the max lives on the exam row. A trigger could do it, but the service already holds the exam row locked and returns a code with the student's id for the grid. The database still enforces what it can see: score ≥ 0 or absent, never both.
+
+## v1 · Fee-overdue reminders
+
+**1. The reminder job runs every day. How does a parent get at most one reminder a month?**
+The dedupe key is `fee_overdue:<YYYY-MM>:<guardian>`, with the month taken in the workspace timezone, and the insert is `ON CONFLICT DO NOTHING`. Days 7 to 31 all try to insert the same key, so only the first lands; a new month makes a new key. A rerun after a crash or a retried cron call is therefore harmless.
+
+**2. Why is this switch off by default when the other message switches are on?**
+A wrong money text is worse than a missing one: it can embarrass a center with a parent who already paid in cash at another desk. Centers also differ on who collects fees, so each center turns reminders on when its records are trustworthy. A missing key in `settings.messages` reads as `false` for this one trigger.
+
+**3. A parent pays at 23:00 on the 7th. The reminder was queued at 03:00 but held by quiet hours until 08:00. What happens, and how would you fix it?**
+They still get the reminder, because the balance is snapshotted in the payload at queue time. A fix is a check at send time: the sender re-reads the balance for `fee_overdue` rows and marks them skipped when it is zero, keeping the outbox as the single source of what was sent.

@@ -1,5 +1,6 @@
 /** Every trigger the outbox knows. */
-export type Trigger = 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result';
+export type Trigger =
+  'absence' | 'session_cancelled' | 'session_moved' | 'exam_result' | 'fee_overdue';
 
 /** The snapshot written by the enqueue functions in outbox.ts. */
 export type MessagePayload = {
@@ -25,6 +26,16 @@ export type ExamPayload = {
   subjectEn: string;
   students: { nameAr: string; nameEn: string | null; score: number | null; absent: boolean }[];
 };
+
+/** The snapshot written by enqueueFeeOverdue. */
+export type FeePayload = {
+  period: string;
+  centerAr: string;
+  centerEn: string | null;
+  students: { nameAr: string; nameEn: string | null; balancePiastres: number }[];
+};
+
+type Payload = MessagePayload | ExamPayload | FeePayload;
 
 type Locale = 'ar' | 'en';
 
@@ -69,11 +80,37 @@ const scores = (p: ExamPayload, locale: Locale) =>
     locale,
   );
 
+// Whole pounds, as the web app shows money: "300 ج.م" / "EGP 300".
+const egp = (piastres: number, locale: Locale) => {
+  const n = new Intl.NumberFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
+    maximumFractionDigits: 2,
+  }).format(piastres / 100);
+  return locale === 'ar' ? `${n} ج.م` : `EGP ${n}`;
+};
+
+const month = (p: FeePayload, locale: Locale) =>
+  new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
+    timeZone: 'UTC',
+    month: 'long',
+  }).format(new Date(`${p.period}-01T00:00:00Z`));
+
+const owed = (p: FeePayload, locale: Locale) =>
+  list(
+    p.students.map((s) => `${name(s, locale)} ${egp(s.balancePiastres, locale)}`),
+    locale,
+  );
+
 // Fixed wording per trigger and language (v0); a center only switches triggers on or off.
 type Templates = {
   [T in Trigger]: Record<
     Locale,
-    (p: T extends 'exam_result' ? ExamPayload : MessagePayload) => string
+    (
+      p: T extends 'exam_result'
+        ? ExamPayload
+        : T extends 'fee_overdue'
+          ? FeePayload
+          : MessagePayload,
+    ) => string
   >;
 };
 
@@ -100,7 +137,12 @@ const templates: Templates = {
     en: (p) =>
       `${p.centerEn ?? p.centerAr}: ${p.corrected ? 'Correction: ' : ''}${p.subjectEn} exam "${p.title}" (${day(p, 'en')}): ${scores(p, 'en')}.`,
   },
+  fee_overdue: {
+    ar: (p) => `${p.centerAr}: تذكير بمصروفات شهر ${month(p, 'ar')}، المتبقي على ${owed(p, 'ar')}.`,
+    en: (p) =>
+      `${p.centerEn ?? p.centerAr}: a reminder for ${month(p, 'en')} fees. Still due: ${owed(p, 'en')}.`,
+  },
 };
 
-export const render = (trigger: string, p: MessagePayload | ExamPayload, locale: Locale) =>
-  (templates[trigger as Trigger][locale] as (p: MessagePayload | ExamPayload) => string)(p);
+export const render = (trigger: string, p: Payload, locale: Locale) =>
+  (templates[trigger as Trigger][locale] as (p: Payload) => string)(p);

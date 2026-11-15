@@ -6,7 +6,7 @@ import { DB } from '../db.js';
 import { AppError } from '../errors.js';
 import { OutboxSender } from '../messages/outbox-sender.js';
 import { generateAllSessions } from './generate-sessions.js';
-import { chargeAllWorkspaces } from './monthly-charges.js';
+import { chargeAllWorkspaces, remindAllWorkspaces } from './monthly-charges.js';
 
 const matches = (given: string, secret: string) => {
   const a = Buffer.from(given);
@@ -32,13 +32,12 @@ export class TickController {
   async tick(@Headers('authorization') auth = '', @Query('daily') daily?: string) {
     const secret = process.env.CRON_SECRET;
     if (!secret || !matches(auth, `Bearer ${secret}`)) throw new AppError('UNAUTHENTICATED');
-    const result = { sent: await this.outbox.sendAll() };
-    if (daily !== '1') return result;
-    return {
-      ...result,
-      sessions: await generateAllSessions(this.db, this.clock),
-      charges: await chargeAllWorkspaces(this.db, this.clock),
-    };
+    if (daily !== '1') return { sent: await this.outbox.sendAll() };
+    // The daily jobs first, so the reminders they queue go out in this same call.
+    const sessions = await generateAllSessions(this.db, this.clock);
+    const charges = await chargeAllWorkspaces(this.db, this.clock);
+    const reminders = await remindAllWorkspaces(this.db, this.clock);
+    return { sent: await this.outbox.sendAll(), sessions, charges, reminders };
   }
 }
 

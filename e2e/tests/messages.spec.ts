@@ -88,4 +88,13 @@ test('a cancelled session shows in the message log; the owner switches messages 
   await expect(toggle).not.toBeChecked();
   await toggle.check();
   await expect(toggle).toBeChecked();
+
+  // Fee reminders are a money text: they wait until the owner turns them on.
+  const fees = page.getByLabel(t.messages.toggles.feeOverdue);
+  await fees.uncheck(); // off by default; a failed earlier run may have left it on
+  await fees.check();
+  await page.reload();
+  await expect(fees).toBeChecked();
+  await fees.uncheck();
+  await expect(fees).not.toBeChecked();
 });

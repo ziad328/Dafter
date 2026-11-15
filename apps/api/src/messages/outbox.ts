@@ -2,12 +2,13 @@ import { type SQL, sql } from 'drizzle-orm';
 import type { Tx } from '@dafter/db';
 import type { Trigger } from './templates.js';
 
-/** Per-workspace switches in `workspaces.settings.messages`; missing means on. */
-export const TOGGLE: Record<Trigger, 'absence' | 'sessionChange' | 'examResult'> = {
+/** Per-workspace switches in `workspaces.settings.messages`; missing means on (fee reminders: off). */
+export const TOGGLE: Record<Trigger, 'absence' | 'sessionChange' | 'examResult' | 'feeOverdue'> = {
   absence: 'absence',
   session_cancelled: 'sessionChange',
   session_moved: 'sessionChange',
   exam_result: 'examResult',
+  fee_overdue: 'feeOverdue',
 };
 
 /**
@@ -127,6 +128,52 @@ export async function enqueueExamResults(tx: Tx, workspaceId: string, examId: st
     where ex.workspace_id = ${workspaceId} and ex.id = ${examId}
       and coalesce((w.settings->'messages'->>${TOGGLE.exam_result})::boolean, true)
     group by sg.guardian_id, ex.id, w.id, sub.id
+    on conflict (workspace_id, dedupe_key) do nothing`);
+  return res.rowCount ?? 0;
+}
+
+/** The day of the month (workspace timezone) from which unpaid balances get a reminder. */
+export const OVERDUE_FROM_DAY = 7;
+
+/**
+ * Daily, from the 7th of the month: one reminder per guardian of the active students whose
+ * balance is above zero, siblings merged with each child's balance. Keyed by month and guardian,
+ * so a guardian gets at most one a month however often the job runs. Off unless the workspace
+ * switched it on. Returns how many rows were queued now.
+ */
+export async function enqueueFeeOverdue(tx: Tx, workspaceId: string, now: Date) {
+  const res = await tx.execute(sql`
+    with ctx as (
+      select w.id, w.name_ar, w.name_en, w.timezone,
+        (${now.toISOString()}::timestamptz at time zone w.timezone) as local
+      from workspaces w
+      where w.id = ${workspaceId}
+        and coalesce((w.settings->'messages'->>${TOGGLE.fee_overdue})::boolean, false)
+    ),
+    owing as (
+      select e.student_id, sum(e.amount_piastres) as balance
+      from ledger_entries e
+      where e.workspace_id = ${workspaceId}
+      group by e.student_id
+      having sum(e.amount_piastres) > 0
+    )
+    insert into outbox_messages (workspace_id, guardian_id, trigger, payload, dedupe_key, send_after)
+    select ${workspaceId}, sg.guardian_id, 'fee_overdue',
+      jsonb_build_object(
+        'period', to_char(ctx.local, 'YYYY-MM'),
+        'centerAr', ctx.name_ar,
+        'centerEn', ctx.name_en,
+        'students', jsonb_agg(jsonb_build_object('nameAr', st.name_ar, 'nameEn', st.name_en,
+                              'balancePiastres', o.balance) order by st.name_ar)),
+      'fee_overdue:' || to_char(ctx.local, 'YYYY-MM') || ':' || sg.guardian_id,
+      quiet_hours_send_after(${now.toISOString()}::timestamptz, ctx.timezone)
+    from ctx
+    join owing o on true
+    join students st on st.workspace_id = ${workspaceId} and st.id = o.student_id
+      and st.status = 'active'
+    join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
+    where extract(day from ctx.local) >= ${OVERDUE_FROM_DAY}
+    group by sg.guardian_id, ctx.local, ctx.name_ar, ctx.name_en, ctx.timezone
     on conflict (workspace_id, dedupe_key) do nothing`);
   return res.rowCount ?? 0;
 }

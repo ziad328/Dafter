@@ -90,7 +90,13 @@ export class MessagesRepository extends TenantRepository {
         .from(workspaces)
         .where(eq(workspaces.id, workspaceId)),
     );
-    return { absence: true, sessionChange: true, examResult: true, ...row?.messages };
+    return {
+      absence: true,
+      sessionChange: true,
+      examResult: true,
+      feeOverdue: false,
+      ...row?.messages,
+    };
   }
 
   async setSettings(workspaceId: string, value: MessageSettings) {

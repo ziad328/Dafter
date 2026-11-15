@@ -163,6 +163,7 @@ describe('exams', () => {
       absence: true,
       sessionChange: true,
       examResult: false,
+      feeOverdue: false,
     });
     expect((await c.owner('GET', 'message-settings')).json().examResult).toBe(false);
     const second = (await c.teacher('POST', `groups/${c.groupId}/exams`, exam)).json().id;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type ExamPayload, type MessagePayload, render } from './templates.js';
+import { type ExamPayload, type FeePayload, type MessagePayload, render } from './templates.js';
 
 const p: MessagePayload = {
   startsAt: '2026-11-21T14:00:00Z', // Saturday 16:00 Cairo
@@ -63,5 +63,26 @@ describe('exam result template', () => {
     const fixed = { ...exam, corrected: true };
     expect(render('exam_result', fixed, 'ar')).toContain('سنتر النور: تصحيح: نتيجة امتحان');
     expect(render('exam_result', fixed, 'en')).toMatch(/^Al-Nour: Correction: Physics exam/);
+  });
+});
+
+describe('fee reminder template', () => {
+  const fee: FeePayload = {
+    period: '2026-11',
+    centerAr: 'سنتر النور',
+    centerEn: 'Al-Nour',
+    students: [
+      { nameAr: 'أحمد', nameEn: 'Ahmed', balancePiastres: 30000 },
+      { nameAr: 'مريم', nameEn: null, balancePiastres: 25050 },
+    ],
+  };
+
+  it('names the month and what each child still owes', () => {
+    expect(render('fee_overdue', fee, 'ar')).toBe(
+      'سنتر النور: تذكير بمصروفات شهر نوفمبر، المتبقي على أحمد 300 ج.م ومريم 250.5 ج.م.',
+    );
+    expect(render('fee_overdue', fee, 'en')).toBe(
+      'Al-Nour: a reminder for November fees. Still due: Ahmed EGP 300 and مريم EGP 250.5.',
+    );
   });
 });

@@ -3234,9 +3234,12 @@
           },
           "examResult": {
             "type": "boolean"
+          },
+          "feeOverdue": {
+            "type": "boolean"
           }
         },
-        "required": ["absence", "sessionChange", "examResult"]
+        "required": ["absence", "sessionChange", "examResult", "feeOverdue"]
       },
       "CheckInRequest": {
         "type": "object",
@@ -4703,7 +4706,7 @@
           },
           "trigger": {
             "type": "string",
-            "enum": ["absence", "session_cancelled", "session_moved", "exam_result"]
+            "enum": ["absence", "session_cancelled", "session_moved", "exam_result", "fee_overdue"]
           },
           "status": {
             "type": "string",
@@ -5082,9 +5085,12 @@
           },
           "examResult": {
             "type": "boolean"
+          },
+          "feeOverdue": {
+            "type": "boolean"
           }
         },
-        "required": ["absence", "sessionChange", "examResult"],
+        "required": ["absence", "sessionChange", "examResult", "feeOverdue"],
         "additionalProperties": false
       }
     },

@@ -65,6 +65,7 @@ describe('GET /internal/tick', () => {
       sent: 0,
       sessions: expect.any(Number),
       charges: expect.any(Number),
+      reminders: expect.any(Number),
     });
   });
 

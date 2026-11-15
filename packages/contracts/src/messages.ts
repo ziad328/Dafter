@@ -21,12 +21,21 @@ export const messageTrigger = z.enum([
   'session_cancelled',
   'session_moved',
   'exam_result',
+  'fee_overdue',
 ]);
 export const messageStatus = z.enum(['queued', 'sent', 'failed']);
 
-/** Per-workspace switches: which events message parents. All default to on. */
+/**
+ * Per-workspace switches: which events message parents. All default to on, except the monthly
+ * fee reminder (money texts wait until the center turns them on).
+ */
 export const messageSettings = z
-  .object({ absence: z.boolean(), sessionChange: z.boolean(), examResult: z.boolean() })
+  .object({
+    absence: z.boolean(),
+    sessionChange: z.boolean(),
+    examResult: z.boolean(),
+    feeOverdue: z.boolean(),
+  })
   .meta({ id: 'MessageSettings' });
 
 export const listMessagesQuery = z

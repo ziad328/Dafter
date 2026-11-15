@@ -79,3 +79,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** a grade grid is saved with one `PUT` that replaces all results of the exam under a row lock; parents get results only on an explicit "send", as `exam_result` outbox rows keyed by exam, guardian and a hash of that guardian's results.
 - **Alternatives:** one request per cell (chatty, half-saved grids on a bad connection); sending on every save (parents get a message per correction); a key with a results revision (allows corrections, but needs a version column and wording for "corrected").
 - **Why:** one tap, idempotent, and the same exactly-once machinery as absences; the hash in the key lets a correction reach only the affected parents without a version column.
+
+## 2026-11-15 · v1: fee reminders from the daily job, once a month, off by default
+
+- **Decision:** the daily charges job queues one `fee_overdue` outbox row per guardian from the 7th of the month, keyed by local month and guardian; the switch defaults to off.
+- **Alternatives:** a reminder on every charge (parents texted on the 1st before they could pay); a daily reminder (spam); a separate scheduled job (another cron on a free host that allows one a day).
+- **Why:** reuses the daily run and the outbox's exactly-once key; off by default because money texts must wait until a center trusts its records.

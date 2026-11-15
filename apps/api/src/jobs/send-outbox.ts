@@ -2,7 +2,7 @@ import { and, eq, lte, sql } from 'drizzle-orm';
 import { type Db, guardians, outboxMessages, type Tx, withTenant, workspaces } from '@dafter/db';
 import type { Clock } from '../clock.js';
 import type { MessageProvider } from '../messages/provider.js';
-import { type ExamPayload, type MessagePayload, render } from '../messages/templates.js';
+import { render } from '../messages/templates.js';
 
 export const SEND_OUTBOX = 'send-outbox';
 export const MAX_ATTEMPTS = 5;
@@ -52,7 +52,7 @@ export async function sendDueMessages(
       .for('update', { of: outboxMessages, skipLocked: true });
     let n = 0;
     for (const m of due) {
-      const body = render(m.trigger, m.payload as MessagePayload | ExamPayload, m.locale);
+      const body = render(m.trigger, m.payload as Parameters<typeof render>[1], m.locale);
       try {
         const providerMessageId = await provider.send(m.phone, body);
         await tx

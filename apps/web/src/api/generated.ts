@@ -1079,7 +1079,7 @@ export type Receipt = {
 };
 export type OutboxMessage = {
   id: string;
-  trigger: 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result';
+  trigger: 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result' | 'fee_overdue';
   status: 'queued' | 'sent' | 'failed';
   phone: string;
   guardianName: string | null;
@@ -1097,11 +1097,13 @@ export type MessageSettingsOutput = {
   absence: boolean;
   sessionChange: boolean;
   examResult: boolean;
+  feeOverdue: boolean;
 };
 export type MessageSettings = {
   absence: boolean;
   sessionChange: boolean;
   examResult: boolean;
+  feeOverdue: boolean;
 };
 export type SentMessage = {
   id: string;

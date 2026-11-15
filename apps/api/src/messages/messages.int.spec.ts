@@ -98,8 +98,9 @@ describe('message settings', () => {
       absence: true,
       sessionChange: true,
       examResult: true,
+      feeOverdue: false,
     });
-    const off = { absence: false, sessionChange: false, examResult: false };
+    const off = { absence: false, sessionChange: false, examResult: false, feeOverdue: false };
     expect((await c.assistant('PUT', 'message-settings', off)).json().code).toBe('FORBIDDEN');
     expect((await c.owner('PUT', 'message-settings', off)).json()).toEqual(off);
     expect((await c.assistant('GET', 'message-settings')).json()).toEqual(off);
@@ -115,6 +116,7 @@ describe('message settings', () => {
       absence: true,
       sessionChange: true,
       examResult: true,
+      feeOverdue: false,
     });
   });
 });

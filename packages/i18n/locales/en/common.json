@@ -408,7 +408,8 @@
     "toggles": {
       "absence": "When a student is absent (on session close)",
       "sessionChange": "When a session is cancelled or moved",
-      "examResult": "When exam results are sent"
+      "examResult": "When exam results are sent",
+      "feeOverdue": "Reminder of unpaid fees (from the 7th of the month)"
     },
     "ownerOnly": "Only the workspace owner can change these settings.",
     "filter": "Status",
@@ -423,7 +424,8 @@
       "absence": "Absence",
       "session_cancelled": "Cancelled",
       "session_moved": "Moved",
-      "exam_result": "Exam result"
+      "exam_result": "Exam result",
+      "fee_overdue": "Fee reminder"
     },
     "heldUntil": "Sends at {time}, after quiet hours",
     "attempts": "{count, plural, one {# attempt} other {# attempts}}"

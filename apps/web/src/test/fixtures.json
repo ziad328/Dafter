@@ -621,7 +621,8 @@
   "messageSettings": {
     "absence": true,
     "sessionChange": true,
-    "examResult": true
+    "examResult": true,
+    "feeOverdue": false
   },
   "phone": []
 }

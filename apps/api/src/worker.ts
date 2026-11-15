@@ -4,7 +4,11 @@ import { PgBoss } from 'pg-boss';
 import { createDb, type Db } from '@dafter/db';
 import { Clock } from './clock.js';
 import { GENERATE_SESSIONS, generateAllSessions } from './jobs/generate-sessions.js';
-import { chargeAllWorkspaces, MONTHLY_CHARGES } from './jobs/monthly-charges.js';
+import {
+  chargeAllWorkspaces,
+  MONTHLY_CHARGES,
+  remindAllWorkspaces,
+} from './jobs/monthly-charges.js';
 import { SEND_OUTBOX, sendDueMessages } from './jobs/send-outbox.js';
 import { ConsoleProvider, type MessageProvider } from './messages/provider.js';
 
@@ -33,6 +37,7 @@ export async function startWorker(
   await boss.work(MONTHLY_CHARGES, async () => {
     const created = await chargeAllWorkspaces(db, clock);
     log.log(`Created ${created} monthly charges`);
+    log.log(`Queued ${await remindAllWorkspaces(db, clock)} fee reminders`);
   });
   // Daily, so a new month is billed on its first day (and a missed day catches up).
   await boss.schedule(MONTHLY_CHARGES, '0 3 * * *', null, { tz: 'Africa/Cairo' });
