@@ -100,11 +100,14 @@ describe('re-check at send time', () => {
     const [a, b] = [await enroll('01295000001'), await enroll('01295000001')]; // siblings
     const solo = await enroll('01295000002');
     await c.owner('PUT', 'message-settings', settings);
-    expect(await remindAllWorkspaces(testDb().db, clock)).toBe(2);
+    // Counted in this center only: other test files share the worker's database.
+    await remindAllWorkspaces(testDb().db, clock);
+    expect(await rows('fee_overdue')).toHaveLength(2);
 
     // A third guardian's only child leaves (archived) with the month still owed.
     const left = await enroll('01295000003');
-    expect(await remindAllWorkspaces(testDb().db, clock)).toBe(1);
+    await remindAllWorkspaces(testDb().db, clock);
+    expect(await rows('fee_overdue')).toHaveLength(3);
     await c.owner('PATCH', `students/${left}`, { status: 'archived' });
     await pay(a, 30000); // one sibling paid in full
     await pay(solo, 10000); // part of it
@@ -124,7 +127,8 @@ describe('re-check at send time', () => {
       ['paid', null, null],
     ]);
     // The key stays taken: the job again queues nothing for that guardian this month.
-    expect(await remindAllWorkspaces(testDb().db, clock)).toBe(0);
+    await remindAllWorkspaces(testDb().db, clock);
+    expect(await rows('fee_overdue')).toHaveLength(3);
     const log = (await c.owner('GET', 'messages?status=skipped')).json();
     expect(log).toMatchObject([
       { status: 'skipped', skipReason: 'paid', trigger: 'fee_overdue' },
@@ -193,7 +197,7 @@ describe('re-check at send time', () => {
     await sendDueMessages(testDb().db, clock, phone);
     const skipped = (await rows('session_cancelled')).filter((r) => r.status === 'skipped');
     expect(skipped.map((r) => r.skipReason)).toEqual(['trigger_off']);
-    expect(phone.sent).toHaveLength(2);
+    expect(phone.to('01295000021')).toHaveLength(2);
   });
 });
 

@@ -52,7 +52,8 @@ describe('student sign-in', () => {
     const { user } = await renderAt(`/s/activate/${token}`, { workspace: null });
     expect(await screen.findByText(tr('install.title'))).toBeVisible();
     expect(screen.getByTestId('install-steps')).toHaveTextContent(tr('install.steps.menu'));
-    expect(localStorage.getItem('dafter.invite')).toBe(token);
+    // Saved in an effect after the first render: wait for it (flaky on a slow CI runner).
+    await expect.poll(() => localStorage.getItem('dafter.invite')).toBe(token);
     const prompt = vi.fn(async () => {});
     act(() => {
       window.dispatchEvent(Object.assign(new Event('beforeinstallprompt'), { prompt }));
