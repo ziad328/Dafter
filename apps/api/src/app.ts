@@ -24,6 +24,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { AuditInterceptor } from './audit.interceptor.js';
 import { Clock } from './clock.js';
 import { DB } from './db.js';
+import { checkEnv } from './env-check.js';
 import { ErrorFilter } from './errors.js';
 
 @Controller('health')
@@ -62,6 +63,7 @@ class AppModule {}
 export async function createApp(
   options: { logger?: false; db?: Db; clock?: Clock; mailer?: Mailer } = {},
 ) {
+  checkEnv();
   let db = options.db;
   let closeDb = async () => {};
   if (!db) {

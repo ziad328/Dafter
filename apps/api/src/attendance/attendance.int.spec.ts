@@ -10,8 +10,8 @@ import { type Call, fixtures } from '../testing/fixtures.js';
 import { qrCode, sessionKey, windowAt } from './qr.js';
 
 const testDb = useTestDb();
-// Saturday 15:00 Cairo; the fixture group's session starts at 16:00 Cairo (14:00 UTC).
-const clock = new FakeClock(new Date('2026-11-21T13:00:00Z'));
+// Saturday 15:30 Cairo, the earliest the fixture group's 16:00 session (14:00 UTC) can open.
+const clock = new FakeClock(new Date('2026-11-21T13:30:00Z'));
 const mailer = new ConsoleMailer();
 let app: NestFastifyApplication;
 const f = fixtures(
@@ -87,6 +87,18 @@ describe('opening a session', () => {
     );
   });
 
+  it('refuses more than 30 minutes before the start, and says when it opens', async () => {
+    const next = (await c.owner('GET', 'sessions?from=2026-11-28&to=2026-11-28')).json()[0].id;
+    const res = await c.teacher('POST', `sessions/${next}/open`);
+    expect([res.statusCode, res.json()]).toEqual([
+      409,
+      { code: 'SESSION_TOO_EARLY', details: { opensAt: '2026-11-28T13:30:00.000Z' } },
+    ]);
+    // Still scheduled: it can be moved or cancelled as before.
+    const [row] = await testDb().db.select().from(sessions).where(eq(sessions.id, next));
+    expect(row!.status).toBe('scheduled');
+  });
+
   it("is a 404 for another center's staff and for an unscoped assistant", async () => {
     const other = await f.center();
     const res = await other.owner('POST', `sessions/${sessionId}/open`);
@@ -102,6 +114,15 @@ describe('opening a session', () => {
 describe('check-ins', () => {
   beforeAll(async () => {
     await c.owner('POST', `sessions/${sessionId}/open`);
+  });
+
+  it('answers 429 after 10 scans a minute from one phone, repeats included', async () => {
+    const p = await phone();
+    for (let i = 0; i < 10; i++) expect((await p.scan(codeAt(sessionId))).statusCode).toBe(200);
+    const res = await p.scan(codeAt(sessionId));
+    expect([res.statusCode, res.json().code]).toEqual([429, 'RATE_LIMITED']);
+    // Another phone in the same session is not held back.
+    expect((await (await phone()).scan(codeAt(sessionId))).statusCode).toBe(200);
   });
 
   it('records an enrolled student as present; a repeat returns the first record', async () => {
@@ -229,7 +250,7 @@ const sessionOn = async (date: string) =>
 describe('closing a session', () => {
   it('marks every active enrolled student without a record absent, once', async () => {
     const id = await sessionOn('2026-11-28');
-    await c.teacher('POST', `sessions/${id}/open`);
+    await f.openAhead(id);
     const scanned = await phone();
     const missing = await phone();
     const makeup = await phone({ enroll: false });
@@ -260,7 +281,7 @@ describe('closing a session', () => {
 describe('live stream', () => {
   it('sends the records so far, then each new check-in', async () => {
     const id = await sessionOn('2026-12-05');
-    await c.owner('POST', `sessions/${id}/open`);
+    await f.openAhead(id);
     const early = await phone();
     await early.scan(codeAt(id));
     const late = await phone();

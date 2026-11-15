@@ -10,11 +10,11 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 |:--|:--|:--|
 | The demo runs on Vercel Hobby: personal, non-commercial use only; 4 active CPU-hours a month; functions end after 300 s | Fine for the demo; a paying center needs a paid host or a VPS | centers |
 | No always-on worker on Vercel: messages leave right after their write (`OUTBOX_SEND_INLINE`); held ones go at the 08:00 Cairo daily cron; retries wait for the hourly cron-job.org call (optional) | A failed send can wait up to an hour (or a day without cron-job.org) | centers (VPS with pg-boss) |
-| Vercel doesn't run migrations; they run from a laptop (`pnpm demo:seed:neon`) before pushing | Forgetting breaks the deploy until it's run | later (a CI step) |
+| CI's `migrate` job applies migrations to Neon after the tests on `main`; Vercel waits for it only if its Deployment Checks require that check (a dashboard setting). Until promotion the old code runs on the new schema | A migration must only add (drop in a later push); without the Deployment Check, a build can go live before its migration | — (documented in `deploy.md`) |
 | The live list polls the database every second per open teacher screen | Up to 1 s delay; Neon stays awake while a class is live | later (LISTEN/NOTIFY on a long-running host) |
 | The first request after a quiet spell starts NestJS (cold start) | About 1–2 s wait | — |
-| CI checks that `openapi.json` and the generated client match the Zod contracts, but has no breaking-change check (`oasdiff`) | A renamed or removed field passes CI; the PWA keeps an old client until it updates | centers |
-| Rate limits are in process memory | They reset on restart and count per instance | later (Redis at the VPS stage) |
+| The `oasdiff` breaking-change check ignores new error codes (the web shows `errors.INTERNAL` for one it doesn't know), and a commit with a `BREAKING CHANGE` footer skips it | An old PWA shows a generic error for a new code until it updates | — |
+| Rate limits (login, codes, check-ins: 10 a minute per phone, 300 per session) are in process memory | They reset on restart and count per instance, so on Vercel a phone can get more scans through several warm instances | later (Redis at the VPS stage) |
 | Every job loops over all workspaces in one pass (sessions, charges, outbox) | Slow with thousands of workspaces | later |
 | Test harness: cloned test databases are never dropped, and the global setup always starts a container | Slower local runs only | later |
 
@@ -34,7 +34,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | `PUT /members/:id/scopes` checks the teachers without a lock: a teacher removed at the same moment can be left in a scope | A stale scope row, removed by the next save | later |
 | A phone reset from center A also unbinds it at center B (one shared login) | By design, but surprising | — (documented) |
 | Anyone holding an invite link can claim that record (single use, 72 h) | Same trust model as staff invites | — (documented) |
-| `DEV_MAIL_INBOX=1` exposes login codes to anyone; `DEV_FAKE_PHONE=1` (on in the demo) shows a workspace's parent messages to its staff | Never set `DEV_MAIL_INBOX` on Vercel; turn `DEV_FAKE_PHONE` off with real users | centers |
+| `DEV_FAKE_PHONE=1` with `DEMO_DEPLOY=1` (the public demo) shows a workspace's sent parent messages, full phones, to all its staff, teachers included. `DEV_MAIL_INBOX` is refused in production at startup | Never set `DEMO_DEPLOY` on a deploy with real users | — (documented) |
 
 ## Groups, sessions and students
 
@@ -58,8 +58,6 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Limit | Impact | Fix by |
 |:--|:--|:--|
 | Real camera, PWA install, invite paste and binding never checked on a real iPhone and Android phone | The core student flow is only tested with hooks | v0 (one manual try each) |
-| No "too early to open" check on opening a session | A session can be opened days ahead | centers |
-| `POST /check-ins` has no rate limit | Abuse by a bound device | centers |
 | The QR screen's wake lock needs the Screen Wake Lock API (iOS 16.4+, Chrome 84+); older phones may still dim | Rare on current phones | — |
 | A student on a video call can relay the QR | Known weakness of rotating QR (architecture.md) | — (documented) |
 | No offline screen when the API is unreachable | The PWA shows errors | later |
@@ -104,7 +102,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Custom wording is free text for the console and SMS stage; WhatsApp only sends pre-approved templates | With WhatsApp, centers will pick from approved texts instead of writing their own | later (with WhatsApp) |
 | An edit to the wording also changes messages already queued (they are filled at send time) | Usually what a center wants (a typo fix); the log shows the text actually sent | — |
 | No length check against SMS segments (500 characters allowed; one SMS is 70 Arabic characters) | Long Arabic texts cost several SMS once a paid provider is used | later (a counter on the screen) |
-| Teachers can't see the message log (it shows every parent's phone) | They ask the owner or assistant | centers |
+| A teacher's message log shows their groups' session and exam messages (phones masked to the last 3 digits), never fee reminders; the matching is by the group's current teacher | After a teacher change, the new teacher sees the group's older messages | — |
 | The message log shows the newest 100, no pagination or search | Older messages are hidden | later |
 | Messages queued before Nov 15 (part 2 of the limits plan) skip the send-time re-check and a move among them keeps the old wording | Only rows already waiting at the deploy | — |
 | Fee reminders start on the 7th, fixed in code; the amount is the center-wide balance | No per-center day; a teacher-collected fee shows the total | centers |

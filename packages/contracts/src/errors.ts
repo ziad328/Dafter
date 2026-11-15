@@ -44,6 +44,9 @@ export const ERROR_STATUS = {
   SESSION_NOT_FOUND: 404,
   // Cancel or move of a session that is already open, closed or cancelled.
   SESSION_NOT_SCHEDULED: 409,
+  // Opening a session more than 30 minutes before its start (details.opensAt: the first moment
+  // it can be opened, ISO).
+  SESSION_TOO_EARLY: 409,
   // A move to a time that has already passed.
   SESSION_TIME_INVALID: 400,
   // A move onto another non-cancelled session of the same teacher (details: the clash's local

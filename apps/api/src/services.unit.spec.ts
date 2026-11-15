@@ -1,8 +1,12 @@
-import { generateKeyPairSync } from 'node:crypto';
+import { generateKeyPairSync, sign } from 'node:crypto';
 import { firstValueFrom, take, toArray } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SessionAttendanceController } from './attendance/attendance.controller.js';
-import { AttendanceService } from './attendance/attendance.service.js';
+import {
+  AttendanceService,
+  CHECKINS_PER_DEVICE,
+  CHECKINS_PER_SESSION,
+} from './attendance/attendance.service.js';
 import { qrCode, sessionKey, windowAt } from './attendance/qr.js';
 import { FakeClock } from './clock.js';
 import { AppError } from './errors.js';
@@ -41,8 +45,43 @@ describe('AttendanceService', () => {
 
   it('refuses to open a session that is no longer scheduled', async () => {
     vi.stubEnv('QR_SECRET', 'secret');
-    const service = make({ open: async () => false });
+    const service = make({ open: async () => ({}) });
     await expect(service.open(ctx, 'id')).rejects.toEqual(code('SESSION_NOT_SCHEDULED'));
+  });
+
+  it('limits scans per phone before any work, and per session once the phone has signed', async () => {
+    vi.stubEnv('QR_SECRET', 'secret');
+    const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const spki = publicKey.export({ format: 'der', type: 'spki' }).toString('base64url');
+    // Users named "signed…" have a bound phone; the session itself is never found.
+    const service = make({
+      activeDevice: async (user: string) =>
+        user.startsWith('signed') ? { id: 'd', publicKey: spki } : undefined,
+      sessionForCheckIn: async () => undefined,
+    });
+    const scan = (user: string, text: string, signature = 'AA') =>
+      service.checkIn(user, { code: text, signature });
+    for (let i = 0; i < CHECKINS_PER_DEVICE; i++)
+      await expect(scan('phone', 'junk')).rejects.toEqual(code('CHECKIN_CODE_INVALID'));
+    await expect(scan('phone', 'junk')).rejects.toEqual(code('RATE_LIMITED'));
+
+    const sessionId = '0b2a6f1e-6c1d-4a7e-9a1b-2c3d4e5f6a7c';
+    const text = qrCode(
+      sessionKey('secret', sessionId),
+      sessionId,
+      windowAt(clock.now().getTime()),
+    );
+    const signed = sign('sha256', Buffer.from(text), {
+      key: privateKey,
+      dsaEncoding: 'ieee-p1363',
+    }).toString('base64url');
+    // A replayed photo from unbound accounts or a bad signature never reaches the session's count.
+    for (let i = 0; i < CHECKINS_PER_SESSION; i++)
+      await expect(scan(`replay${i}`, text)).rejects.toEqual(code('DEVICE_NOT_BOUND'));
+    await expect(scan('signed-bad', text)).rejects.toEqual(code('DEVICE_SIGNATURE_INVALID'));
+    for (let i = 0; i < CHECKINS_PER_SESSION; i++)
+      await expect(scan(`signed${i}`, text, signed)).rejects.toEqual(code('SESSION_NOT_FOUND'));
+    await expect(scan('signed-more', text, signed)).rejects.toEqual(code('RATE_LIMITED'));
   });
 
   it('treats a stored key that is not a valid SPKI as a bad signature', async () => {

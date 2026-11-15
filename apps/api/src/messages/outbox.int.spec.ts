@@ -12,8 +12,8 @@ import { enqueueAbsences } from './outbox.js';
 import { MessageProvider } from './provider.js';
 
 const testDb = useTestDb();
-// Saturday 15:00 Cairo; the fixture group meets Saturdays at 16:00 Cairo.
-const clock = new FakeClock(new Date('2026-11-21T13:00:00Z'));
+// Saturday 15:30 Cairo; the fixture group meets Saturdays at 16:00 Cairo (open from 15:30).
+const clock = new FakeClock(new Date('2026-11-21T13:30:00Z'));
 const mailer = new ConsoleMailer();
 let app: NestFastifyApplication;
 const f = fixtures(
@@ -105,9 +105,9 @@ describe('absence messages on session close', () => {
 
   it('holds a message closed in quiet hours until 08:00 Cairo', async () => {
     await freshCenter('2026-11-28T20:30:00Z'); // Saturday 22:30 Cairo
-    const id = await sessionOn('2026-12-05'); // opening has no "too early" check
+    const id = await sessionOn('2026-12-05');
     await enroll({ phone: '01290000011' });
-    await c.teacher('POST', `sessions/${id}/open`);
+    await f.openAhead(id); // a week ahead, so the close falls in quiet hours
     await c.teacher('POST', `sessions/${id}/close`);
 
     const [row] = await rows(id);
@@ -122,7 +122,7 @@ describe('absence messages on session close', () => {
   });
 
   it('retries with backoff, then marks the message failed', async () => {
-    await freshCenter('2026-12-05T13:00:00Z');
+    await freshCenter('2026-12-05T13:30:00Z');
     const id = await sessionOn('2026-12-05');
     await enroll({ phone: '01290000021' });
     await c.teacher('POST', `sessions/${id}/open`);
@@ -144,7 +144,7 @@ describe('absence messages on session close', () => {
   });
 
   it('writes no message when the close transaction rolls back', async () => {
-    await freshCenter('2026-12-12T13:00:00Z');
+    await freshCenter('2026-12-12T13:30:00Z');
     const id = await sessionOn('2026-12-12');
     await enroll({ phone: '01290000031' });
     await expect(
@@ -162,7 +162,7 @@ describe('absence messages on session close', () => {
   });
 
   it("shows a center's sent messages on its fake phone only, and only when enabled", async () => {
-    await freshCenter('2026-12-19T13:00:00Z');
+    await freshCenter('2026-12-19T13:30:00Z');
     const id = await sessionOn('2026-12-19');
     await enroll({ phone: '01290000041' });
     await c.teacher('POST', `sessions/${id}/open`);

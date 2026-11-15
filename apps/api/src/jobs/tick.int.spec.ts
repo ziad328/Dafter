@@ -9,8 +9,8 @@ import { ConsoleMailer } from '../student-auth/mailer.js';
 import { fixtures } from '../testing/fixtures.js';
 
 const testDb = useTestDb();
-// Saturday 15:00 Cairo; the fixture group meets Saturdays at 16:00 Cairo.
-const clock = new FakeClock(new Date('2026-11-21T13:00:00Z'));
+// Saturday 15:30 Cairo; the fixture group meets Saturdays at 16:00 Cairo (open from 15:30).
+const clock = new FakeClock(new Date('2026-11-21T13:30:00Z'));
 const mailer = new ConsoleMailer();
 let app: NestFastifyApplication;
 const f = fixtures(
@@ -76,7 +76,7 @@ describe('GET /internal/tick', () => {
       const student = await c.newStudent({ phone: '01293000002' });
       await c.owner('POST', `students/${student}/enrollments`, { groupId: c.groupId });
       const id = (await c.owner('GET', 'sessions?from=2026-11-28&to=2026-11-28')).json()[0].id;
-      await c.teacher('POST', `sessions/${id}/open`);
+      await f.openAhead(id);
       await c.teacher('POST', `sessions/${id}/close`);
       const rows = await withTenant(testDb().db, c.workspaceId, (tx) =>
         tx.select().from(outboxMessages).where(eq(outboxMessages.workspaceId, c.workspaceId)),

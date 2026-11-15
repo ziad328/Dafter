@@ -9,8 +9,8 @@ import { ConsoleMailer } from '../student-auth/mailer.js';
 import { fixtures } from '../testing/fixtures.js';
 
 const testDb = useTestDb();
-// Saturday 15:00 Cairo; the fixture group meets Saturdays at 16:00 Cairo.
-const clock = new FakeClock(new Date('2026-11-21T13:00:00Z'));
+// Saturday 15:30 Cairo; the fixture group meets Saturdays at 16:00 Cairo (open from 15:30).
+const clock = new FakeClock(new Date('2026-11-21T13:30:00Z'));
 const mailer = new ConsoleMailer();
 let app: NestFastifyApplication;
 const f = fixtures(

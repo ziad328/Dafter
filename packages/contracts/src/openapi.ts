@@ -491,7 +491,7 @@ export function buildOpenApi() {
           operationId: 'openSession',
           tags: ['attendance'],
           description:
-            'Owner, the group teacher, or an assigned assistant. Opening an open session again returns the same key.',
+            'Owner, the group teacher, or an assigned assistant. Opening an open session again returns the same key. Opens from 30 minutes before the start (SESSION_TOO_EARLY with details.opensAt).',
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           responses: {
@@ -676,7 +676,8 @@ export function buildOpenApi() {
         get: {
           operationId: 'listMessages',
           tags: ['messages'],
-          description: 'Owner and assistant. The message log, newest first, first 100.',
+          description:
+            'The message log, newest first, first 100. Owner and assistant: every message. Teacher: the messages about their own groups (sessions and exams, no fee reminders), each phone masked except its last 3 digits.',
           security: [{ bearer: [] }],
           requestParams: { query: listMessagesQuery },
           responses: {
@@ -774,7 +775,7 @@ export function buildOpenApi() {
           operationId: 'checkIn',
           tags: ['attendance'],
           description:
-            'Student scan. A repeat for the same session returns the first record (the session and student are the idempotency key).',
+            'Student scan. A repeat for the same session returns the first record (the session and student are the idempotency key). At most 10 scans a minute per student phone and 300 per session (RATE_LIMITED).',
           security: [{ bearer: [] }],
           requestBody: { required: true, content: json(checkInRequest) },
           responses: { 200: { description: 'Checked in', content: json(checkIn) }, ...errors },

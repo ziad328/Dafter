@@ -30,6 +30,7 @@ import {
 import { guardians, outboxMessages, workspaces } from '@dafter/db';
 import type { AuditedRequest } from '../audit.interceptor.js';
 import { AuthGuard } from '../auth/auth.guard.js';
+import { fakePhoneOn } from '../env-check.js';
 import { AppError } from '../errors.js';
 import { TenantRepository } from '../tenant.repository.js';
 import { TenantGuard, type TenantedRequest } from '../workspaces/tenant.guard.js';
@@ -37,9 +38,32 @@ import { ZodPipe } from '../zod-pipe.js';
 
 const iso = (d: Date | null) => d && d.toISOString();
 
+/** All but the last 3 characters become •, so a teacher can tell guardians apart without the number. */
+export const maskPhone = (phone: string) =>
+  '•'.repeat(Math.max(0, phone.length - 3)) + phone.slice(-3);
+
+/**
+ * The message is about one of this teacher's groups: through its session (absences, cancelled or
+ * moved sessions) or its exam. Fee reminders are center-wide, so they never match.
+ */
+const ofTeacher = (teacherId: string) => sql`(
+  exists (select 1 from sessions s join groups g on g.id = s.group_id
+          where s.workspace_id = ${outboxMessages.workspaceId}
+            and s.id = (${outboxMessages.payload}->>'sessionId')::uuid
+            and g.teacher_membership_id = ${teacherId})
+  or exists (select 1 from exams e join groups g on g.id = e.group_id
+             where e.workspace_id = ${outboxMessages.workspaceId}
+               and e.id = (${outboxMessages.payload}->>'examId')::uuid
+               and g.teacher_membership_id = ${teacherId}))`;
+
 @Injectable()
 export class MessagesRepository extends TenantRepository {
-  async log(workspaceId: string, status?: ListMessagesQuery['status']): Promise<OutboxMessage[]> {
+  /** The newest 100; with `teacherId`, only that teacher's groups and with masked phones. */
+  async log(
+    workspaceId: string,
+    status?: ListMessagesQuery['status'],
+    teacherId?: string,
+  ): Promise<OutboxMessage[]> {
     const rows = await this.inTenant(workspaceId, (tx) =>
       tx
         .select({
@@ -65,6 +89,7 @@ export class MessagesRepository extends TenantRepository {
           and(
             eq(outboxMessages.workspaceId, workspaceId),
             status && eq(outboxMessages.status, status),
+            teacherId ? ofTeacher(teacherId) : undefined,
           ),
         )
         .orderBy(desc(outboxMessages.createdAt))
@@ -72,6 +97,9 @@ export class MessagesRepository extends TenantRepository {
     );
     return rows.map((r) => ({
       ...r,
+      phone: teacherId ? maskPhone(r.phone) : r.phone,
+      // A provider's error text can name the number, so a teacher doesn't get it.
+      lastError: teacherId ? null : r.lastError,
       trigger: r.trigger as OutboxMessage['trigger'],
       skipReason: r.skipReason as OutboxMessage['skipReason'],
       sendAfter: r.sendAfter.toISOString(),
@@ -181,14 +209,17 @@ export class MessagesController {
     @Inject(TemplatesRepository) private readonly templates: TemplatesRepository,
   ) {}
 
-  /** Owner and assistant: the log shows every parent's phone, so teachers don't get it. */
+  /**
+   * Owner and assistant: every message. A teacher: their own groups' messages, with each phone
+   * masked here (never only in the UI) except the last 3 digits.
+   */
   @Get('messages')
   log(
     @Req() req: TenantedRequest,
     @Query(new ZodPipe(listMessagesQuery)) q: ListMessagesQuery,
   ): Promise<OutboxMessage[]> {
-    if (req.role === 'teacher') throw new AppError('FORBIDDEN');
-    return this.repo.log(req.workspaceId, q.status);
+    const teacher = req.role === 'teacher' ? req.membershipId : undefined;
+    return this.repo.log(req.workspaceId, q.status, teacher);
   }
 
   @Get('message-settings')
@@ -235,9 +266,8 @@ export class MessagesController {
 }
 
 /**
- * Development and demos only (DEV_FAKE_PHONE=1): what the console provider "delivered". Read
- * from the outbox, since the worker may run in another process. Checked per request, because
- * main.ts loads .env after the modules are imported.
+ * Development and the demo deploy only (`fakePhoneOn`): what the console provider "delivered".
+ * Read from the outbox, since the worker may run in another process.
  */
 @Controller('dev/phone')
 @UseGuards(AuthGuard, TenantGuard)
@@ -246,7 +276,7 @@ export class FakePhoneController {
 
   @Get()
   list(@Req() req: TenantedRequest) {
-    if (process.env.DEV_FAKE_PHONE !== '1') throw new AppError('NOT_FOUND');
+    if (!fakePhoneOn()) throw new AppError('NOT_FOUND');
     return this.repo.sent(req.workspaceId);
   }
 }

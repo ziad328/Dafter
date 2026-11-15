@@ -1,18 +1,19 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { outboxMessages, withTenant } from '@dafter/db';
+import { guardians, outboxMessages, withTenant } from '@dafter/db';
 import { useTestDb } from '@dafter/db/testing';
 import { createApp } from '../app.js';
 import { FakeClock } from '../clock.js';
 import { MAX_ATTEMPTS, sendDueMessages } from '../jobs/send-outbox.js';
 import { ConsoleMailer } from '../student-auth/mailer.js';
 import { fixtures } from '../testing/fixtures.js';
+import { maskPhone } from './messages.controller.js';
 import { MessageProvider } from './provider.js';
 
 const testDb = useTestDb();
-// Saturday 15:00 Cairo; the fixture group meets Saturdays at 16:00 Cairo.
-const clock = new FakeClock(new Date('2026-11-21T13:00:00Z'));
+// Saturday 15:30 Cairo; the fixture group meets Saturdays at 16:00 Cairo (open from 15:30).
+const clock = new FakeClock(new Date('2026-11-21T13:30:00Z'));
 const mailer = new ConsoleMailer();
 let app: NestFastifyApplication;
 const f = fixtures(
@@ -130,7 +131,7 @@ describe('message settings', () => {
 });
 
 describe('message log', () => {
-  it('shows owner and assistant every message with its status; teachers get 403', async () => {
+  it('shows owner and assistant every message with its status', async () => {
     const id = await sessionOn('2026-12-06'); // the session moved above
     await c.teacher('POST', `sessions/${id}/cancel`);
     const phone = new Recorder();
@@ -155,11 +156,91 @@ describe('message log', () => {
     expect(failed[0].students.length).toBeGreaterThan(0);
     const all = (await c.owner('GET', 'messages')).json();
     expect(all.some((m: { status: string }) => m.status === 'sent')).toBe(true);
-    expect((await c.teacher('GET', 'messages')).json().code).toBe('FORBIDDEN');
     expect((await c.owner('GET', 'messages?status=nope')).statusCode).toBe(400);
 
     const other = await f.center();
     expect((await other.owner('GET', 'messages')).json()).toEqual([]);
+  });
+});
+
+describe('message log for a teacher', () => {
+  it("shows their own groups' session and exam messages only, phones masked", async () => {
+    const t = await f.center();
+    const enrollIn = async (groupId: string, phone: string) => {
+      const id = await t.newStudent({ phone });
+      await t.owner('POST', `students/${id}/enrollments`, { groupId });
+      return id;
+    };
+    const mine = await enrollIn(t.groupId, '01292000001');
+    // The owner teaches a second group (Sundays), with another guardian.
+    const [grade] = (await t.owner('GET', 'grade-levels')).json();
+    const [subject] = (await t.owner('GET', 'subjects')).json();
+    const ownerGroup = (
+      await t.owner('POST', 'groups', {
+        subjectId: subject.id,
+        gradeLevelId: grade.id,
+        slots: [{ weekday: 0, startTime: '10:00', endTime: '11:00' }],
+      })
+    ).json().id as string;
+    await enrollIn(ownerGroup, '01292000002');
+
+    // A cancel in each group, an exam result in the teacher's, and a center-wide fee reminder.
+    const week = (await t.owner('GET', 'sessions?from=2026-11-28&to=2026-12-04')).json();
+    for (const s of week) await t.owner('POST', `sessions/${s.id}/cancel`);
+    const exam = (
+      await t.teacher('POST', `groups/${t.groupId}/exams`, {
+        title: 'امتحان',
+        heldOn: '2026-11-21',
+        maxScore: 20,
+      })
+    ).json().id as string;
+    await t.teacher('PUT', `exams/${exam}/results`, {
+      results: [{ studentId: mine, score: 15, absent: false }],
+    });
+    await t.teacher('POST', `exams/${exam}/notify`);
+    const [guardian] = await testDb()
+      .db.select({ id: guardians.id })
+      .from(guardians)
+      .where(eq(guardians.phone, '01292000001'));
+    await testDb()
+      .db.insert(outboxMessages)
+      .values({
+        workspaceId: t.workspaceId,
+        guardianId: guardian!.id,
+        trigger: 'fee_overdue',
+        payload: { students: [] },
+        dedupeKey: `fee_overdue:test:${guardian!.id}`,
+        sendAfter: clock.now(),
+      });
+
+    type Row = { trigger: string; phone: string };
+    const summary = (log: Row[]) => log.map((m) => `${m.trigger} ${m.phone}`).sort();
+    expect(summary((await t.teacher('GET', 'messages')).json())).toEqual([
+      'exam_result ••••••••001',
+      'session_cancelled ••••••••001',
+    ]);
+    expect(summary((await t.owner('GET', 'messages')).json())).toEqual([
+      'exam_result 01292000001',
+      'fee_overdue 01292000001',
+      'session_cancelled 01292000001',
+      'session_cancelled 01292000002',
+    ]);
+    expect((await t.assistant('GET', 'messages')).json()).toHaveLength(4);
+    // A provider's error text can name the number: teachers never get it.
+    await testDb()
+      .db.update(outboxMessages)
+      .set({ lastError: 'invalid number 01292000001' })
+      .where(eq(outboxMessages.workspaceId, t.workspaceId));
+    const teacherLog = (await t.teacher('GET', 'messages')).json() as { lastError: unknown }[];
+    expect(teacherLog.every((m) => m.lastError === null)).toBe(true);
+    expect((await t.owner('GET', 'messages')).json()[0].lastError).toContain('01292000001');
+    // The filter still applies on top of the teacher's view.
+    expect((await t.teacher('GET', 'messages?status=sent')).json()).toEqual([]);
+  });
+
+  it('masks all but the last 3 characters', () => {
+    expect(maskPhone('01012345678')).toBe('••••••••678');
+    expect(maskPhone('12')).toBe('12');
   });
 });
 

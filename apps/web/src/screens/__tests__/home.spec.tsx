@@ -85,15 +85,17 @@ describe('today', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
   });
 
-  it('hides messages from teachers', async () => {
+  it("keeps messages out of a teacher's quick actions (the nav has their own log)", async () => {
     server.use(
       http.get(route('workspaces/current'), () =>
         Response.json({ ...fx.currentWorkspace, role: 'teacher' }),
       ),
     );
     await renderAt('/');
-    expect(await screen.findByText(tr('today.quick'))).toBeInTheDocument();
-    expect(screen.queryAllByRole('link', { name: new RegExp(tr('nav.messages')) })).toHaveLength(0);
+    const quick = (await screen.findByText(tr('today.quick'))).parentElement!;
+    expect(
+      within(quick).queryAllByRole('link', { name: new RegExp(tr('nav.messages')) }),
+    ).toHaveLength(0);
   });
 
   it('sends a user without a workspace to pick one, and forgets a removed one', async () => {

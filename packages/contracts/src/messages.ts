@@ -4,6 +4,7 @@ import * as z from 'zod';
 export const sentMessage = z
   .object({
     id: z.uuid(),
+    // For a teacher, masked except the last 3 digits (•••••••123).
     phone: z.string(),
     guardianName: z.string().nullable(),
     locale: z.enum(['ar', 'en']),
@@ -55,6 +56,7 @@ export const outboxMessage = z
     id: z.uuid(),
     trigger: messageTrigger,
     status: messageStatus,
+    // For a teacher, masked except the last 3 digits (•••••••123).
     phone: z.string(),
     guardianName: z.string().nullable(),
     students: z.array(z.string()),

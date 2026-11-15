@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
 import { importQrKey, qrText } from '@/lib/qr';
-import { errorKey } from '@/lib/session';
+import { errorDetails, errorKey } from '@/lib/session';
 import { displayTime, localDate } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { AppDispatch } from '@/store';
@@ -40,6 +40,7 @@ export default function SessionLive() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const [open, opened] = useOpenSessionMutation();
+  const tz = useGetCurrentWorkspaceQuery().data?.timezone ?? 'Africa/Cairo';
   const roster = useGetSessionRosterQuery({ id: id! });
   const [records, setRecords] = useState<Records>(new Map());
   const [closed, setClosed] = useState(false);
@@ -72,7 +73,16 @@ export default function SessionLive() {
     return () => ctrl.abort();
   }, [session, closed, id, dispatch]);
 
-  if (opened.error) return <FormError message={t(errorKey(opened.error))} />;
+  if (opened.error) {
+    // More than 30 minutes ahead: say when it can be opened, in the center's time.
+    const early = errorDetails(opened.error, 'SESSION_TOO_EARLY');
+    const message = early
+      ? t('live.tooEarly', {
+          time: `⁨${displayTime(early.opensAt!, tz, i18n.language)}⁩`,
+        })
+      : t(errorKey(opened.error));
+    return <FormError message={message} />;
+  }
   if (!session) return <Skeleton />;
 
   // Everyone expected (by name), then make-ups who checked in without being enrolled.

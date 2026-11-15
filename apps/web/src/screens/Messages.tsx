@@ -25,14 +25,18 @@ const PILL: Record<Status, string> = {
 };
 const TOGGLES: (keyof MessageSettings)[] = ['absence', 'sessionChange', 'examResult', 'feeOverdue'];
 
-/** Parent messages: the owner's switches, and the log (owner and assistant). */
+/**
+ * Parent messages: the owner's switches and wording, and the log. A teacher sees only the log of
+ * their own groups, with phones masked by the API.
+ */
 export default function Messages() {
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<Status | ''>('');
   const workspace = useGetCurrentWorkspaceQuery().data;
   const isOwner = workspace?.role === 'owner';
+  const isTeacher = workspace?.role === 'teacher';
   const tz = workspace?.timezone ?? 'Africa/Cairo';
-  const settings = useGetMessageSettingsQuery();
+  const settings = useGetMessageSettingsQuery(undefined, { skip: !workspace || isTeacher });
   const [update, saving] = useUpdateMessageSettingsMutation();
   // Shown at once; dropped (back to the server's value) if the save fails.
   const [draft, setDraft] = useState<MessageSettings>();
@@ -66,21 +70,27 @@ export default function Messages() {
     <div className="grid gap-5">
       <PageHeader title={t('messages.title')} />
 
-      <Panel className="grid gap-3 p-5">
-        <h2 className="font-semibold">{t('messages.settings')}</h2>
-        {shown && (
-          <>
-            {TOGGLES.map((key) => switchFor(key))}
-            {/* Who gets them, not when: a heading of its own. */}
-            <h3 className="mt-2 text-sm font-semibold">{t('messages.recipients')}</h3>
-            {switchFor('primaryOnly')}
-          </>
-        )}
-        {!isOwner && <p className="text-sm text-muted-foreground">{t('messages.ownerOnly')}</p>}
-        <FormError message={saving.error && t(errorKey(saving.error))} />
-      </Panel>
+      {!workspace ? null : isTeacher ? (
+        <p className="text-sm text-muted-foreground">{t('messages.teacherView')}</p>
+      ) : (
+        <>
+          <Panel className="grid gap-3 p-5">
+            <h2 className="font-semibold">{t('messages.settings')}</h2>
+            {shown && (
+              <>
+                {TOGGLES.map((key) => switchFor(key))}
+                {/* Who gets them, not when: a heading of its own. */}
+                <h3 className="mt-2 text-sm font-semibold">{t('messages.recipients')}</h3>
+                {switchFor('primaryOnly')}
+              </>
+            )}
+            {!isOwner && <p className="text-sm text-muted-foreground">{t('messages.ownerOnly')}</p>}
+            <FormError message={saving.error && t(errorKey(saving.error))} />
+          </Panel>
 
-      <MessageWording canEdit={isOwner} />
+          <MessageWording canEdit={isOwner} />
+        </>
+      )}
 
       <div role="group" aria-label={t('messages.filter')} className="flex flex-wrap gap-2">
         {(['', ...STATUSES] as const).map((s) => (

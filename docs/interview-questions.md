@@ -197,3 +197,13 @@ The tenant guard looks up the membership on every request and only accepts `stat
 **3. The audit row now commits with the write. Why savepoints instead of reusing the request transaction directly?**
 Some repository blocks rely on rolling back their own work: a repeated payment undoes its receipt-counter bump, and a constraint error becomes `ROOM_BOOKED`. Without savepoints, the first would leave the bump in place, and the second would abort the whole request transaction. `tx.transaction()` gives each block a savepoint, so it behaves exactly like its old separate transaction, but everything commits together at the end.
 
+## Limits Batch 4: safety and operations
+
+**1. Why is the check-in's per-session limit counted only after the phone's signature passes?**
+A code with a valid MAC only proves someone saw the screen. Counting it earlier would let a photo replayed from a few unbound accounts use up the session's 300 scans a minute and block the real class. After the signature, every counted scan comes from a bound phone, and each phone is already capped at 10 a minute.
+
+**2. Why mask the teacher's phones in the API instead of in the screen?**
+Anything the API sends is readable in the browser's network tab, so masking in React only hides the number from people who don't look. The server never sends the full number to a teacher; for the same reason it drops `lastError`, which a provider can fill with the number.
+
+**3. CI migrates Neon before Vercel promotes the build. What does that require of each migration?**
+Between the migration and the promotion the old code runs on the new schema, so a migration may only add things (tables, nullable or defaulted columns, enum values). A drop or rename waits for a later push, once no live code uses the old name: expand first, contract later.

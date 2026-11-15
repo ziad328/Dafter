@@ -45,15 +45,26 @@ test('a corrected absence is not sent, a move names the old time, and primary on
   const tomorrow = addDays(today, 1);
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
+  // Today's slot starts in a few minutes: a session opens at most 30 minutes before its start.
+  const [h, m] = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Cairo',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  })
+    .format(new Date())
+    .split(':')
+    .map(Number);
+  const hhmm = (min: number) =>
+    `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  const soon = h! * 60 + m! + 5;
+  const weekdayOf = (d: string) => new Date(`${d}T12:00:00Z`).getUTCDay();
   const group = await api.post('groups', {
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [
-      {
-        weekday: new Date(`${tomorrow}T12:00:00Z`).getUTCDay(),
-        startTime: '10:00',
-        endTime: '11:00',
-      },
+      { weekday: weekdayOf(today), startTime: hhmm(soon), endTime: hhmm(soon + 60) },
+      { weekday: weekdayOf(tomorrow), startTime: '10:00', endTime: '11:00' },
     ],
   });
   const student = async (name: string, phone: string) => {
@@ -69,11 +80,11 @@ test('a corrected absence is not sent, a move names the old time, and primary on
   await student('غائب', `0152${n}`);
 
   // Closed with both absent, then one is corrected to present before the sender runs.
-  const sessions = (await api.get(`sessions?from=${tomorrow}&to=${addDays(tomorrow, 7)}`)) as {
-    id: string;
-  }[];
-  const [first, next] = sessions;
-  await api.post(`sessions/${first!.id}/open`);
+  const on = async (d: string) =>
+    ((await api.get(`sessions?from=${d}&to=${d}`)) as { id: string }[])[0];
+  const first = await on(today);
+  const next = await on(addDays(tomorrow, 7));
+  expect((await api.post(`sessions/${first!.id}/open`)).sessionId).toBe(first!.id);
   await api.post(`sessions/${first!.id}/close`);
   await api.put(`sessions/${first!.id}/attendance/${present}`, { status: 'present' });
   // Next week's session moves to 12:00 the same day.

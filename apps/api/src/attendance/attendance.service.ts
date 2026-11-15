@@ -9,6 +9,7 @@ import type {
   OpenSession,
   RosterEntry,
 } from '@dafter/contracts';
+import { RateLimiter } from '../auth/rate-limiter.js';
 import { Clock } from '../clock.js';
 import { OutboxSender } from '../messages/outbox-sender.js';
 import { AppError } from '../errors.js';
@@ -20,6 +21,9 @@ import { macMatches, parseQr, sessionKey, WINDOW_MS, windowAt } from './qr.js';
 type Ctx = Pick<TenantedRequest, 'workspaceId' | 'role' | 'membershipId'>;
 /** How often an open live screen checks for new attendance (one small indexed query). */
 export const LIVE_POLL_MS = 1000;
+/** Scans a minute: one phone (a real student retries a few times at most) and one session. */
+export const CHECKINS_PER_DEVICE = 10;
+export const CHECKINS_PER_SESSION = 300;
 
 /**
  * Policy: whoever sees the session (owner, its teacher, an assigned assistant) can open it,
@@ -28,6 +32,8 @@ export const LIVE_POLL_MS = 1000;
 @Injectable()
 export class AttendanceService {
   private readonly secret: string;
+  private readonly perDevice: RateLimiter;
+  private readonly perSession: RateLimiter;
 
   constructor(
     @Inject(AttendanceRepository) private readonly repo: AttendanceRepository,
@@ -38,13 +44,17 @@ export class AttendanceService {
     const secret = process.env.QR_SECRET;
     if (!secret) throw new Error('QR_SECRET is not set');
     this.secret = secret;
+    this.perDevice = new RateLimiter(clock, CHECKINS_PER_DEVICE, 60_000);
+    this.perSession = new RateLimiter(clock, CHECKINS_PER_SESSION, 60_000);
   }
 
   async open(ctx: Ctx, id: string): Promise<OpenSession> {
     await this.sessions.get(ctx, id);
     const now = this.clock.now();
-    if (!(await this.repo.open(ctx.workspaceId, id, now)))
-      throw new AppError('SESSION_NOT_SCHEDULED');
+    const opened = await this.repo.open(ctx.workspaceId, id, now);
+    if (opened.tooEarly)
+      throw new AppError('SESSION_TOO_EARLY', { opensAt: opened.tooEarly.toISOString() });
+    if (!opened.ok) throw new AppError('SESSION_NOT_SCHEDULED');
     return {
       sessionId: id,
       qrKey: sessionKey(this.secret, id).toString('base64url'),
@@ -119,8 +129,13 @@ export class AttendanceService {
    * Checks, cheapest and least revealing first: the code's MAC (forged or foreign codes stop
    * here), its window (current or previous, about 20 s), the phone's signature over the exact
    * code (so only the bound phone can use it), then the session and the student's record.
+   * Rate limits: the student's phone (one bound device per account) before any work; the session
+   * only once the bound phone's signature passes, so forged ids can't fill the memory and a photo
+   * of the QR replayed from other accounts can't use up a class's scans.
+   * shortcut: in-process like login's, so on serverless each instance counts on its own.
    */
   async checkIn(userId: string, body: CheckInRequest): Promise<CheckIn> {
+    if (this.perDevice.take([userId])) throw new AppError('RATE_LIMITED');
     const qr = parseQr(body.code);
     if (!qr || !macMatches(sessionKey(this.secret, qr.sessionId), qr.sessionId, qr.window, qr.mac))
       throw new AppError('CHECKIN_CODE_INVALID');
@@ -133,6 +148,7 @@ export class AttendanceService {
     if (!device) throw new AppError('DEVICE_NOT_BOUND');
     if (!signedBy(device.publicKey, body.code, body.signature))
       throw new AppError('DEVICE_SIGNATURE_INVALID');
+    if (this.perSession.take([qr.sessionId])) throw new AppError('RATE_LIMITED');
 
     const session = await this.repo.sessionForCheckIn(qr.sessionId);
     if (!session) throw new AppError('SESSION_NOT_FOUND');

@@ -5,9 +5,10 @@ on:
   push:
     branches: [main]
 
+# A new push cancels a PR's older run; on main runs queue instead, so a migration is never cut off.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -31,6 +32,27 @@ jobs:
         run: |
           pnpm contracts:gen
           git diff --exit-code -- packages/contracts/openapi.json apps/web/src/api/generated.ts
+
+      # A removed or renamed field, a new required input or a narrower type breaks an older client
+      # (an installed PWA keeps its old code until it updates). Compares with the PR's base, or on
+      # main with the commit before the push. ErrorCode's list is dropped from both sides: it grows
+      # with every feature and the web shows errors.INTERNAL for a code it doesn't know. A commit
+      # with a "BREAKING CHANGE" footer skips the check.
+      - name: Breaking-change check
+        if: ${{ !contains(github.event.head_commit.message, 'BREAKING CHANGE') }}
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # Only the base commit is fetched, not the whole history.
+          git fetch --quiet --depth=1 origin "$BASE" 2>/dev/null || true
+          if ! git cat-file -e "$BASE:packages/contracts/openapi.json" 2>/dev/null; then
+            echo "No openapi.json at $BASE to compare with"
+            exit 0
+          fi
+          drop='del(.components.schemas.ErrorCode.enum)'
+          git show "$BASE:packages/contracts/openapi.json" | jq "$drop" > "$RUNNER_TEMP/base.json"
+          jq "$drop" packages/contracts/openapi.json > "$RUNNER_TEMP/head.json"
+          docker run --rm -v "$RUNNER_TEMP:/specs" tufin/oasdiff:v1.35.0             breaking /specs/base.json /specs/head.json --fail-on ERR
 
       - name: Lint
         run: pnpm lint
@@ -69,3 +91,33 @@ jobs:
             e2e/playwright-report
             e2e/test-results
           retention-days: 7
+
+  # Applies new migrations to Neon once every test is green. Vercel's Deployment Checks wait for
+  # this job before the build gets the production domain, so code never goes live ahead of its
+  # schema. Until promotion the old code runs on the new schema: migrations must only add (drop
+  # columns in a later push). Secret: NEON_DATABASE_URL_UNPOOLED (Neon's direct connection).
+  migrate:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: neon-migrate
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Migrate Neon
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.NEON_DATABASE_URL_UNPOOLED }}
+        run: |
+          if [ -z "$DATABASE_URL_UNPOOLED" ]; then
+            echo "::error::Add the NEON_DATABASE_URL_UNPOOLED repository secret"
+            exit 1
+          fi
+          pnpm --filter @dafter/db migrate

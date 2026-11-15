@@ -62,8 +62,8 @@ export function mailerFromEnv(env = process.env): Mailer {
 }
 
 /**
- * Development only (DEV_MAIL_INBOX=1): lets Playwright read a login code. Never set in
- * production. Checked per request, because main.ts loads .env after the modules are imported.
+ * Development only (DEV_MAIL_INBOX=1): lets Playwright read a login code. The API refuses to
+ * start with it in production (env-check.ts). Checked per request, because main.ts loads .env after the modules are imported.
  */
 @Controller('dev/mail')
 export class DevMailController {

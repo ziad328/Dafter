@@ -43,12 +43,9 @@ export function useNavItems() {
   ];
   const more: Item[] = [
     { to: '/dashboard', label: t('nav.dashboard'), icon: ChartColumn },
-    ...(role && role !== 'teacher'
-      ? [
-          { to: '/fees', label: t('nav.fees'), icon: Wallet },
-          { to: '/messages', label: t('nav.messages'), icon: MessageSquareText },
-        ]
-      : []),
+    ...(role && role !== 'teacher' ? [{ to: '/fees', label: t('nav.fees'), icon: Wallet }] : []),
+    // A teacher sees their own groups' messages, phones masked.
+    { to: '/messages', label: t('nav.messages'), icon: MessageSquareText },
     { to: '/cash-summary', label: t('nav.cashSummary'), icon: HandCoins },
     { to: '/rooms', label: t('nav.rooms'), icon: DoorOpen },
     { to: '/members', label: t('nav.staff'), icon: UserCog },

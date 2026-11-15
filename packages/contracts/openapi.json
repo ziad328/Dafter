@@ -1610,7 +1610,7 @@
       "post": {
         "operationId": "openSession",
         "tags": ["attendance"],
-        "description": "Owner, the group teacher, or an assigned assistant. Opening an open session again returns the same key.",
+        "description": "Owner, the group teacher, or an assigned assistant. Opening an open session again returns the same key. Opens from 30 minutes before the start (SESSION_TOO_EARLY with details.opensAt).",
         "security": [
           {
             "bearer": []
@@ -2300,7 +2300,7 @@
       "get": {
         "operationId": "listMessages",
         "tags": ["messages"],
-        "description": "Owner and assistant. The message log, newest first, first 100.",
+        "description": "The message log, newest first, first 100. Owner and assistant: every message. Teacher: the messages about their own groups (sessions and exams, no fee reminders), each phone masked except its last 3 digits.",
         "security": [
           {
             "bearer": []
@@ -2625,7 +2625,7 @@
       "post": {
         "operationId": "checkIn",
         "tags": ["attendance"],
-        "description": "Student scan. A repeat for the same session returns the first record (the session and student are the idempotency key).",
+        "description": "Student scan. A repeat for the same session returns the first record (the session and student are the idempotency key). At most 10 scans a minute per student phone and 300 per session (RATE_LIMITED).",
         "security": [
           {
             "bearer": []
@@ -4054,6 +4054,7 @@
           "GROUP_REFERENCE_INVALID",
           "SESSION_NOT_FOUND",
           "SESSION_NOT_SCHEDULED",
+          "SESSION_TOO_EARLY",
           "SESSION_TIME_INVALID",
           "TEACHER_BOOKED",
           "STUDENT_NOT_FOUND",

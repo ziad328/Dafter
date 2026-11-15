@@ -170,6 +170,7 @@
     "SCOPE_TEACHER_INVALID": "One of the selected teachers isn't in this workspace.",
     "SESSION_NOT_FOUND": "This session doesn't exist or isn't in your scope.",
     "SESSION_NOT_SCHEDULED": "This session can't be changed: it has started, ended or been cancelled.",
+    "SESSION_TOO_EARLY": "A session can't be opened more than 30 minutes before it starts.",
     "SESSION_TIME_INVALID": "Pick a time that hasn't passed yet.",
     "STUDENT_NOT_FOUND": "Student not found.",
     "STUDENT_REFERENCE_INVALID": "That grade is not in this workspace.",
@@ -330,6 +331,7 @@
     "noGrades": "No grades yet."
   },
   "live": {
+    "tooEarly": "The session opens 30 minutes before it starts, at {time}.",
     "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",
     "list": "Check-ins",
     "closed": "Session closed.",
@@ -434,6 +436,7 @@
       "feeOverdue": "Reminder of unpaid fees (from the 7th of the month)",
       "primaryOnly": "Only the main guardian of each student (not every guardian)"
     },
+    "teacherView": "Messages about your own groups only; parent phones are hidden except the last 3 digits.",
     "ownerOnly": "Only the workspace owner can change these settings.",
     "filter": "Status",
     "all": "All",

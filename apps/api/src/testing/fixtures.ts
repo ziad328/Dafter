@@ -1,5 +1,6 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { Db } from '@dafter/db';
+import { eq } from 'drizzle-orm';
+import { type Db, sessions } from '@dafter/db';
 import { makeMembership } from '@dafter/db/testing';
 import type { ConsoleMailer } from '../student-auth/mailer.js';
 
@@ -122,5 +123,13 @@ export function fixtures(app: () => NestFastifyApplication, db: () => Db, mailer
     };
   }
 
-  return { bearer, post, register, center, codeFor, newKey, newKeyPair, activate };
+  /**
+   * Opens a session days ahead, straight in the database: the API refuses more than 30 minutes
+   * before the start, and these tests are about what happens after opening, not when.
+   */
+  async function openAhead(sessionId: string) {
+    await db().update(sessions).set({ status: 'open' }).where(eq(sessions.id, sessionId));
+  }
+
+  return { bearer, post, register, center, codeFor, newKey, newKeyPair, activate, openAhead };
 }

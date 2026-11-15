@@ -33,12 +33,12 @@ Do this **after editable templates** (same files: `messages/templates.ts`, the o
 
 ## Batch 4 · Before real users: safety and operations (M)
 
-- [ ] **Rate limit `POST /check-ins`** per device and per session (for example 10 a minute), with the same in-memory limiter as login.
-- [ ] **"Too early to open."** Opening a session more than 30 minutes before its start returns `SESSION_TOO_EARLY`.
-- [ ] **Demo-only switches off by default in production.** `DEV_FAKE_PHONE` read from the environment only on the demo deploy; a startup check refuses `DEV_MAIL_INBOX` when `NODE_ENV=production`.
-- [ ] **Breaking-change check in CI.** `oasdiff breaking` between `main`'s `openapi.json` and the PR's.
-- [ ] **Migrations as a step, not a habit.** A GitHub Actions job on `main` that runs the Neon migration (secret `NEON_DATABASE_URL_UNPOOLED`) before Vercel's build is promoted, so a push can't deploy code ahead of its schema.
-- [ ] **Teachers and the message log.** A teacher sees the messages of their own groups, with phones masked except the last 3 digits.
+- [x] **Rate limit `POST /check-ins`** per device and per session (for example 10 a minute), with the same in-memory limiter as login.
+- [x] **"Too early to open."** Opening a session more than 30 minutes before its start returns `SESSION_TOO_EARLY`.
+- [x] **Demo-only switches off by default in production.** `DEV_FAKE_PHONE` read from the environment only on the demo deploy; a startup check refuses `DEV_MAIL_INBOX` when `NODE_ENV=production`.
+- [x] **Breaking-change check in CI.** `oasdiff breaking` between `main`'s `openapi.json` and the PR's.
+- [x] **Migrations as a step, not a habit.** A GitHub Actions job on `main` that runs the Neon migration (secret `NEON_DATABASE_URL_UNPOOLED`) before Vercel's build is promoted, so a push can't deploy code ahead of its schema.
+- [x] **Teachers and the message log.** A teacher sees the messages of their own groups, with phones masked except the last 3 digits.
 
 ## Batch 5 · Money, after the center interviews (L)
 

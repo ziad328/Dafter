@@ -82,10 +82,11 @@ If it fails with `permission denied to create role` or a `pg_trgm` error, stop a
    | `MAIL_PROVIDER` | `brevo` |
    | `TRUST_PROXY` | `1` |
    | `OUTBOX_SEND_INLINE` | `1` |
-   | `DEV_FAKE_PHONE` | `1` |
+   | `DEV_FAKE_PHONE` | `1` (the public demo only) |
+   | `DEMO_DEPLOY` | `1` (the public demo only; without it `DEV_FAKE_PHONE` is ignored in production) |
 
    Random values: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, once per secret.
-   Never add `DEV_MAIL_INBOX` (it shows login codes to anyone), `RUN_WORKER` or `MIGRATE_ON_START` (those are for an always-on server).
+   Never add `DEV_MAIL_INBOX` (it shows login codes to anyone; the API refuses to start with it in production), `RUN_WORKER` or `MIGRATE_ON_START` (those are for an always-on server).
 5. **Deploy**. The first build takes about 3–5 minutes. Copy the URL, e.g. `https://dafter-xyz.vercel.app`.
 
 Check, all on that URL:
@@ -93,13 +94,15 @@ Check, all on that URL:
 - `/login` shows the Arabic login page; sign in as `01000000002` / `dafter-dev-123`, pick سنتر النور, reload: you stay signed in (the cookie works).
 - Project → **Settings** → **Cron Jobs** lists `/api/v1/internal/tick?daily=1` at `0 6 * * *` (08:00 Cairo).
 
-**New database migrations:** Vercel doesn't migrate, so the new API code runs against the old schema until you do. After every commit that adds a migration, apply it to Neon right away (migrations only, no seed):
+**New database migrations:** CI's `migrate` job applies them to Neon on every push to `main`, after all tests pass, Playwright included (a red or flaky run holds back the migration and, with the Deployment Check, the release; re-run the failed job) (secret `NEON_DATABASE_URL_UNPOOLED`: Neon's direct connection string, under GitHub → Settings → Secrets and variables → Actions). For Vercel to wait for it, turn on Project → **Settings** → **Deployment Checks** and require the `migrate` check; then a build only gets the production domain once its migrations are in. Until then the old code runs on the new schema, so a migration only adds (a column, a table, an enum value); drop or rename in a later push, once no live code uses the old name.
+
+By hand (a new database, or when the job can't run), migrations only, no seed:
 
 ```bash
 pnpm --filter @dafter/db exec tsx --env-file=../../.env.neon src/scripts/migrate.ts
 ```
 
-Claude does this after each migration it writes (the `db-migration` skill). Nov 15: `0010` and `0011` were missed, and groups and the timetable answered 500 until they were applied.
+Nov 15: `0010` and `0011` were missed by hand, and groups and the timetable answered 500 until they were applied; that is why it is a CI job now.
 
 ## 4. cron-job.org (hourly retries, optional) — about 5 minutes
 

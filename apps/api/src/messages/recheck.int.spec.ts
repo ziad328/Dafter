@@ -19,9 +19,9 @@ import { fixtures } from '../testing/fixtures.js';
 import { MessageProvider } from './provider.js';
 
 const testDb = useTestDb();
-// Saturday 21 November, 15:00 Cairo: past the 7th, outside quiet hours. The fixture group meets
+// Saturday 21 November, 15:30 Cairo: past the 7th, outside quiet hours. The fixture group meets
 // Saturdays at 16:00 Cairo.
-const clock = new FakeClock(new Date('2026-11-21T13:00:00Z'));
+const clock = new FakeClock(new Date('2026-11-21T13:30:00Z'));
 const mailer = new ConsoleMailer();
 let app: NestFastifyApplication;
 const f = fixtures(

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, lte, sql } from 'drizzle-orm';
 import type {
   AttendanceRecord,
   AttendanceSettings,
@@ -20,6 +20,8 @@ import { enqueueAbsences } from '../messages/outbox.js';
 
 type Status = MarkAttendanceRequest['status'];
 const DEFAULT_LATE_MINUTES = 15;
+/** A session opens at most this long before its start (the door opens before class). */
+export const OPEN_EARLY_MS = 30 * 60_000;
 
 @Injectable()
 export class AttendanceRepository extends TenantRepository {
@@ -47,18 +49,28 @@ export class AttendanceRepository extends TenantRepository {
     return value;
   }
 
-  /** scheduled -> open; an already open session stays as it is. False when neither. */
+  /**
+   * scheduled -> open, from OPEN_EARLY_MS before its start; an already open session stays as it
+   * is. 'too_early' (with the first moment it opens) for a scheduled session further ahead.
+   */
   async open(workspaceId: string, id: string, now: Date) {
     return this.inTenant(workspaceId, async (tx) => {
       const where = and(eq(sessions.workspaceId, workspaceId), eq(sessions.id, id));
+      const earliest = new Date(now.getTime() + OPEN_EARLY_MS);
+      // The start is checked in the update itself, so a move at the same moment can't slip past.
       const [opened] = await tx
         .update(sessions)
         .set({ status: 'open', openedAt: now })
-        .where(and(where, eq(sessions.status, 'scheduled')))
+        .where(and(where, eq(sessions.status, 'scheduled'), lte(sessions.startsAt, earliest)))
         .returning({ id: sessions.id });
-      if (opened) return true;
-      const [row] = await tx.select({ status: sessions.status }).from(sessions).where(where);
-      return row?.status === 'open';
+      if (opened) return { ok: true as const };
+      const [row] = await tx
+        .select({ status: sessions.status, startsAt: sessions.startsAt })
+        .from(sessions)
+        .where(where);
+      if (row?.status === 'scheduled')
+        return { tooEarly: new Date(row.startsAt.getTime() - OPEN_EARLY_MS) };
+      return row?.status === 'open' ? { ok: true as const } : {};
     });
   }
 
