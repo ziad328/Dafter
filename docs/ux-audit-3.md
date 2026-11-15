@@ -18,12 +18,13 @@ Every staff and student screen opened in the running app (dev seed plus the e2e 
 9. **A6 · New account:** after register you land on «ليس لديك مكان عمل بعد» with a small outline button at the top, a breadcrumb to a «المزيد» that doesn't exist yet, and no sign-out or language switch.
 10. **H1 + H2 · Today:** the subtitle says «16 حصة اليوم» and the first tile says «11 عدد الحصص» (one counts cancelled classes). Four ~120 px tiles hold four numbers.
 
-## Suggested order
+## Phases
 
-1. **Quick wins (about a day):** W1–W7, TT4, A1, A2, F5, H1, N4, E1, S5, SA1, A11, F4, TT1, LV3, M5, SA6.
-2. **Less on each screen (2–3 days):** S1 + S2, M1, D1, H2 + H3, F1, R1 + R3, N1 + N2, G2 + G3, S4 + S6, H5, V1, V4.
-3. **Missing flows (2–3 days):** G1, G5, H4 + LV1, A6 + A7, A10 + A13, LV2 + LV4, SA2 + SA5, H7.
-4. **API change:** A3 (rate-limit keys and a retry time in the error).
+- [x] **Phase 1 · Quick wins (about a day):** W1–W7, F2, F5, SA6 (wording); TT4, A1, A2, H1, N4, E1, S5, SA1, F4, TT1, LV3 (small screen fixes). **Done Nov 16.** N4's cause was the hover state (dark text on the olive sidebar in the light theme). F4 got cell spacing and an unwrapped time; the minus sign looked fine on a second look. The English «Who owes» stayed (only the Arabic was colloquial). The full-screen QR keeps the count as a sentence; the page shows «3 / 20».
+- [ ] **Phase 2 · Less on each screen (2–3 days):** S1, S2, M1, D1, H2, H3, H5, F1, F3, R1, R3, N1, N2, G2, G3, G4, S4, S6, S7, TT2, V1, V3.
+- [ ] **Phase 3 · Missing flows (2–3 days):** G1, G5, H4, LV1, LV2, LV4, A6, A7, A10, A11 (needs `kind` on `/me`), A13, SA2, SA5, H7.
+- [ ] **Phase 4 · API:** A3 (rate-limit keys and a retry time in the error), A5.
+- [ ] **Phase 5 · Polish (any time):** A4, A8, A9, A12, N3, N5, N6, H6, TT3, TT5, TT6, S3, S8, S9, S10, LV5, E2, D2, D3, M2, M3, M4, R2, R4, R5, SA3, SA4, SA7, SA8, SA9, V2.
 
 ## Still open from audits 1 and 2
 
@@ -153,7 +154,7 @@ Every staff and student screen opened in the running app (dev seed plus the e2e 
 | M2 | Messages | owner | Each row shows the time twice («… 8:00 ص» and «سيُرسل 8:00 ص…»); the text itself isn't shown | One time; tap a row to read the message | low | visual |
 | M3 | Messages settings | owner · ar | Long toggle labels with brackets («لولي الأمر الأساسي فقط (وليس كل أولياء الأمور المسجلين)») | Short label, details in a hint line | low | visual |
 | M4 | Fake phone | owner · ar | English bubbles get scrambled bidi; dates «2026/11/15، 3:40 م» differ from the app | `dir="auto"` per bubble; the shared date format | low | bug |
-| M5 | Wording editor | owner · ar | «was/were» is listed as a part in the Arabic tab | Hide it in Arabic | low | visual |
+| M5 | Wording editor | owner · ar | ~~«was/were» is listed as a part in the Arabic tab~~ Not an issue: the editor already hides it in Arabic (found while planning) | — | — | — |
 
 ### Staff, rooms, settings
 

@@ -25,6 +25,7 @@ import {
   displayTime,
   localDate,
   localTime,
+  rangeLabel,
   weekStart,
 } from '@/lib/time';
 
@@ -69,15 +70,24 @@ export default function Timetable() {
       >
         <Button variant="ghost" size="sm" onClick={() => goTo(addDays(from, -7))}>
           <ChevronRight aria-hidden className="ltr:-scale-x-100" />
-          {t('timetable.prevWeek')}
+          <span className="sr-only sm:not-sr-only">{t('timetable.prevWeek')}</span>
         </Button>
-        {from !== thisWeek && (
-          <Button variant="ghost" size="sm" onClick={() => goTo(thisWeek)}>
-            {t('timetable.thisWeek')}
-          </Button>
-        )}
+        {/* The shown week by name, so nobody counts clicks (audit 3 TT1). */}
+        <div className="grid justify-items-center">
+          <span className="text-sm font-semibold">{rangeLabel(from, to, lang)}</span>
+          {from !== thisWeek && (
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs"
+              onClick={() => goTo(thisWeek)}
+            >
+              {t('timetable.thisWeek')}
+            </Button>
+          )}
+        </div>
         <Button variant="ghost" size="sm" onClick={() => goTo(addDays(from, 7))}>
-          {t('timetable.nextWeek')}
+          <span className="sr-only sm:not-sr-only">{t('timetable.nextWeek')}</span>
           <ChevronLeft aria-hidden className="ltr:-scale-x-100" />
         </Button>
       </nav>

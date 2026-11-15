@@ -129,10 +129,14 @@ export default function StudentScan() {
   const code = error ? errorKey(error) : undefined;
   return (
     <Card>
-      <CardHeader>
+      {/* The installed app has no browser back on iPhone, so the way out is on screen (audit 3 SA1). */}
+      <CardHeader className="flex items-center justify-between gap-2">
         <CardTitle>
           <h1>{t('scan.title')}</h1>
         </CardTitle>
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/s">{t('scan.back')}</Link>
+        </Button>
       </CardHeader>
       <CardContent className="grid gap-3">
         <video

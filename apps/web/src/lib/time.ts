@@ -53,3 +53,11 @@ export const dayLabel = (date: string, lang: string) =>
     month: 'long',
     timeZone: 'UTC',
   }).format(Date.parse(date));
+
+/** Two dates as one short range: "21 – 27 نوفمبر" / "November 21 – 27" (audit 3 TT1). */
+export const rangeLabel = (from: string, to: string, lang: string) =>
+  new Intl.DateTimeFormat(intlLocale(lang), {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).formatRange(Date.parse(from), Date.parse(to));

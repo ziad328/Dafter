@@ -56,6 +56,11 @@ export function useNavItems() {
   return { main, more };
 }
 
+// The sidebar is olive in both themes, so hover keeps white text: the outline variant's
+// hover:text-accent-foreground turned it dark in the light theme (audit 3 N4).
+const SIDEBAR_OUTLINE =
+  'border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white dark:bg-white/5 dark:hover:bg-white/10';
+
 /** Language switch and sign-out, shared by the sidebar and the "More" screen. */
 export function AccountActions({ className, dark }: { className?: string; dark?: boolean }) {
   const { t, i18n } = useTranslation();
@@ -66,15 +71,12 @@ export function AccountActions({ className, dark }: { className?: string; dark?:
       <Button
         variant="outline"
         lang={other}
-        className={cn(dark && 'border-white/15 bg-white/5 text-white hover:bg-white/10')}
+        className={cn(dark && SIDEBAR_OUTLINE)}
         onClick={() => void i18n.changeLanguage(other)}
       >
         {t('shell.switchLanguage')}
       </Button>
-      <ThemeToggle
-        withLabel
-        className={cn(dark && 'border-white/15 bg-white/5 text-white hover:bg-white/10')}
-      />
+      <ThemeToggle withLabel className={cn(dark && SIDEBAR_OUTLINE)} />
       <Button
         variant="ghost"
         className={cn(dark && 'text-white/70 hover:bg-white/10 hover:text-white')}

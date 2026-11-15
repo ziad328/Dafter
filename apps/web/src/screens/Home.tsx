@@ -92,7 +92,10 @@ export default function Home() {
     <div className="grid gap-6">
       <header>
         <h1 className="text-2xl font-bold">{dayLabel(today, i18n.language)}</h1>
-        <p className="text-muted-foreground">{t('today.count', { count: list.length })}</p>
+        {/* Cancelled sessions are left out, like the sessions tile (audit 3 H1). */}
+        <p className="text-muted-foreground">
+          {t('today.count', { count: list.filter((s) => s.status !== 'cancelled').length })}
+        </p>
       </header>
       <FormError message={error && t(errorKey(error))} />
 

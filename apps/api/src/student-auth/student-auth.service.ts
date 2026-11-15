@@ -58,7 +58,7 @@ export class StudentAuthService {
       now,
       new Date(now.getTime() + OTP_TTL_MS),
     );
-    await this.mailer.send(email, `رمز الدخول إلى دفتر: ${code} — Your Dafter code: ${code}`);
+    await this.mailer.send(email, `كود الدخول إلى دفتر: ${code} — Your Dafter code: ${code}`);
   }
 
   async verifyOtp(body: OtpVerifyRequest): Promise<Session> {

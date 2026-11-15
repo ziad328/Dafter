@@ -49,23 +49,25 @@ export default function CashSummary() {
         <table className="w-full text-sm">
           <thead className="text-muted-foreground">
             <tr>
-              <th className="py-1 text-start font-normal">{t('cashSummary.time')}</th>
-              <th className="py-1 text-start font-normal">{t('cashSummary.receiptNo')}</th>
-              <th className="py-1 text-start font-normal">{t('receipt.student')}</th>
+              <th className="py-1 pe-3 text-start font-normal">{t('cashSummary.time')}</th>
+              <th className="py-1 pe-3 text-start font-normal">{t('cashSummary.receiptNo')}</th>
+              <th className="py-1 pe-3 text-start font-normal">{t('receipt.student')}</th>
               <th className="py-1 text-end font-normal">{t('receipt.amount')}</th>
             </tr>
           </thead>
           <tbody>
             {s.entries.map((e) => (
               <tr key={e.id} className={e.kind === 'reversal' ? 'text-rose' : undefined}>
-                <td className="py-1">
+                {/* Spacing, and the time never wraps, so it doesn't run into the receipt number on a
+                  phone (audit 3 F4). */}
+                <td className="py-1 pe-3 whitespace-nowrap">
                   <bdi>{displayTime(e.createdAt, data.timezone, lang)}</bdi>
                 </td>
-                <td className="py-1">
+                <td className="py-1 pe-3">
                   <bdi>{e.receiptNo}</bdi>
                   {e.kind === 'reversal' && ` ${t('cashSummary.reversed')}`}
                 </td>
-                <td className="py-1">{e.studentName}</td>
+                <td className="py-1 pe-3">{e.studentName}</td>
                 <td className="py-1 text-end">
                   {money(e.amountPiastres)}
                   <span className="block text-xs text-muted-foreground">

@@ -139,13 +139,16 @@ export default function SessionLive() {
       </div>
       <div className="grid gap-4">
         <div className="text-center" aria-live="polite">
+          {/* "3 / 20" reads at a glance; the sentence stays for a class with no roster (audit 3 LV3). */}
           <p key={here} className="animate-in text-3xl font-bold zoom-in-90 duration-300">
-            {t('live.count', { count: here })}
+            {expected.length > 0 ? (
+              <bdi dir="ltr">{`${here} / ${expected.length}`}</bdi>
+            ) : (
+              t('live.count', { count: here })
+            )}
           </p>
           {expected.length > 0 && (
-            <p className="text-sm text-muted-foreground">
-              {t('live.expected', { count: expected.length })}
-            </p>
+            <p className="text-sm text-muted-foreground">{t('live.expected')}</p>
           )}
         </div>
         <Card id="class-list" className="scroll-mt-4">

@@ -46,7 +46,7 @@ export default function Login() {
             label={t('auth.login.password')}
             type="password"
             autoComplete="current-password"
-            error={formState.errors.password && t('form.invalid.password')}
+            error={formState.errors.password && t('form.invalid.passwordRequired')}
             {...register('password')}
           />
           <FormError message={error && t(errorKey(error))} />

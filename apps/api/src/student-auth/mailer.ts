@@ -36,7 +36,7 @@ export class BrevoMailer extends Mailer {
     super();
   }
 
-  async send(to: string, text: string, subject = 'رمز الدخول إلى دفتر · Your Dafter code') {
+  async send(to: string, text: string, subject = 'كود الدخول إلى دفتر · Your Dafter code') {
     const res = await this.fetchFn('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': this.apiKey, 'content-type': 'application/json' },

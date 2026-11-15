@@ -363,15 +363,17 @@ describe('fees', () => {
       'href',
       `/receipts/${fx.ledger.entries[1]!.id}`,
     );
-    expect(within(ledger).queryByRole('button', { name: tr('fees.reverse') })).toBeNull();
+    expect(within(ledger).queryByRole('button', { name: tr('fees.reverseCharge') })).toBeNull();
+    // The only reversible entry is the monthly charge, so its menu says so (audit 3 S5).
     const menu = within(ledger).getByRole('button', { name: tr('fees.actions') });
     await user.click(menu);
-    await user.click(within(ledger).getByRole('button', { name: tr('fees.reverse') }));
-    await user.click(menu);
     expect(within(ledger).queryByRole('button', { name: tr('fees.reverse') })).toBeNull();
+    await user.click(within(ledger).getByRole('button', { name: tr('fees.reverseCharge') }));
     await user.click(menu);
-    await user.click(within(ledger).getByRole('button', { name: tr('fees.reverse') }));
-    await user.click(within(ledger).getByRole('button', { name: tr('fees.confirmReverse') }));
+    expect(within(ledger).queryByRole('button', { name: tr('fees.reverseCharge') })).toBeNull();
+    await user.click(menu);
+    await user.click(within(ledger).getByRole('button', { name: tr('fees.reverseCharge') }));
+    await user.click(within(ledger).getByRole('button', { name: tr('fees.confirmReverseCharge') }));
     await expect
       .poll(() => call(`POST /api/v1/ledger/${fx.ledger.entries[2]!.id}/reverse`))
       .toBeDefined();

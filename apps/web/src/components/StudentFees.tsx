@@ -203,7 +203,9 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
               void reverse({ id: e.id, 'idempotency-key': idem });
             }}
           >
-            {t(confirming ? 'fees.confirmReverse' : 'fees.reverse')}
+            {e.type === 'charge'
+              ? t(confirming ? 'fees.confirmReverseCharge' : 'fees.reverseCharge')
+              : t(confirming ? 'fees.confirmReverse' : 'fees.reverse')}
           </Button>
         )}
       </div>

@@ -298,7 +298,8 @@ describe('messages', () => {
     await renderAt('/messages');
     expect(await screen.findByText(tr('messages.ownerOnly'))).toBeVisible();
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
-    expect(screen.getAllByRole('checkbox')[0]).toBeDisabled();
+    // Waits: the switches render once the settings load, which can land after the log's error.
+    expect((await screen.findAllByRole('checkbox'))[0]).toBeDisabled();
   });
 });
 

@@ -54,8 +54,8 @@ describe('live session', () => {
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
       `${fx.sessions[0]!.subject.nameAr} · ${fx.sessions[0]!.gradeLevel.nameAr} · مجموعة أ`,
     );
-    expect(await screen.findByText(tr('live.count', { count: 2 }))).toBeVisible();
-    expect(screen.getByText(tr('live.expected', { count: 2 }))).toBeVisible();
+    expect(await screen.findByText('2 / 2')).toBeVisible();
+    expect(screen.getByText(tr('live.expected'))).toBeVisible();
     const list = screen.getByTestId('live-list');
     expect(within(list).getByText('ضيف')).toBeVisible();
     expect(
@@ -108,9 +108,10 @@ describe('live session', () => {
     const { user } = await renderAt(page, { lang: 'en' });
     await user.click(await screen.findByRole('button', { name: tr('live.toList') }));
     await user.click(screen.getByRole('button', { name: tr('live.fullScreen') }));
-    expect(screen.getAllByText(tr('live.count', { count: 0 }))).toHaveLength(2);
-    await user.click(screen.getByRole('button', { name: tr('live.exitFullScreen') }));
+    // The page shows "0 / N"; the full-screen overlay keeps the sentence for the class.
     expect(screen.getAllByText(tr('live.count', { count: 0 }))).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: tr('live.exitFullScreen') }));
+    expect(screen.queryAllByText(tr('live.count', { count: 0 }))).toHaveLength(0);
   });
 
   it('closes after a confirm and marks the rest absent', async () => {

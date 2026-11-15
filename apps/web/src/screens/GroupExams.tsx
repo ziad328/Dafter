@@ -56,7 +56,8 @@ export default function GroupExams() {
             error={errors.title && t('form.invalid.examTitle')}
             {...register('title')}
           />
-          <div className="grid grid-cols-2 gap-3">
+          {/* Stacked on phones: the native date field is too wide for half of 375 px (audit 3 E1). */}
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field
               label={t('exams.heldOn')}
               type="date"
