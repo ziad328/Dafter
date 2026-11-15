@@ -155,8 +155,18 @@ describe('PATCH /members/:id', () => {
       c.owner('PATCH', `members/${second.id}`, { status: 'removed' }),
       second.as('PATCH', `members/${owner.id}`, { status: 'removed' }),
     ]);
-    expect([x.statusCode, y.statusCode].sort()).toEqual([200, 409]);
-    expect([x, y].find((r) => r.statusCode === 409)!.json().code).toBe('LAST_OWNER');
+    // Exactly one goes through. The other is LAST_OWNER (it waited on the lock) or 404 (it
+    // arrived after the commit, and its sender is no longer a member).
+    const codes = [x, y].map((r) => r.statusCode).sort();
+    expect(codes[0]).toBe(200);
+    expect([404, 409]).toContain(codes[1]);
+    const left = await withTenant(testDb().db, c.workspaceId, (tx) =>
+      tx.execute<{ n: number }>(
+        sql`select count(*)::int as n from memberships
+            where workspace_id = ${c.workspaceId} and role = 'owner' and status = 'active'`,
+      ),
+    );
+    expect(left.rows[0]!.n).toBe(1);
   });
 });
 
