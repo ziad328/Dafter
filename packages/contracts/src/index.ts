@@ -13,5 +13,6 @@ export * from './attendance.js';
 export * from './me.js';
 export * from './money.js';
 export * from './messages.js';
+export * from './templates.js';
 export * from './stats.js';
 export * from './exams.js';

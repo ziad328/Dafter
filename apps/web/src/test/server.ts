@@ -1,3 +1,4 @@
+import { DEFAULT_TEMPLATES, TEMPLATE_PLACEHOLDERS } from '@dafter/contracts';
 import type {
   AttendanceRecord,
   Exam,
@@ -229,6 +230,31 @@ export const handlers = [
   ),
   http.get(api('subjects'), log(fx.subjects)),
   http.get(api('grade-levels'), log(fx.gradeLevels)),
+  // The default wording for every trigger, no custom text.
+  http.get(
+    api('message-templates'),
+    log(
+      Object.entries(TEMPLATE_PLACEHOLDERS).map(([trigger, placeholders]) => ({
+        trigger,
+        placeholders,
+        ar: { default: DEFAULT_TEMPLATES[trigger as 'absence'].ar, custom: null },
+        en: { default: DEFAULT_TEMPLATES[trigger as 'absence'].en, custom: null },
+      })),
+    ),
+  ),
+  http.put(
+    api('message-templates/:trigger'),
+    log(async (req, params) => {
+      const body = (await req.json()) as { ar: string | null; en: string | null };
+      const trigger = params.trigger as 'absence';
+      return {
+        trigger,
+        placeholders: TEMPLATE_PLACEHOLDERS[trigger],
+        ar: { default: DEFAULT_TEMPLATES[trigger].ar, custom: body.ar },
+        en: { default: DEFAULT_TEMPLATES[trigger].en, custom: body.en },
+      };
+    }),
+  ),
   // No rooms by default (most centers start without); rooms.spec.tsx adds them.
   http.get(api('rooms'), log([])),
   http.post(

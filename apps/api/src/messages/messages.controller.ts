@@ -4,6 +4,7 @@ import {
   Get,
   Inject,
   Injectable,
+  Param,
   Put,
   Query,
   Req,
@@ -11,12 +12,20 @@ import {
 } from '@nestjs/common';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import {
+  type CustomTemplates,
+  DEFAULT_TEMPLATES,
   type ListMessagesQuery,
   listMessagesQuery,
   type MessageSettings,
   messageSettings,
+  type MessageTemplate,
+  messageTrigger,
   type OutboxMessage,
   type SentMessage,
+  TEMPLATE_PLACEHOLDERS,
+  unknownPlaceholder,
+  type UpdateMessageTemplateRequest,
+  updateMessageTemplateRequest,
 } from '@dafter/contracts';
 import { guardians, outboxMessages, workspaces } from '@dafter/db';
 import type { AuditedRequest } from '../audit.interceptor.js';
@@ -112,10 +121,62 @@ export class MessagesRepository extends TenantRepository {
   }
 }
 
+type Trigger = MessageTemplate['trigger'];
+
+/** Each trigger with its placeholders, default and custom wording. */
+function templateList(custom: CustomTemplates): MessageTemplate[] {
+  return messageTrigger.options.map((trigger) => one(trigger, custom));
+}
+
+function one(trigger: Trigger, custom: CustomTemplates): MessageTemplate {
+  const locale = (l: 'ar' | 'en') => ({
+    default: DEFAULT_TEMPLATES[trigger][l],
+    custom: custom[trigger]?.[l] || null,
+  });
+  return {
+    trigger,
+    placeholders: [...TEMPLATE_PLACEHOLDERS[trigger]],
+    ar: locale('ar'),
+    en: locale('en'),
+  };
+}
+
+@Injectable()
+export class TemplatesRepository extends TenantRepository {
+  async get(workspaceId: string): Promise<CustomTemplates> {
+    const [row] = await this.inTenant(workspaceId, (tx) =>
+      tx
+        .select({ templates: sql<CustomTemplates | null>`${workspaces.settings}->'templates'` })
+        .from(workspaces)
+        .where(eq(workspaces.id, workspaceId)),
+    );
+    return row?.templates ?? {};
+  }
+
+  /** Replaces one trigger's wording; the other triggers and settings are kept. */
+  async set(workspaceId: string, trigger: Trigger, value: UpdateMessageTemplateRequest) {
+    const [row] = await this.inTenant(workspaceId, (tx) =>
+      tx
+        .update(workspaces)
+        .set({
+          settings: sql`${workspaces.settings} || jsonb_build_object('templates',
+            coalesce(${workspaces.settings}->'templates', '{}'::jsonb)
+              || jsonb_build_object(${trigger}::text, ${JSON.stringify(value)}::jsonb))`,
+        })
+        .where(eq(workspaces.id, workspaceId))
+        .returning({ templates: sql<CustomTemplates>`${workspaces.settings}->'templates'` }),
+    );
+    return row!.templates;
+  }
+}
+
 @Controller()
 @UseGuards(AuthGuard, TenantGuard)
 export class MessagesController {
-  constructor(@Inject(MessagesRepository) private readonly repo: MessagesRepository) {}
+  constructor(
+    @Inject(MessagesRepository) private readonly repo: MessagesRepository,
+    @Inject(TemplatesRepository) private readonly templates: TemplatesRepository,
+  ) {}
 
   /** Owner and assistant: the log shows every parent's phone, so teachers don't get it. */
   @Get('messages')
@@ -140,6 +201,33 @@ export class MessagesController {
     if (req.role !== 'owner') throw new AppError('FORBIDDEN');
     req.audit = { entityId: req.workspaceId };
     return this.repo.setSettings(req.workspaceId, body);
+  }
+
+  /** Owner and assistant, like the log: the wording parents get. */
+  @Get('message-templates')
+  async listTemplates(@Req() req: TenantedRequest): Promise<MessageTemplate[]> {
+    if (req.role === 'teacher') throw new AppError('FORBIDDEN');
+    return templateList(await this.templates.get(req.workspaceId));
+  }
+
+  /** Owner only. Empty text is stored as null (the default); unknown placeholders are refused. */
+  @Put('message-templates/:trigger')
+  async setTemplate(
+    @Req() req: TenantedRequest & AuditedRequest,
+    @Param('trigger', new ZodPipe(messageTrigger)) trigger: Trigger,
+    @Body(new ZodPipe(updateMessageTemplateRequest)) body: UpdateMessageTemplateRequest,
+  ): Promise<MessageTemplate> {
+    if (req.role !== 'owner') throw new AppError('FORBIDDEN');
+    // The default text is stored as null too, so a later change of the default reaches it.
+    const own = (l: 'ar' | 'en') =>
+      body[l] && body[l] !== DEFAULT_TEMPLATES[trigger][l] ? body[l] : null;
+    const value = { ar: own('ar'), en: own('en') };
+    for (const locale of ['ar', 'en'] as const) {
+      const placeholder = value[locale] && unknownPlaceholder(trigger, value[locale]);
+      if (placeholder) throw new AppError('TEMPLATE_PLACEHOLDER_UNKNOWN', { placeholder, locale });
+    }
+    req.audit = { entityId: req.workspaceId };
+    return one(trigger, await this.templates.set(req.workspaceId, trigger, value));
   }
 }
 

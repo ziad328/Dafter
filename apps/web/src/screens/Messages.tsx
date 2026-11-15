@@ -9,6 +9,7 @@ import {
   useUpdateMessageSettingsMutation,
 } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
+import { MessageWording } from '@/components/MessageWording';
 import { PageHeader, Panel } from '@/components/Page';
 import { errorKey } from '@/lib/session';
 import { dayLabel, displayTime, localDate } from '@/lib/time';
@@ -69,6 +70,8 @@ export default function Messages() {
         {!isOwner && <p className="text-sm text-muted-foreground">{t('messages.ownerOnly')}</p>}
         <FormError message={saving.error && t(errorKey(saving.error))} />
       </Panel>
+
+      <MessageWording canEdit={isOwner} />
 
       <div role="group" aria-label={t('messages.filter')} className="flex flex-wrap gap-2">
         {(['', ...STATUSES] as const).map((s) => (

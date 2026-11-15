@@ -1,0 +1,59 @@
+# Plan: fixing the known limits
+
+Written Nov 15 from `docs/known-limits.md`. That file stays the full list; this one groups the limits into batches that each fit one or two sessions, in the order they should be done before a real center uses Dafter. Each batch follows the usual flow (contract, migration, API, web, tests at every layer, docs). When a row is fixed, delete it from `known-limits.md` and tick it here.
+
+**Size:** S = a few hours · M = about a day · L = more than a day. *Hard part* = explain first, add interview questions after.
+
+## Batch 1 · Quick wins on screens people use daily (S each, mostly web)
+
+Nothing here needs the center interviews. Good filler between bigger features.
+
+- [ ] **Archive a group from the UI.** An "Archive" / "Restore" action on the group page (the API already takes `status`). Archived groups drop out of Today and the timetable.
+- [ ] **Late threshold setting.** A number field on the workspace settings («يُعتبر متأخرًا بعد … دقيقة»), saved to `settings.lateAfterMinutes` (default 15, 0–120).
+- [ ] **Keep the QR screen awake.** `navigator.wakeLock.request('screen')` while the live session is open, released on close or tab hide; no-op where unsupported.
+- [ ] **Group capacity on enroll.** `GROUP_FULL` when active enrollments reach `capacity`; the owner can still override with a confirm (`force: true`).
+- [ ] **Teacher double-booking on move.** Same shape as the room check: moving a session to a time when the teacher has another non-cancelled session returns `TEACHER_BOOKED`. Group slots get the same check against the teacher's other groups.
+- [ ] **Room capacity hint.** A warning (not an error) on the group form when the group's capacity is above the room's.
+- [ ] **Dashboard range.** A `weeks` query param (8 default, max 26) and a 8 / 13 / 26 switch on the screen.
+
+## Batch 2 · Messages that are always right (M, *hard part: outbox*)
+
+Do this **after editable templates** (same files: `messages/templates.ts`, the outbox insert and the sender).
+
+- [ ] **Re-check at send time.** The sender re-reads the balance for `fee_overdue` rows and marks them `skipped` when it is zero; a row whose trigger was switched off since it was queued is `skipped` too. New status `skipped` in the log, with the reason.
+- [ ] **Late corrections reach parents.** A manual "absent" after close queues the absence message (same dedupe key, so a second change does nothing); a change from absent to present after the message went out sends nothing (documented).
+- [ ] **Primary guardian only.** A `settings.messages.primaryOnly` switch (default off: today's behaviour).
+- [ ] **Moved session says from when.** The `session_moved` template gets the old time («حصة السبت 4:00 م أصبحت الأحد 5:00 م»).
+
+## Batch 3 · Staff management (M, *hard part: auth and tenancy*)
+
+- [ ] **Invite carries the assistant's teachers** (the next feature in `docs/v1-next.md`). Accepting writes the membership and its scopes in one transaction, which also removes the separate scope-check transaction and the extra workspace read.
+- [ ] **`PATCH /members/:id`**: change a role, or remove a member (`status = removed`, sessions and memberships revoked, their groups stay with a "no teacher" warning until reassigned). Owner only; the last owner can't be removed.
+- [ ] **Audit in the same transaction** as the write it records (the interceptor gets the request's transaction instead of opening its own), so a failed audit row rolls the write back.
+
+## Batch 4 · Before real users: safety and operations (M)
+
+- [ ] **Rate limit `POST /check-ins`** per device and per session (for example 10 a minute), with the same in-memory limiter as login.
+- [ ] **"Too early to open."** Opening a session more than 30 minutes before its start returns `SESSION_TOO_EARLY`.
+- [ ] **Demo-only switches off by default in production.** `DEV_FAKE_PHONE` read from the environment only on the demo deploy; a startup check refuses `DEV_MAIL_INBOX` when `NODE_ENV=production`.
+- [ ] **Breaking-change check in CI.** `oasdiff breaking` between `main`'s `openapi.json` and the PR's.
+- [ ] **Migrations as a step, not a habit.** A GitHub Actions job on `main` that runs the Neon migration (secret `NEON_DATABASE_URL_UNPOOLED`) before Vercel's build is promoted, so a push can't deploy code ahead of its schema.
+- [ ] **Teachers and the message log.** A teacher sees the messages of their own groups, with phones masked except the last 3 digits.
+
+## Batch 5 · Money, after the center interviews (L)
+
+Wait for the answers to the open questions in `docs/product.md` (who collects, per month or per session).
+
+- [ ] Per-session and package-of-N fee plans.
+- [ ] Proration for mid-month joins (a setting: full month, half month after the 15th, or by sessions left).
+- [ ] Cash handover: the owner marks a staff member's day as received; the summary shows who hasn't handed over.
+- [ ] CSV export of exam scores (then import).
+- [ ] A nightly balance check (sum of entries vs. the sum shown) that logs any drift.
+
+## Later, when scale or a host change asks for it
+
+Rate limits in Redis, LISTEN/NOTIFY for the live list, cursor pagination (groups, students, message log), batching the jobs per workspace, dropping cloned test databases, curriculum editing, more than one guardian in the UI, an offline screen in the PWA. These need a long-running host (the VPS stage) or real traffic to justify them.
+
+## Not fixes, by design
+
+Rooms in independent workspaces, the one shared student login across centers, invite links as bearer tokens, the rotating QR's video-call weakness, the public demo password, and the cash summary counting a reversal on its own day. Each is documented in `known-limits.md` with its reason.

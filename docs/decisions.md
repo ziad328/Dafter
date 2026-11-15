@@ -91,3 +91,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** `rooms` per workspace; the room sits on the group and is copied onto each generated session; `sessions_room_no_overlap` (btree_gist, non-cancelled sessions with a room) is the backstop; the API checks a group's weekly slots against the room's other active groups under a row lock on the room and returns `ROOM_BOOKED` with the clash.
 - **Alternatives:** an API-only check (races, and every future write path must remember it); the constraint only (no friendly error naming the slot, and it fires per session, not per weekly slot); the room on groups only (a moved or past session couldn't keep its own room).
 - **Why:** the database guarantees the rule under concurrency; the API gives the translated message; a session generated over a moved session gets no room instead of failing the whole job.
+
+## 2026-11-15 · v1: editable message templates in workspace settings, filled at send time
+
+- **Decision:** a center's wording per trigger and language lives in `workspaces.settings.templates` (null = default); the defaults, the placeholder lists and `fillTemplate` are in `packages/contracts`; the sender fills the text at send time; unknown placeholders are refused on save (`TEMPLATE_PLACEHOLDER_UNKNOWN`).
+- **Alternatives:** a `message_templates` table (a migration, RLS and a join for ten strings per center); rendering when the message is queued (an edit would never reach messages already waiting); free text without placeholders (the center would type each name).
+- **Why:** no migration, one read per send pass, a preview that matches the sent text, and stored bodies keep the log honest.

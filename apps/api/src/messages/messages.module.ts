@@ -5,11 +5,12 @@ import {
   FakePhoneController,
   MessagesController,
   MessagesRepository,
+  TemplatesRepository,
 } from './messages.controller.js';
 
 @Module({
   imports: [AuthModule, WorkspacesModule],
   controllers: [MessagesController, FakePhoneController],
-  providers: [MessagesRepository],
+  providers: [MessagesRepository, TemplatesRepository],
 })
 export class MessagesModule {}

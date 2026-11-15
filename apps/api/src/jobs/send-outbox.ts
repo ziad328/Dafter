@@ -1,4 +1,5 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
+import type { CustomTemplates } from '@dafter/contracts';
 import { type Db, guardians, outboxMessages, type Tx, withTenant, workspaces } from '@dafter/db';
 import type { Clock } from '../clock.js';
 import type { MessageProvider } from '../messages/provider.js';
@@ -50,9 +51,16 @@ export async function sendDueMessages(
       .orderBy(outboxMessages.sendAfter)
       .limit(BATCH)
       .for('update', { of: outboxMessages, skipLocked: true });
+    if (!due.length) return 0;
+    // The center's own wording, read once per pass; rows queued before an edit use the new text.
+    const [settings] = await tx
+      .select({ templates: sql<CustomTemplates | null>`${workspaces.settings}->'templates'` })
+      .from(workspaces)
+      .where(eq(workspaces.id, ws));
+    const custom = settings?.templates ?? undefined;
     let n = 0;
     for (const m of due) {
-      const body = render(m.trigger, m.payload as Parameters<typeof render>[1], m.locale);
+      const body = render(m.trigger, m.payload as Parameters<typeof render>[1], m.locale, custom);
       try {
         const providerMessageId = await provider.send(m.phone, body);
         await tx

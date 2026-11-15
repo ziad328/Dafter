@@ -74,6 +74,8 @@ export const ERROR_STATUS = {
   EXAM_NOT_FOUND: 404,
   // A score above the exam's max (details.studentId), or a new max below a recorded score.
   EXAM_SCORE_ABOVE_MAX: 400,
+  // A message template uses a placeholder its trigger doesn't offer (details.placeholder, locale).
+  TEMPLATE_PLACEHOLDER_UNKNOWN: 400,
   // A result for a student who was never enrolled in the exam's group (details.studentId).
   EXAM_STUDENT_INVALID: 400,
   // Delete an exam that has results: clear the grid first.

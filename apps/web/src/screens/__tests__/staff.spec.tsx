@@ -155,7 +155,7 @@ describe('messages', () => {
     expect(within(log).getAllByText('علي')).toHaveLength(2);
     expect(within(log).getByText(tr('messages.attempts', { count: 3 }))).toBeVisible();
     expect(within(log).getAllByText(full.body)).toHaveLength(2);
-    const absence = screen.getByRole('checkbox', { name: tr('messages.toggles.absence') });
+    const absence = await screen.findByRole('checkbox', { name: tr('messages.toggles.absence') });
     await user.click(absence);
     await expect
       .poll(() => call('PUT /api/v1/message-settings')?.body)

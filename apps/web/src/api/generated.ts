@@ -337,6 +337,24 @@ const injectedRtkApi = api
         }),
         providesTags: ['messages'],
       }),
+      listMessageTemplates: build.query<
+        ListMessageTemplatesApiResponse,
+        ListMessageTemplatesApiArg
+      >({
+        query: () => ({ url: `/api/v1/message-templates` }),
+        providesTags: ['messages'],
+      }),
+      updateMessageTemplate: build.mutation<
+        UpdateMessageTemplateApiResponse,
+        UpdateMessageTemplateApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/v1/message-templates/${queryArg.trigger}`,
+          method: 'PUT',
+          body: queryArg.updateMessageTemplateRequest,
+        }),
+        invalidatesTags: ['messages'],
+      }),
       getMessageSettings: build.query<GetMessageSettingsApiResponse, GetMessageSettingsApiArg>({
         query: () => ({ url: `/api/v1/message-settings` }),
         providesTags: ['messages'],
@@ -654,6 +672,13 @@ export type ListMessagesApiResponse = /** status 200 Messages */ OutboxMessageLi
 export type ListMessagesApiArg = {
   status?: 'queued' | 'sent' | 'failed';
 };
+export type ListMessageTemplatesApiResponse = /** status 200 Templates */ MessageTemplateList;
+export type ListMessageTemplatesApiArg = void;
+export type UpdateMessageTemplateApiResponse = /** status 200 Saved */ MessageTemplate;
+export type UpdateMessageTemplateApiArg = {
+  trigger: 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result' | 'fee_overdue';
+  updateMessageTemplateRequest: UpdateMessageTemplateRequest;
+};
 export type GetMessageSettingsApiResponse = /** status 200 Settings */ MessageSettingsOutput;
 export type GetMessageSettingsApiArg = void;
 export type UpdateMessageSettingsApiResponse = /** status 200 Settings */ MessageSettingsOutput;
@@ -770,6 +795,7 @@ export type ErrorCode =
   | 'ENTRY_NOT_REVERSIBLE'
   | 'EXAM_NOT_FOUND'
   | 'EXAM_SCORE_ABOVE_MAX'
+  | 'TEMPLATE_PLACEHOLDER_UNKNOWN'
   | 'EXAM_STUDENT_INVALID'
   | 'EXAM_HAS_RESULTS'
   | 'EXAM_NOT_GRADED'
@@ -1188,6 +1214,23 @@ export type OutboxMessage = {
   createdAt: string;
 };
 export type OutboxMessageList = OutboxMessage[];
+export type MessageTemplate = {
+  trigger: 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result' | 'fee_overdue';
+  placeholders: string[];
+  ar: {
+    default: string;
+    custom: string | null;
+  };
+  en: {
+    default: string;
+    custom: string | null;
+  };
+};
+export type MessageTemplateList = MessageTemplate[];
+export type UpdateMessageTemplateRequest = {
+  ar: string | null;
+  en: string | null;
+};
 export type MessageSettingsOutput = {
   absence: boolean;
   sessionChange: boolean;
@@ -1358,6 +1401,8 @@ export const {
   useReverseEntryMutation,
   useGetReceiptQuery,
   useListMessagesQuery,
+  useListMessageTemplatesQuery,
+  useUpdateMessageTemplateMutation,
   useGetMessageSettingsQuery,
   useUpdateMessageSettingsMutation,
   useListFakePhoneMessagesQuery,

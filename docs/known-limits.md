@@ -1,6 +1,6 @@
 # Known limits and open issues
 
-Everything we know is missing, unchecked or a deliberate shortcut, in one place. Sources: the "Left:" notes in `progress.md`, `shortcut:` comments in the code, and the session reports and reviews from Days 1–15. Fixed items are removed; new ones are added by the `task-finish` skill.
+Everything we know is missing, unchecked or a deliberate shortcut, in one place. Sources: the "Left:" notes in `progress.md`, `shortcut:` comments in the code, and the session reports and reviews from Days 1–15. Fixed items are removed; new ones are added by the `task-finish` skill. The order to fix them in is `docs/limits-plan.md`.
 
 **Fix by:** **D17** = Day 17 deploy · **v0** = before the v0 tag (Nov 30) · **centers** = before a real center uses it · **later** = when scale or a real need shows up.
 
@@ -32,7 +32,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | A staff invite carries only the role; the owner ticks an assistant's teachers after they join | One extra step for the owner | later |
 | A phone reset from center A also unbinds it at center B (one shared login) | By design, but surprising | — (documented) |
 | Anyone holding an invite link can claim that record (single use, 72 h) | Same trust model as staff invites | — (documented) |
-| `DEV_MAIL_INBOX=1` exposes login codes to anyone; `DEV_FAKE_PHONE=1` (on in the demo) shows a workspace's parent messages to its staff | Never set `DEV_MAIL_INBOX` on Render; turn `DEV_FAKE_PHONE` off with real users | centers |
+| `DEV_MAIL_INBOX=1` exposes login codes to anyone; `DEV_FAKE_PHONE=1` (on in the demo) shows a workspace's parent messages to its staff | Never set `DEV_MAIL_INBOX` on Vercel; turn `DEV_FAKE_PHONE` off with real users | centers |
 
 ## Groups, sessions and students
 
@@ -47,7 +47,6 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | No group capacity check on enroll | A group can be over-filled | centers |
 | Moving a session doesn't check the teacher's other sessions | Double-booked teacher | centers |
 | `GET /groups/:id/sessions` not built | Not needed by the timetable | later |
-| Times shown as 24-hour `HH:MM` | Egyptian users expect 12-hour | v0 if time |
 | No cursor pagination (groups, students: first 50) | Big centers can't see everyone | later |
 | Teachers see every student in the workspace | Privacy choice not settled | centers |
 | The UI handles one guardian per student (the API allows more) | Second parent needs the API | centers |
@@ -60,7 +59,6 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | No "too early to open" check on opening a session | A session can be opened days ahead | centers |
 | `POST /check-ins` has no rate limit | Abuse by a bound device | centers |
 | No UI for the late threshold (`settings.lateAfterMinutes`, default 15) | Fixed 15 minutes | centers |
-| The live screen marks only "present" by one tap; late or excused need the API | Rare cases need a workaround | centers |
 | No wake-lock or brightness handling on the QR screen | The screen may dim during class | v0 if time |
 | A student on a video call can relay the QR | Known weakness of rotating QR (architecture.md) | — (documented) |
 | No offline screen when the API is unreachable | The PWA shows errors | later |
@@ -99,8 +97,9 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Every linked guardian is texted, not only the primary | Possibly more messages than a center wants | centers |
 | A manual "absent" after close sends nothing | Late corrections don't reach parents | centers |
 | At-least-once delivery: a crash between the provider call and the commit resends | Duplicate text in a rare crash | later (outbox id as the provider's idempotency key) |
-| Up to 1 minute delay (one-minute poll) | Fine for parents | — |
-| Templates are fixed in code; a center can only switch triggers on or off | Wording can't be customized (WhatsApp needs pre-approved templates anyway) | later |
+| Custom wording is free text for the console and SMS stage; WhatsApp only sends pre-approved templates | With WhatsApp, centers will pick from approved texts instead of writing their own | later (with WhatsApp) |
+| An edit to the wording also changes messages already queued (they are filled at send time) | Usually what a center wants (a typo fix); the log shows the text actually sent | — |
+| No length check against SMS segments (500 characters allowed; one SMS is 70 Arabic characters) | Long Arabic texts cost several SMS once a paid provider is used | later (a counter on the screen) |
 | Switching a trigger off doesn't cancel messages already queued (e.g. held by quiet hours) | One last message may still go out | later |
 | Teachers can't see the message log (it shows every parent's phone) | They ask the owner or assistant | centers |
 | The message log shows the newest 100, no pagination or search | Older messages are hidden | later |
@@ -118,4 +117,5 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | `fee-reminders.spec.ts` is skipped from the 1st to the 6th of the month (Cairo), and makes a new workspace for the seeded owner on every run | Early-month runs check less; the dev owner's workspace list grows (until `pnpm db:reset`) | — |
 | `students.spec.ts` [ar] "assistant adds a student…" failed once in the full run (2 workers, `toHaveCount`), then passed alone; CI retries once | Possible flake | later (watch; if it repeats, look at what the count waits on) |
 | The GitHub CLI (`gh`) isn't installed on the dev laptop; CI status is read from the public Actions API with `curl` | No PR or log commands from Claude Code | — |
+| Web spec `student-app.spec.tsx` "keeps the invite link ready to copy" failed once in the full web run (the stored invite read as null), then passed alone and in two full runs | Possible timing flake | later (watch) |
 | `student-app.spec.ts` timed out once (40 s) with the full suite on 6 workers, then passed alone | Possible flake under load | later (watch in CI) |

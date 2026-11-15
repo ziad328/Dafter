@@ -1,3 +1,5 @@
+import { type CustomTemplates, DEFAULT_TEMPLATES, fillTemplate } from '@dafter/contracts';
+
 /** Every trigger the outbox knows. */
 export type Trigger =
   'absence' | 'session_cancelled' | 'session_moved' | 'exam_result' | 'fee_overdue';
@@ -100,49 +102,43 @@ const owed = (p: FeePayload, locale: Locale) =>
     locale,
   );
 
-// Fixed wording per trigger and language (v0); a center only switches triggers on or off.
-type Templates = {
-  [T in Trigger]: Record<
-    Locale,
-    (
-      p: T extends 'exam_result'
-        ? ExamPayload
-        : T extends 'fee_overdue'
-          ? FeePayload
-          : MessagePayload,
-    ) => string
-  >;
-};
+/** The placeholder values for one message, from its snapshot, in the guardian's language. */
+function values(trigger: Trigger, p: Payload, locale: Locale): Record<string, string> {
+  const center = locale === 'en' ? (p.centerEn ?? p.centerAr) : p.centerAr;
+  if (trigger === 'exam_result') {
+    const e = p as ExamPayload;
+    const correction = e.corrected ? (locale === 'ar' ? 'تصحيح: ' : 'Correction: ') : '';
+    const subject = locale === 'ar' ? e.subjectAr : e.subjectEn;
+    return {
+      center,
+      correction,
+      subject,
+      title: e.title,
+      date: day(e, locale),
+      scores: scores(e, locale),
+    };
+  }
+  if (trigger === 'fee_overdue') {
+    const f = p as FeePayload;
+    return { center, month: month(f, locale), due: owed(f, locale) };
+  }
+  // Cancel and move snapshots don't always carry the students (older rows have none).
+  const m = { ...(p as MessagePayload), students: (p as MessagePayload).students ?? [] };
+  return {
+    center,
+    subject: locale === 'ar' ? m.subjectAr : m.subjectEn,
+    time: when(m, locale),
+    students: names(m, locale),
+    wasWere: locale === 'ar' ? '' : m.students.length > 1 ? 'were' : 'was',
+  };
+}
 
-const templates: Templates = {
-  absence: {
-    ar: (p) =>
-      `${p.centerAr}: نود إبلاغكم بغياب ${names(p, 'ar')} عن حصة ${p.subjectAr} (${when(p, 'ar')}).`,
-    en: (p) =>
-      `${p.centerEn ?? p.centerAr}: ${names(p, 'en')} ${p.students.length > 1 ? 'were' : 'was'} absent from ${p.subjectEn} (${when(p, 'en')}).`,
-  },
-  session_cancelled: {
-    ar: (p) => `${p.centerAr}: تم إلغاء حصة ${p.subjectAr} (${when(p, 'ar')}).`,
-    en: (p) =>
-      `${p.centerEn ?? p.centerAr}: the ${p.subjectEn} session (${when(p, 'en')}) is cancelled.`,
-  },
-  session_moved: {
-    ar: (p) => `${p.centerAr}: تم تغيير موعد حصة ${p.subjectAr} إلى ${when(p, 'ar')}.`,
-    en: (p) =>
-      `${p.centerEn ?? p.centerAr}: the ${p.subjectEn} session has moved to ${when(p, 'en')}.`,
-  },
-  exam_result: {
-    ar: (p) =>
-      `${p.centerAr}: ${p.corrected ? 'تصحيح: ' : ''}نتيجة امتحان ${p.subjectAr} «${p.title}» (${day(p, 'ar')}): ${scores(p, 'ar')}.`,
-    en: (p) =>
-      `${p.centerEn ?? p.centerAr}: ${p.corrected ? 'Correction: ' : ''}${p.subjectEn} exam "${p.title}" (${day(p, 'en')}): ${scores(p, 'en')}.`,
-  },
-  fee_overdue: {
-    ar: (p) => `${p.centerAr}: تذكير بمصروفات شهر ${month(p, 'ar')}، المتبقي على ${owed(p, 'ar')}.`,
-    en: (p) =>
-      `${p.centerEn ?? p.centerAr}: a reminder for ${month(p, 'en')} fees. Still due: ${owed(p, 'en')}.`,
-  },
+/**
+ * The message text: the center's own wording for this trigger and language when it has one,
+ * else the default (`DEFAULT_TEMPLATES` in contracts, the same one the web preview uses).
+ */
+export const render = (trigger: string, p: Payload, locale: Locale, custom?: CustomTemplates) => {
+  const t = trigger as Trigger;
+  const text = custom?.[t]?.[locale] || DEFAULT_TEMPLATES[t][locale];
+  return fillTemplate(text, values(t, p, locale));
 };
-
-export const render = (trigger: string, p: Payload, locale: Locale) =>
-  (templates[trigger as Trigger][locale] as (p: Payload) => string)(p);

@@ -26,6 +26,7 @@ Written on Nov 15 after exams, the dashboard and fee reminders (`93662a4`, `cc3c
 - **End-of-day cash summary (Nov 15, `91e7790`):** `GET /stats/cash-summary` and the print-ready `/cash-summary` page. Limits are in `docs/known-limits.md` (Money).
 - **Fee reminders in Playwright (Nov 15, `fb0f79f`):** the dev `CRON_SECRET` and `fee-reminders.spec.ts`.
 - **Neon owner password reset (Nov 15):** done by Ziad; the live smoke test passes after it.
+- **Editable message templates (Nov 15):** per trigger and language under «نص الرسائل» on `/messages`, filled at send time.
 - **Rooms and the room conflict check (Nov 15):** migration `0013_rooms`, `ROOM_BOOKED`, `/rooms`, the room picker. Limits in `docs/known-limits.md` (Groups).
 
 ## What's left of the MVP (`docs/product.md`)
@@ -33,7 +34,6 @@ Written on Nov 15 after exams, the dashboard and fee reminders (`93662a4`, `cc3c
 | Module | Gap | Waits on |
 |:--|:--|:--|
 | 1. Accounts | An invite carries the assistant's teachers (today the owner ticks them after the assistant joins) | Nothing (small): **next feature** |
-| 7. Messaging | Each workspace edits its Arabic and English templates | Nothing, but WhatsApp needs pre-approved templates, so maybe keep fixed wording |
 | 5. Fees | Per-session and package-of-N fee plans | The center interviews (open questions in `product.md`) |
 
 Outside the code: the manual iPhone and Android try (`docs/deploy.md` step 6), deleting the local `.env.vercel-secrets`, the demo video, and the center interviews.

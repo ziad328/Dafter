@@ -42,9 +42,11 @@ import { createPaymentRequest, ledgerEntry, receipt, studentLedger } from './mon
 import {
   listMessagesQuery,
   messageSettings,
+  messageTrigger,
   outboxMessageList,
   sentMessageList,
 } from './messages.js';
+import { messageTemplateList, updateMessageTemplateRequest, messageTemplate } from './templates.js';
 import { myAttendance, mySchedule } from './me.js';
 import {
   bindDeviceRequest,
@@ -662,6 +664,31 @@ export function buildOpenApi() {
             200: { description: 'Messages', content: json(outboxMessageList) },
             ...errors,
           },
+        },
+      },
+      '/api/v1/message-templates': {
+        get: {
+          operationId: 'listMessageTemplates',
+          tags: ['messages'],
+          description:
+            'Owner and assistant. Each trigger with its placeholders and, per language, the default and the custom wording (null = default).',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'Templates', content: json(messageTemplateList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/message-templates/{trigger}': {
+        put: {
+          operationId: 'updateMessageTemplate',
+          tags: ['messages'],
+          description:
+            'Owner only. Empty or null = the default. Unknown placeholders: TEMPLATE_PLACEHOLDER_UNKNOWN. Applies to messages sent from now on, queued ones too.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ trigger: messageTrigger }) },
+          requestBody: { required: true, content: json(updateMessageTemplateRequest) },
+          responses: { 200: { description: 'Saved', content: json(messageTemplate) }, ...errors },
         },
       },
       '/api/v1/message-settings': {

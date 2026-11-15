@@ -191,7 +191,8 @@
     "EXAM_NOT_GRADED": "Enter the scores first.",
     "ROOM_NOT_FOUND": "Room not found.",
     "ROOM_NAME_TAKEN": "A room with this name already exists.",
-    "ROOM_BOOKED": "The room is taken at that time."
+    "ROOM_BOOKED": "The room is taken at that time.",
+    "TEMPLATE_PLACEHOLDER_UNKNOWN": "That part isn’t available for this message."
   },
   "timetable": {
     "title": "Timetable",
@@ -434,7 +435,47 @@
       "fee_overdue": "Fee reminder"
     },
     "heldUntil": "Sends at {time}, after quiet hours",
-    "attempts": "{count, plural, one {# attempt} other {# attempts}}"
+    "attempts": "{count, plural, one {# attempt} other {# attempts}}",
+    "wording": {
+      "title": "Message wording",
+      "hint": "Write each message in Arabic and English. Parts in { } are filled in by Dafter; messages not sent yet use the new text.",
+      "custom": "Custom",
+      "unknown": "The part {placeholder} isn’t available for this message ({language})",
+      "saved": "Saved",
+      "save": "Save wording",
+      "reset": "Back to the default",
+      "insert": "Insert a filled-in part",
+      "language": {
+        "ar": "Arabic",
+        "en": "English"
+      }
+    },
+    "placeholders": {
+      "center": "Center name",
+      "students": "Student names",
+      "subject": "Subject",
+      "time": "Session time",
+      "wasWere": "was/were",
+      "correction": "“Correction”",
+      "title": "Exam title",
+      "date": "Exam date",
+      "scores": "Scores",
+      "month": "Month",
+      "due": "Still due per student"
+    },
+    "sample": {
+      "center": "Al-Nour Center",
+      "students": "Ahmed and Mariam",
+      "subject": "Physics",
+      "time": "Saturday 21 November at 4:00 pm",
+      "wasWere": "were",
+      "correction": "Correction: ",
+      "title": "Monthly test",
+      "date": "21 November",
+      "scores": "Ahmed 18/20 and Mariam 17/20",
+      "month": "November",
+      "due": "Ahmed EGP 300"
+    }
   },
   "members": {
     "title": "Staff",

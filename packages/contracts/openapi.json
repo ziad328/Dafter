@@ -2273,6 +2273,101 @@
         }
       }
     },
+    "/api/v1/message-templates": {
+      "get": {
+        "operationId": "listMessageTemplates",
+        "tags": ["messages"],
+        "description": "Owner and assistant. Each trigger with its placeholders and, per language, the default and the custom wording (null = default).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageTemplateList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/message-templates/{trigger}": {
+      "put": {
+        "operationId": "updateMessageTemplate",
+        "tags": ["messages"],
+        "description": "Owner only. Empty or null = the default. Unknown placeholders: TEMPLATE_PLACEHOLDER_UNKNOWN. Applies to messages sent from now on, queued ones too.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "trigger",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "absence",
+                "session_cancelled",
+                "session_moved",
+                "exam_result",
+                "fee_overdue"
+              ]
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMessageTemplateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageTemplate"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/message-settings": {
       "get": {
         "operationId": "getMessageSettings",
@@ -3473,6 +3568,34 @@
         },
         "required": ["studentId", "groupId", "amountPiastres", "method"]
       },
+      "UpdateMessageTemplateRequest": {
+        "type": "object",
+        "properties": {
+          "ar": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["ar", "en"]
+      },
       "MessageSettings": {
         "type": "object",
         "properties": {
@@ -3767,6 +3890,7 @@
           "ENTRY_NOT_REVERSIBLE",
           "EXAM_NOT_FOUND",
           "EXAM_SCORE_ABOVE_MAX",
+          "TEMPLATE_PLACEHOLDER_UNKNOWN",
           "EXAM_STUDENT_INVALID",
           "EXAM_HAS_RESULTS",
           "EXAM_NOT_GRADED",
@@ -5215,6 +5339,55 @@
           "lastError",
           "createdAt"
         ],
+        "additionalProperties": false
+      },
+      "MessageTemplateList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MessageTemplate"
+        }
+      },
+      "MessageTemplate": {
+        "type": "object",
+        "properties": {
+          "trigger": {
+            "type": "string",
+            "enum": ["absence", "session_cancelled", "session_moved", "exam_result", "fee_overdue"]
+          },
+          "placeholders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ar": {
+            "type": "object",
+            "properties": {
+              "default": {
+                "type": "string"
+              },
+              "custom": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["default", "custom"],
+            "additionalProperties": false
+          },
+          "en": {
+            "type": "object",
+            "properties": {
+              "default": {
+                "type": "string"
+              },
+              "custom": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["default", "custom"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["trigger", "placeholders", "ar", "en"],
         "additionalProperties": false
       },
       "SentMessageList": {

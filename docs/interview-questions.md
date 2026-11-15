@@ -152,3 +152,14 @@ The constraint works on sessions, and the session generator has a fallback that 
 
 **3. Why `tstzrange(starts_at, ends_at)` with the default `[)` bounds?**
 Half-open ranges let back-to-back classes share a room: 16:00–17:30 and 17:30–19:00 don't overlap. Ranges on `timestamptz` also make the rule independent of the workspace timezone and DST; the weekly slot check compares local times only because slots are stored that way.
+
+## v1 · Editable message templates
+
+**1. A center edits its absence text at 23:00. Parents absent at 21:30 are still held by quiet hours. Which text do they get, and why?**
+The new one. The outbox stores a snapshot of the facts (students, subject, time), not the sentence; the sender fills the center's current wording when it sends at 08:00, then stores the sent body on the row. So the log still shows exactly what went out, and an edit fixes a typo for every message not yet sent.
+
+**2. Why are placeholders filled in one pass with a single regex replace instead of a loop of `replaceAll` calls?**
+A loop re-reads its own output: a student named «{center}» would be replaced again by the center's name, and the order of the loop would change the result. One pass over the original text reads each `{name}` once and never touches inserted values, so user data can't be expanded.
+
+**3. Why do the default texts live in `packages/contracts` instead of the API?**
+The web preview has to match what parents receive exactly. With the defaults and `fillTemplate` in the shared package, the API and the screen use the same code; only the values differ (real snapshot vs. sample names). It also means saving the default text sends `null`, so a later improvement to the default reaches centers that never customised it.
