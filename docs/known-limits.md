@@ -26,10 +26,12 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Brevo's free tier sends from one verified address and has a daily cap | Login codes stop for the day if the cap is hit | centers (own domain) |
 | Register limit skips loopback (`127.0.0.1`) so local tools and tests can sign up freely | None in production (clients are never loopback behind Vercel) | — |
 | Two tabs refreshing at the same moment log the user out (reuse detection); single-flight only covers one tab | Rare surprise sign-out | later (short grace window if it bites) |
-| The audit row is written in its own transaction after the handler, also for payments | A failed audit insert returns 500 after the write committed; a crash in between loses the audit row | centers |
-| Invites: the scope check and the scope update run in separate transactions; extra workspace read on accept; duplicated token-creation code | Only matters once members can be removed | later |
-| `PATCH /members/:id` (change role, remove) not built | Staff can't be removed | centers |
-| A staff invite carries only the role; the owner ticks an assistant's teachers after they join | One extra step for the owner | later |
+| Routes outside a workspace (sign-in, invite accept, check-in) still write their audit row in its own transaction after the handler | A crash in between loses that row | later |
+| A tenant write holds its connection and row locks until the audit row commits; handlers must not run repository calls in parallel (`requestTx` savepoints share one connection) | Slightly longer locks; a rule to keep | — |
+| Invites: duplicated token-creation code (staff invite, reset link, student invite) | Three copies of the same 3 lines | later |
+| Removing a member doesn't sign them out: their open tabs get 404 on the next request; their refresh tokens still work for their other centers | By design (one account, many centers) | — |
+| A removed teacher's groups keep them as teacher (flagged "No teacher") until the owner picks another; their sessions still show their name | The owner must reassign by hand | — |
+| `PUT /members/:id/scopes` checks the teachers without a lock: a teacher removed at the same moment can be left in a scope | A stale scope row, removed by the next save | later |
 | A phone reset from center A also unbinds it at center B (one shared login) | By design, but surprising | — (documented) |
 | Anyone holding an invite link can claim that record (single use, 72 h) | Same trust model as staff invites | — (documented) |
 | `DEV_MAIL_INBOX=1` exposes login codes to anyone; `DEV_FAKE_PHONE=1` (on in the demo) shows a workspace's parent messages to its staff | Never set `DEV_MAIL_INBOX` on Vercel; turn `DEV_FAKE_PHONE` off with real users | centers |
@@ -117,5 +119,5 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | `fee-reminders.spec.ts` is skipped from the 1st to the 6th of the month (Cairo), and makes a new workspace for the seeded owner on every run | Early-month runs check less; the dev owner's workspace list grows (until `pnpm db:reset`) | — |
 | `students.spec.ts` [ar] "assistant adds a student…" failed once in the full run (2 workers, `toHaveCount`), then passed alone; CI retries once | Possible flake | later (watch; if it repeats, look at what the count waits on) |
 | The GitHub CLI (`gh`) isn't installed on the dev laptop; CI status is read from the public Actions API with `curl` | No PR or log commands from Claude Code | — |
-| Web spec `student-app.spec.tsx` "keeps the invite link ready to copy" failed once in the full web run (the stored invite read as null), then passed alone and in two full runs | Possible timing flake | later (watch) |
+| Web spec `student-app.spec.tsx` "keeps the invite link ready to copy" read the stored invite before the effect wrote it (failed once on CI); it now polls | Fixed in the test; watch for others like it | — |
 | `student-app.spec.ts` timed out once (40 s) with the full suite on 6 workers, then passed alone | Possible flake under load | later (watch in CI) |

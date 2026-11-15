@@ -103,3 +103,16 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** the sender re-reads the facts a message states (trigger switch, balances, absences) on the locked row just before the provider call, rewrites the payload or marks the row `skipped` with a reason.
 - **Alternatives:** delete or update queued rows from every write that could make them stale (payments, reversals, attendance edits, settings); delete the row instead of `skipped` (the dedupe key would free up and a rerun could queue it again).
 - **Why:** one place knows the rules, quiet-hour rows are covered, and the log shows why a message never went out.
+
+## 2026-11-15 · v1: a request transaction for tenant writes (audit in the same commit)
+
+- **Decision:** the audit interceptor opens one transaction per tenant write request and stores it in `AsyncLocalStorage`; `inTenant` joins it as a savepoint; the audit row is inserted last; after-commit work (the inline outbox flush) waits for the commit.
+- **Alternatives:** pass a `tx` through every service and repository (every signature changes); write the audit row inside each feature's transaction by hand (easy to forget on a new endpoint); keep the separate audit transaction (a failed audit row leaves an unrecorded write).
+- **Why:** one place, no call-site changes, and savepoints keep each repository block's own rollback (payment repeats, constraint errors mapped to codes). Cost: locks are held to the end of the request, and handlers must not run repository calls in parallel.
+
+## 2026-11-15 · v1: removed members are a status, not a deleted row
+
+- **Decision:** `memberships.status = removed`; every membership lookup reads active rows; no refresh-token revocation.
+- **Alternatives:** delete the row (groups, sessions and the audit log point at it); revoke the person's refresh tokens (signs them out of every other center too).
+- **Why:** history stays intact, the tenant guard already checks membership per request, so access ends on the next request.
+

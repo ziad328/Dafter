@@ -78,6 +78,8 @@ export const group = z
     id: z.uuid(),
     teacherMembershipId: z.uuid(),
     teacherName: z.string(),
+    // The teacher was removed from the workspace: the group needs a new one.
+    teacherRemoved: z.boolean(),
     subject: curriculumItem,
     gradeLevel: curriculumItem,
     label: z.string().nullable(),

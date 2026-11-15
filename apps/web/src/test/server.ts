@@ -214,6 +214,7 @@ export const handlers = [
         token: 'staff-invite-token',
         role: 'assistant',
         expiresAt: new Date().toISOString(),
+        teacherMembershipIds: [],
       },
       201,
     ),
@@ -223,6 +224,13 @@ export const handlers = [
   http.post(
     api('members/:id/password-reset'),
     log({ token: 'staff-reset-token', expiresAt: new Date().toISOString() }, 201),
+  ),
+  http.patch(
+    api('members/:id'),
+    log(async (r, p) => ({
+      ...fx.members.find((m) => m.id === p.id)!,
+      ...((await r.clone().json()) as object),
+    })),
   ),
   http.put(
     api('members/:id/scopes'),

@@ -77,8 +77,10 @@ import {
   createInviteRequest,
   createWorkspaceRequest,
   invite,
+  member,
   memberList,
   setScopesRequest,
+  updateMemberRequest,
   staffResetLink,
   workspace,
   workspaceList,
@@ -279,6 +281,19 @@ export function buildOpenApi() {
             200: { description: 'Members of the active workspace', content: json(memberList) },
             ...errors,
           },
+        },
+      },
+      '/api/v1/members/{id}': {
+        patch: {
+          operationId: 'updateMember',
+          // groups too: a removed teacher's groups get the teacherRemoved flag.
+          tags: ['members', 'groups'],
+          description:
+            'Owner only. Changes a role, or removes the member (their groups stay, flagged teacherRemoved). LAST_OWNER, MEMBER_TEACHES_GROUPS.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(updateMemberRequest) },
+          responses: { 200: { description: 'Updated', content: json(member) }, ...errors },
         },
       },
       '/api/v1/members/{id}/scopes': {

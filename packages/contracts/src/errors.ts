@@ -25,6 +25,10 @@ export const ERROR_STATUS = {
   RESET_NOT_ALLOWED: 409,
   ALREADY_MEMBER: 409,
   MEMBER_NOT_ASSISTANT: 409,
+  // The workspace's only active owner can't be demoted or removed: make another owner first.
+  LAST_OWNER: 409,
+  // Made an assistant while still teaching active groups (details.count): reassign them first.
+  MEMBER_TEACHES_GROUPS: 409,
   // A scope target is missing from the workspace or is not a teacher.
   SCOPE_TEACHER_INVALID: 400,
   // Unknown id, another workspace's group, or outside the caller's scope: never 403.

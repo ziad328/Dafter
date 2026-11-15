@@ -1,9 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { and, asc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import type { Invite, Member, Workspace } from '@dafter/contracts';
-import { assistantScopes, invites, memberships, passwordResets, users } from '@dafter/db';
+import {
+  assistantScopes,
+  groups,
+  invites,
+  memberships,
+  passwordResets,
+  type Tx,
+  users,
+  workspaces,
+} from '@dafter/db';
 import { AppError } from '../errors.js';
 import { TenantRepository } from '../tenant.repository.js';
+import { workspaceColumns } from '../workspaces/workspaces.repository.js';
 
 type Role = Workspace['role'];
 
@@ -12,13 +22,14 @@ export class MembersRepository extends TenantRepository {
   async createInvite(
     workspaceId: string,
     role: Invite['role'],
+    teacherMembershipIds: string[],
     tokenHash: string,
     expiresAt: Date,
   ) {
     const [row] = await this.inTenant(workspaceId, (tx) =>
       tx
         .insert(invites)
-        .values({ workspaceId, role, tokenHash, expiresAt })
+        .values({ workspaceId, role, teacherMembershipIds, tokenHash, expiresAt })
         .returning({ id: invites.id }),
     );
     return row!;
@@ -43,7 +54,13 @@ export class MembersRepository extends TenantRepository {
       tx
         .select({ userId: memberships.userId, role: memberships.role })
         .from(memberships)
-        .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.id, memberId))),
+        .where(
+          and(
+            eq(memberships.workspaceId, workspaceId),
+            eq(memberships.id, memberId),
+            eq(memberships.status, 'active'),
+          ),
+        ),
     );
     if (!member) return 'not_found';
     if (member.role === 'owner') return 'not_allowed';
@@ -71,8 +88,10 @@ export class MembersRepository extends TenantRepository {
   }
 
   /**
-   * Consumes the invite and adds the membership in one transaction. The conditional UPDATE is the
-   * single-use check: of two concurrent accepts, only one gets a row back.
+   * One transaction: consume the invite, add the membership (or re-activate a removed one), write
+   * an assistant's teachers, and read the workspace. The conditional UPDATE is the single-use
+   * check: of two concurrent accepts, only one gets a row back. Teachers removed since the invite
+   * was made are skipped.
    */
   accept(workspaceId: string, tokenHash: string, userId: string, now: Date) {
     return this.inTenant(workspaceId, async (tx) => {
@@ -87,20 +106,39 @@ export class MembersRepository extends TenantRepository {
             gt(invites.expiresAt, now),
           ),
         )
-        .returning({ id: invites.id, role: invites.role });
+        .returning({
+          id: invites.id,
+          role: invites.role,
+          teacherMembershipIds: invites.teacherMembershipIds,
+        });
       if (!used) throw new AppError('INVITE_INVALID');
       const [joined] = await tx
         .insert(memberships)
         .values({ workspaceId, userId, role: used.role })
-        .onConflictDoNothing()
-        .returning({ role: memberships.role });
+        .onConflictDoUpdate({
+          target: [memberships.workspaceId, memberships.userId],
+          set: { role: used.role, status: 'active', removedAt: null },
+          // A current member keeps their role; only a removed one comes back.
+          setWhere: eq(memberships.status, 'removed'),
+        })
+        .returning({ id: memberships.id, role: memberships.role });
       // Thrown inside the transaction so the invite stays unused for the person it was meant for.
       if (!joined) throw new AppError('ALREADY_MEMBER');
-      return { inviteId: used.id, role: joined.role };
+      if (used.role === 'assistant') {
+        const teachers = await this.activeTeachers(tx, workspaceId, used.teacherMembershipIds);
+        await this.writeScopes(tx, workspaceId, joined.id, teachers);
+      }
+      const [ws] = await tx
+        .select(workspaceColumns)
+        .from(workspaces)
+        .where(eq(workspaces.id, workspaceId));
+      const workspace: Workspace = { ...ws!, role: joined.role };
+      return { inviteId: used.id, workspace };
     });
   }
 
-  list(workspaceId: string): Promise<Member[]> {
+  /** The active members; with `id`, that one member whatever their status (after a PATCH). */
+  list(workspaceId: string, id?: string): Promise<Member[]> {
     return this.inTenant(workspaceId, async (tx) => {
       const rows = await tx
         .select({
@@ -109,10 +147,16 @@ export class MembersRepository extends TenantRepository {
           name: users.name,
           phone: users.phone,
           role: memberships.role,
+          status: memberships.status,
         })
         .from(memberships)
         .innerJoin(users, eq(users.id, memberships.userId))
-        .where(eq(memberships.workspaceId, workspaceId))
+        .where(
+          and(
+            eq(memberships.workspaceId, workspaceId),
+            id ? eq(memberships.id, id) : eq(memberships.status, 'active'),
+          ),
+        )
         .orderBy(asc(memberships.createdAt));
       const scopes = await tx
         .select()
@@ -127,35 +171,147 @@ export class MembersRepository extends TenantRepository {
     });
   }
 
-  /** Roles of the given memberships in this workspace; ids from elsewhere are simply missing. */
+  /** Roles of the given active memberships here; ids from elsewhere (or removed) are missing. */
   roles(workspaceId: string, ids: string[]): Promise<{ id: string; role: Role }[]> {
     if (!ids.length) return Promise.resolve([]);
     return this.inTenant(workspaceId, (tx) =>
       tx
         .select({ id: memberships.id, role: memberships.role })
         .from(memberships)
-        .where(and(eq(memberships.workspaceId, workspaceId), inArray(memberships.id, ids))),
+        .where(
+          and(
+            eq(memberships.workspaceId, workspaceId),
+            inArray(memberships.id, ids),
+            eq(memberships.status, 'active'),
+          ),
+        ),
     );
   }
 
   replaceScopes(workspaceId: string, membershipId: string, teacherIds: string[]) {
+    return this.inTenant(workspaceId, (tx) =>
+      this.writeScopes(tx, workspaceId, membershipId, teacherIds),
+    );
+  }
+
+  /** The given ids that are active owners or teachers here (owners teach too). */
+  private async activeTeachers(tx: Tx, workspaceId: string, ids: string[]) {
+    if (!ids.length) return [];
+    const rows = await tx
+      .select({ id: memberships.id })
+      .from(memberships)
+      .where(
+        and(
+          eq(memberships.workspaceId, workspaceId),
+          inArray(memberships.id, ids),
+          ne(memberships.role, 'assistant'),
+          eq(memberships.status, 'active'),
+        ),
+      )
+      // A removal or demotion of these teachers waits for this accept to commit.
+      .for('share');
+    return rows.map((r) => r.id);
+  }
+
+  private async writeScopes(
+    tx: Tx,
+    workspaceId: string,
+    membershipId: string,
+    teacherIds: string[],
+  ) {
+    await tx
+      .delete(assistantScopes)
+      .where(
+        and(
+          eq(assistantScopes.workspaceId, workspaceId),
+          eq(assistantScopes.membershipId, membershipId),
+        ),
+      );
+    if (teacherIds.length)
+      await tx.insert(assistantScopes).values(
+        teacherIds.map((teacherMembershipId) => ({
+          workspaceId,
+          membershipId,
+          teacherMembershipId,
+        })),
+      );
+  }
+
+  /**
+   * Change a role or remove a member, in one transaction. The workspace's active owner rows are
+   * locked first, so two owners demoting or removing each other run one after the other and the
+   * second sees one owner left (LAST_OWNER). Scopes follow the role: an assistant's own scopes go
+   * when they stop being one, and scopes naming them go when they stop teaching (or leave).
+   */
+  update(
+    workspaceId: string,
+    memberId: string,
+    change: { role: Role } | { removedAt: Date },
+  ): Promise<'not_found' | 'last_owner' | { teaching: number } | Role> {
     return this.inTenant(workspaceId, async (tx) => {
+      const owners = await tx
+        .select({ id: memberships.id })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.workspaceId, workspaceId),
+            eq(memberships.role, 'owner'),
+            eq(memberships.status, 'active'),
+          ),
+        )
+        .for('update');
+      const [member] = await tx
+        .select({ role: memberships.role })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.workspaceId, workspaceId),
+            eq(memberships.id, memberId),
+            eq(memberships.status, 'active'),
+          ),
+        )
+        .for('update');
+      if (!member) return 'not_found';
+      const role = 'role' in change ? change.role : undefined;
+      const leavesOwners = member.role === 'owner' && role !== 'owner';
+      if (leavesOwners && owners.length === 1) return 'last_owner';
+      if (role === 'assistant' && member.role !== 'assistant') {
+        const [{ count }] = (await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(groups)
+          .where(
+            and(
+              eq(groups.workspaceId, workspaceId),
+              eq(groups.teacherMembershipId, memberId),
+              eq(groups.status, 'active'),
+            ),
+          )) as [{ count: number }];
+        if (count > 0) return { teaching: count };
+      }
+      await tx
+        .update(memberships)
+        .set(
+          role
+            ? { role }
+            : { status: 'removed', removedAt: (change as { removedAt: Date }).removedAt },
+        )
+        .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.id, memberId)));
+      // Removed: both directions go. New role: an assistant keeps their own scopes and loses the
+      // ones naming them as a teacher; an owner or teacher the other way round.
+      const keepOwn = role === 'assistant';
+      const keepNamed = role !== undefined && role !== 'assistant';
       await tx
         .delete(assistantScopes)
         .where(
           and(
             eq(assistantScopes.workspaceId, workspaceId),
-            eq(assistantScopes.membershipId, membershipId),
+            or(
+              keepOwn ? sql`false` : eq(assistantScopes.membershipId, memberId),
+              keepNamed ? sql`false` : eq(assistantScopes.teacherMembershipId, memberId),
+            ),
           ),
         );
-      if (teacherIds.length)
-        await tx.insert(assistantScopes).values(
-          teacherIds.map((teacherMembershipId) => ({
-            workspaceId,
-            membershipId,
-            teacherMembershipId,
-          })),
-        );
+      return role ?? member.role;
     });
   }
 }

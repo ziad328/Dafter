@@ -5,6 +5,7 @@ import {
   HttpCode,
   Inject,
   Param,
+  Patch,
   Post,
   Put,
   Req,
@@ -19,6 +20,8 @@ import {
   type SetScopesRequest,
   setScopesRequest,
   type StaffResetLink,
+  type UpdateMemberRequest,
+  updateMemberRequest,
   type Workspace,
 } from '@dafter/contracts';
 import type { AuditedRequest } from '../audit.interceptor.js';
@@ -62,6 +65,15 @@ export class MembersController {
   @Get()
   list(@Req() req: TenantedRequest): Promise<Member[]> {
     return this.members.list(req.workspaceId);
+  }
+
+  @Patch(':id')
+  update(
+    @Req() req: TenantedRequest,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+    @Body(new ZodPipe(updateMemberRequest)) body: UpdateMemberRequest,
+  ): Promise<Member> {
+    return this.members.update(req.workspaceId, req.role, id, body);
   }
 
   @Post(':id/password-reset')

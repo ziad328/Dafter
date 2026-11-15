@@ -136,6 +136,12 @@ export default function Groups() {
               <div className="flex items-center gap-2 border-t pt-3 text-sm">
                 <Avatar name={g.teacherName} className="size-8 text-xs" />
                 <span className="truncate">{g.teacherName}</span>
+                {/* Removed from the center: the group waits for a new teacher. */}
+                {g.teacherRemoved && (
+                  <span className="shrink-0 rounded-full bg-late-soft px-2 py-0.5 text-xs font-medium text-late">
+                    {t('groups.teacherRemoved')}
+                  </span>
+                )}
                 {/* Students and fee tell apart a teacher's groups of one subject (audit G1). */}
                 <span className="ms-auto flex shrink-0 items-center gap-2 text-muted-foreground">
                   <Users className="size-4" aria-hidden />

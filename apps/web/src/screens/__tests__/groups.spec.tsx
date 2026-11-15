@@ -365,3 +365,19 @@ describe('timetable', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
   });
 });
+
+describe('a group whose teacher was removed', () => {
+  it('is flagged on its card and on its form', async () => {
+    const gone = { ...fx.groups[0]!, teacherRemoved: true };
+    server.use(
+      http.get(route('groups'), () => Response.json([gone])),
+      http.get(route('groups/:id'), () => Response.json(gone)),
+    );
+    await renderAt('/groups');
+    expect(await screen.findByText(tr('groups.teacherRemoved'))).toBeVisible();
+    await renderAt(`/groups/${gone.id}`);
+    expect(
+      await screen.findByText(tr('groups.teacherRemovedHint', { name: gone.teacherName })),
+    ).toBeVisible();
+  });
+});

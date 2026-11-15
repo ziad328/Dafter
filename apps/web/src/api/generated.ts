@@ -5,8 +5,8 @@ export const addTagTypes = [
   'student',
   'workspaces',
   'members',
-  'curriculum',
   'groups',
+  'curriculum',
   'exams',
   'sessions',
   'attendance',
@@ -123,6 +123,14 @@ const injectedRtkApi = api
       listMembers: build.query<ListMembersApiResponse, ListMembersApiArg>({
         query: () => ({ url: `/api/v1/members` }),
         providesTags: ['members'],
+      }),
+      updateMember: build.mutation<UpdateMemberApiResponse, UpdateMemberApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/members/${queryArg.id}`,
+          method: 'PATCH',
+          body: queryArg.updateMemberRequest,
+        }),
+        invalidatesTags: ['members', 'groups'],
       }),
       setAssistantScopes: build.mutation<SetAssistantScopesApiResponse, SetAssistantScopesApiArg>({
         query: (queryArg) => ({
@@ -553,6 +561,11 @@ export type AcceptInviteApiArg = {
 };
 export type ListMembersApiResponse = /** status 200 Members of the active workspace */ MemberList;
 export type ListMembersApiArg = void;
+export type UpdateMemberApiResponse = /** status 200 Updated */ Member;
+export type UpdateMemberApiArg = {
+  id: string;
+  updateMemberRequest: UpdateMemberRequest;
+};
 export type SetAssistantScopesApiResponse = unknown;
 export type SetAssistantScopesApiArg = {
   id: string;
@@ -797,6 +810,8 @@ export type ErrorCode =
   | 'RESET_NOT_ALLOWED'
   | 'ALREADY_MEMBER'
   | 'MEMBER_NOT_ASSISTANT'
+  | 'LAST_OWNER'
+  | 'MEMBER_TEACHES_GROUPS'
   | 'SCOPE_TEACHER_INVALID'
   | 'GROUP_NOT_FOUND'
   | 'ROOM_NOT_FOUND'
@@ -934,9 +949,11 @@ export type Invite = {
   role: 'teacher' | 'assistant';
   token: string;
   expiresAt: string;
+  teacherMembershipIds: string[];
 };
 export type CreateInviteRequest = {
   role: 'teacher' | 'assistant';
+  teacherMembershipIds?: string[];
 };
 export type StaffResetLink = {
   token: string;
@@ -948,9 +965,14 @@ export type Member = {
   name: string;
   phone: string | null;
   role: 'owner' | 'teacher' | 'assistant';
+  status: 'active' | 'removed';
   teacherMembershipIds: string[];
 };
 export type MemberList = Member[];
+export type UpdateMemberRequest = {
+  role?: 'owner' | 'teacher' | 'assistant';
+  status?: 'removed';
+};
 export type SetScopesRequest = {
   teacherMembershipIds: string[];
 };
@@ -984,6 +1006,7 @@ export type Group = {
   id: string;
   teacherMembershipId: string;
   teacherName: string;
+  teacherRemoved: boolean;
   subject: CurriculumItem;
   gradeLevel: CurriculumItem;
   label: string | null;
@@ -1408,6 +1431,7 @@ export const {
   useCreateStaffResetLinkMutation,
   useAcceptInviteMutation,
   useListMembersQuery,
+  useUpdateMemberMutation,
   useSetAssistantScopesMutation,
   useListSubjectsQuery,
   useListGradeLevelsQuery,

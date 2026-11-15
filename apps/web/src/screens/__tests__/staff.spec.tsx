@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react';
+import type { UserEvent } from '@testing-library/user-event';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { getWorkspaceId } from '@/api/base';
 import { fail, fx, http, route, sent, server } from '@/test/server';
@@ -13,6 +14,12 @@ const assistant = fx.members.find((m) => m.role === 'assistant')!;
 const owner = fx.members.find((m) => m.role === 'owner')!;
 
 afterEach(() => vi.unstubAllGlobals());
+
+/** The role picker inside a sheet (the invite card has one too); its list opens in a portal. */
+async function pickIn(user: UserEvent, scope: HTMLElement, option: string) {
+  await user.click(within(scope).getByRole('combobox', { name: tr('members.role') }));
+  await user.click((await screen.findAllByRole('option', { name: option }))[0]!);
+}
 
 describe('staff', () => {
   it('invites a teacher with a link to share', async () => {
@@ -32,7 +39,7 @@ describe('staff', () => {
     expect(
       await screen.findAllByText(tr('members.worksForList', { names: 'منى حسن' })),
     ).toHaveLength(2);
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     await user.click(screen.getByRole('button', { name: title }));
     const sheet = screen.getByRole('dialog', { name: title });
     const box = within(sheet).getByRole('checkbox', { name: owner.name });
@@ -48,6 +55,90 @@ describe('staff', () => {
     expect(box).toBeChecked();
     await user.click(within(sheet).getByRole('button', { name: tr('payments.close') }));
     expect(sheet).not.toHaveAttribute('open');
+  });
+
+  it('invites an assistant who will work for the ticked teachers', async () => {
+    const { user } = await renderAt('/members');
+    const invite = (await screen.findByRole('group', { name: tr('members.inviteWorksFor') }))!;
+    const box = within(invite).getByRole('checkbox', { name: owner.name });
+    // Ticked, unticked, ticked again: the link carries what is ticked when it is made.
+    await user.click(box);
+    await user.click(box);
+    expect(box).not.toBeChecked();
+    await user.click(box);
+    await user.click(screen.getByRole('button', { name: tr('members.createLink') }));
+    await expect
+      .poll(() => call('POST /api/v1/invites')?.body)
+      .toEqual({ role: 'assistant', teacherMembershipIds: [owner.id] });
+  });
+
+  it('the owner changes a role and removes a member after a second tap', async () => {
+    const { user } = await renderAt('/members', { lang: 'en' });
+    const title = tr('members.manage', { name: assistant.name });
+    await user.click(await screen.findByRole('button', { name: title }));
+    const sheet = screen.getByRole('dialog', { name: title });
+    const save = within(sheet).getByRole('button', { name: tr('members.saveRole') });
+    expect(save).toBeDisabled();
+    await pickIn(user, sheet, tr('roles.teacher'));
+    await user.click(save);
+    await expect
+      .poll(() => call(`PATCH /api/v1/members/${assistant.id}`)?.body)
+      .toEqual({ role: 'teacher' });
+
+    await user.click(screen.getByRole('button', { name: title }));
+    const again = screen.getByRole('dialog', { name: title });
+    await user.click(within(again).getByRole('button', { name: tr('members.remove') }));
+    expect(
+      within(again).getByText(tr('members.removeHint', { name: assistant.name })),
+    ).toBeVisible();
+    await user.click(within(again).getByRole('button', { name: tr('members.confirmRemove') }));
+    await expect
+      .poll(
+        () => sent.filter((s) => s.call === `PATCH /api/v1/members/${assistant.id}`).at(-1)?.body,
+      )
+      .toEqual({ status: 'removed' });
+  });
+
+  it('says how many groups block making a teacher an assistant, and the last-owner error', async () => {
+    server.use(
+      http.patch(route('members/:id'), ({ params }) =>
+        params.id === owner.id
+          ? Response.json({ code: 'LAST_OWNER' }, { status: 409 })
+          : Response.json(
+              { code: 'MEMBER_TEACHES_GROUPS', details: { count: 2 } },
+              { status: 409 },
+            ),
+      ),
+    );
+    const { user } = await renderAt('/members');
+    const teacher = fx.members.find((m) => m.role === 'teacher')!;
+    const title = tr('members.manage', { name: teacher.name });
+    await user.click(await screen.findByRole('button', { name: title }));
+    const sheet = screen.getByRole('dialog', { name: title });
+    await pickIn(user, sheet, tr('roles.assistant'));
+    await user.click(within(sheet).getByRole('button', { name: tr('members.saveRole') }));
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent(
+      tr('members.teachesGroups', { count: 2 }),
+    );
+    await user.click(within(sheet).getByRole('button', { name: tr('payments.close') }));
+
+    const ownerTitle = tr('members.manage', { name: owner.name });
+    await user.click(screen.getByRole('button', { name: ownerTitle }));
+    const own = screen.getByRole('dialog', { name: ownerTitle });
+    await user.click(within(own).getByRole('button', { name: tr('members.remove') }));
+    await user.click(within(own).getByRole('button', { name: tr('members.confirmRemove') }));
+    expect(await within(own).findByRole('alert')).toHaveTextContent(tr('errors.LAST_OWNER'));
+  });
+
+  it('an owner who removes themselves goes to the workspace list', async () => {
+    const { user, router } = await renderAt('/members');
+    const title = tr('members.manage', { name: owner.name });
+    await user.click(await screen.findByRole('button', { name: title }));
+    const sheet = screen.getByRole('dialog', { name: title });
+    await user.click(within(sheet).getByRole('button', { name: tr('members.remove') }));
+    await user.click(within(sheet).getByRole('button', { name: tr('members.confirmRemove') }));
+    await expect.poll(() => router.state.location.pathname).toBe('/workspaces');
+    expect(getWorkspaceId()).toBeNull();
   });
 
   it('shows others a read-only list, and failures', async () => {

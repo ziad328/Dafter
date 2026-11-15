@@ -6,7 +6,7 @@ import { TenantRepository } from '../tenant.repository.js';
 
 type Role = Workspace['role'];
 
-const columns = {
+export const workspaceColumns = {
   id: workspaces.id,
   type: workspaces.type,
   nameAr: workspaces.nameAr,
@@ -22,7 +22,7 @@ export class WorkspacesRepository extends TenantRepository {
       const [row] = await tx
         .insert(workspaces)
         .values({ id, type: body.type, nameAr: body.nameAr, nameEn: body.nameEn })
-        .returning(columns);
+        .returning(workspaceColumns);
       await tx.insert(memberships).values({ workspaceId: id, userId, role: 'owner' });
       await insertCurriculum(tx, id);
       return { ...row!, role: 'owner' };
@@ -37,14 +37,21 @@ export class WorkspacesRepository extends TenantRepository {
       tx
         .select({ id: memberships.id, role: memberships.role })
         .from(memberships)
-        .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.userId, userId))),
+        .where(
+          and(
+            eq(memberships.workspaceId, workspaceId),
+            eq(memberships.userId, userId),
+            // A removed member is not a member: the same 404 as a stranger, on their next request.
+            eq(memberships.status, 'active'),
+          ),
+        ),
     );
     return row;
   }
 
   async find(workspaceId: string) {
     const [row] = await this.inTenant(workspaceId, (tx) =>
-      tx.select(columns).from(workspaces).where(eq(workspaces.id, workspaceId)),
+      tx.select(workspaceColumns).from(workspaces).where(eq(workspaces.id, workspaceId)),
     );
     return row;
   }
@@ -55,10 +62,10 @@ export class WorkspacesRepository extends TenantRepository {
    */
   listForUser(userId: string): Promise<Workspace[]> {
     return this.db
-      .select({ ...columns, role: memberships.role })
+      .select({ ...workspaceColumns, role: memberships.role })
       .from(memberships)
       .innerJoin(workspaces, eq(workspaces.id, memberships.workspaceId))
-      .where(eq(memberships.userId, userId))
+      .where(and(eq(memberships.userId, userId), eq(memberships.status, 'active')))
       .orderBy(asc(memberships.createdAt));
   }
 }

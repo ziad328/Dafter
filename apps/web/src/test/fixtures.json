@@ -41,7 +41,8 @@
       "name": "أحمد محمود",
       "phone": "01000000001",
       "role": "owner",
-      "teacherMembershipIds": []
+      "teacherMembershipIds": [],
+      "status": "active"
     },
     {
       "id": "c7533f6f-4f19-4059-a752-da38696269ad",
@@ -49,7 +50,8 @@
       "name": "منى حسن",
       "phone": "01000000002",
       "role": "teacher",
-      "teacherMembershipIds": []
+      "teacherMembershipIds": [],
+      "status": "active"
     },
     {
       "id": "7bede68f-d07d-4f40-b8de-2870df02837f",
@@ -57,7 +59,8 @@
       "name": "يوسف علي",
       "phone": "01000000003",
       "role": "assistant",
-      "teacherMembershipIds": ["c7533f6f-4f19-4059-a752-da38696269ad"]
+      "teacherMembershipIds": ["c7533f6f-4f19-4059-a752-da38696269ad"],
+      "status": "active"
     },
     {
       "id": "42fd502d-f9c2-4bac-aeaa-8374e66a3a99",
@@ -65,7 +68,8 @@
       "name": "هاني 18984461",
       "phone": "01018984461",
       "role": "assistant",
-      "teacherMembershipIds": ["c7533f6f-4f19-4059-a752-da38696269ad"]
+      "teacherMembershipIds": ["c7533f6f-4f19-4059-a752-da38696269ad"],
+      "status": "active"
     }
   ],
   "subjects": [
@@ -137,7 +141,8 @@
           "endTime": "19:30"
         }
       ],
-      "studentCount": 12
+      "studentCount": 12,
+      "teacherRemoved": false
     },
     {
       "id": "74167ef0-a5b5-4616-9a80-2ee7f1ed9447",
@@ -163,7 +168,8 @@
           "endTime": "11:00"
         }
       ],
-      "studentCount": 3
+      "studentCount": 3,
+      "teacherRemoved": false
     },
     {
       "id": "9ec9385c-822f-46e0-98e9-615b77f9e1f7",
@@ -189,7 +195,8 @@
           "endTime": "23:59"
         }
       ],
-      "studentCount": 0
+      "studentCount": 0,
+      "teacherRemoved": false
     }
   ],
   "group": {
@@ -216,7 +223,8 @@
         "endTime": "19:30"
       }
     ],
-    "studentCount": 12
+    "studentCount": 12,
+    "teacherRemoved": false
   },
   "sessions": [
     {

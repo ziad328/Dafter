@@ -27,9 +27,9 @@ Do this **after editable templates** (same files: `messages/templates.ts`, the o
 
 ## Batch 3 · Staff management (M, *hard part: auth and tenancy*)
 
-- [ ] **Invite carries the assistant's teachers** (the next feature in `docs/v1-next.md`). Accepting writes the membership and its scopes in one transaction, which also removes the separate scope-check transaction and the extra workspace read.
-- [ ] **`PATCH /members/:id`**: change a role, or remove a member (`status = removed`, sessions and memberships revoked, their groups stay with a "no teacher" warning until reassigned). Owner only; the last owner can't be removed.
-- [ ] **Audit in the same transaction** as the write it records (the interceptor gets the request's transaction instead of opening its own), so a failed audit row rolls the write back.
+- [x] **Invite carries the assistant's teachers** Done Nov 15. (the next feature in `docs/v1-next.md`). Accepting writes the membership and its scopes in one transaction, which also removes the separate scope-check transaction and the extra workspace read.
+- [x] **`PATCH /members/:id`** Done Nov 15 (no global sign-out: the tenant guard locks them out on the next request): change a role, or remove a member (`status = removed`, sessions and memberships revoked, their groups stay with a "no teacher" warning until reassigned). Owner only; the last owner can't be removed.
+- [x] **Audit in the same transaction** Done Nov 15 (tenant routes; sign-in and invite accept keep their own). as the write it records (the interceptor gets the request's transaction instead of opening its own), so a failed audit row rolls the write back.
 
 ## Batch 4 · Before real users: safety and operations (M)
 

@@ -10,6 +10,7 @@ import { normalizeArabic } from './normalize.js';
 import { buildOpenApi } from './openapi.js';
 import { OPENAPI_FILE, writeOpenApi } from './scripts/write-openapi.js';
 import { listSessionsQuery, moveSessionRequest } from './sessions.js';
+import { createInviteRequest, updateMemberRequest } from './workspaces.js';
 
 describe('normalizeArabic (rule 6)', () => {
   it('strips diacritics and tatweel and folds the letter variants', () => {
@@ -41,6 +42,28 @@ describe('OpenAPI', () => {
     const out = join(mkdtempSync(join(tmpdir(), 'openapi-')), 'openapi.json');
     writeOpenApi(out);
     expect(JSON.parse(readFileSync(out, 'utf8')).openapi).toMatch(/^3\./);
+  });
+});
+
+describe('staff requests', () => {
+  const id = '0b6f1b5e-2f4c-4a8e-9b1a-3c5d7e9f1a2b';
+  it('lets only an assistant invite name teachers', () => {
+    expect(
+      createInviteRequest.safeParse({ role: 'assistant', teacherMembershipIds: [id] }).success,
+    ).toBe(true);
+    expect(createInviteRequest.safeParse({ role: 'teacher' }).success).toBe(true);
+    expect(
+      createInviteRequest.safeParse({ role: 'teacher', teacherMembershipIds: [id] }).success,
+    ).toBe(false);
+  });
+
+  it('takes a new role or a removal, not both or neither', () => {
+    expect(updateMemberRequest.safeParse({ role: 'owner' }).success).toBe(true);
+    expect(updateMemberRequest.safeParse({ status: 'removed' }).success).toBe(true);
+    expect(updateMemberRequest.safeParse({}).success).toBe(false);
+    expect(updateMemberRequest.safeParse({ role: 'teacher', status: 'removed' }).success).toBe(
+      false,
+    );
   });
 });
 

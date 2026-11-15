@@ -632,6 +632,62 @@
         }
       }
     },
+    "/api/v1/members/{id}": {
+      "patch": {
+        "operationId": "updateMember",
+        "tags": ["members", "groups"],
+        "description": "Owner only. Changes a role, or removes the member (their groups stay, flagged teacherRemoved). LAST_OWNER, MEMBER_TEACHES_GROUPS.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Member"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/members/{id}/scopes": {
       "put": {
         "operationId": "setAssistantScopes",
@@ -3275,9 +3331,31 @@
           "role": {
             "type": "string",
             "enum": ["teacher", "assistant"]
+          },
+          "teacherMembershipIds": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
           }
         },
         "required": ["role"]
+      },
+      "UpdateMemberRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["owner", "teacher", "assistant"]
+          },
+          "status": {
+            "type": "string",
+            "const": "removed"
+          }
+        }
       },
       "SetScopesRequest": {
         "type": "object",
@@ -3966,6 +4044,8 @@
           "RESET_NOT_ALLOWED",
           "ALREADY_MEMBER",
           "MEMBER_NOT_ASSISTANT",
+          "LAST_OWNER",
+          "MEMBER_TEACHES_GROUPS",
           "SCOPE_TEACHER_INVALID",
           "GROUP_NOT_FOUND",
           "ROOM_NOT_FOUND",
@@ -4302,9 +4382,17 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "teacherMembershipIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
           }
         },
-        "required": ["id", "role", "token", "expiresAt"],
+        "required": ["id", "role", "token", "expiresAt", "teacherMembershipIds"],
         "additionalProperties": false
       },
       "StaffResetLink": {
@@ -4351,6 +4439,10 @@
             "type": "string",
             "enum": ["owner", "teacher", "assistant"]
           },
+          "status": {
+            "type": "string",
+            "enum": ["active", "removed"]
+          },
           "teacherMembershipIds": {
             "type": "array",
             "items": {
@@ -4360,7 +4452,7 @@
             }
           }
         },
-        "required": ["id", "userId", "name", "phone", "role", "teacherMembershipIds"],
+        "required": ["id", "userId", "name", "phone", "role", "status", "teacherMembershipIds"],
         "additionalProperties": false
       },
       "CurriculumList": {
@@ -4428,6 +4520,9 @@
           "teacherName": {
             "type": "string"
           },
+          "teacherRemoved": {
+            "type": "boolean"
+          },
           "subject": {
             "$ref": "#/components/schemas/CurriculumItem"
           },
@@ -4491,6 +4586,7 @@
           "id",
           "teacherMembershipId",
           "teacherName",
+          "teacherRemoved",
           "subject",
           "gradeLevel",
           "label",

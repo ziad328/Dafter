@@ -186,3 +186,14 @@ The unique `dedupe_key` is what makes the job safe to rerun. Deleting the row fr
 **3. A teacher marks a student absent after the session closed. How does the parent get exactly one message?**
 The mark runs `enqueueAbsences` for that one student in the same transaction as the attendance write, with the usual `absence:<session>:<guardian>` key and `ON CONFLICT DO NOTHING`. Marking absent twice, or a guardian already told at close, hits the same key and queues nothing.
 
+## v1 · Staff management and the request transaction
+
+**1. Two owners remove each other at the same moment. How does the center keep an owner?**
+Each removal first locks the workspace's active owner rows (`SELECT … FOR UPDATE`). The second transaction waits for the first to commit, then counts one owner left and returns `LAST_OWNER`. Counting without the lock, both would see two owners and both succeed.
+
+**2. A teacher is removed while their 15-minute access token is still valid. Why are they locked out at once?**
+The tenant guard looks up the membership on every request and only accepts `status = active`, so the next request is the same 404 a stranger gets. The token proves who they are, not where they belong, so nothing needs revoking, and their other centers keep working.
+
+**3. The audit row now commits with the write. Why savepoints instead of reusing the request transaction directly?**
+Some repository blocks rely on rolling back their own work: a repeated payment undoes its receipt-counter bump, and a constraint error becomes `ROOM_BOOKED`. Without savepoints, the first would leave the bump in place, and the second would abort the whole request transaction. `tx.transaction()` gives each block a savepoint, so it behaves exactly like its old separate transaction, but everything commits together at the end.
+

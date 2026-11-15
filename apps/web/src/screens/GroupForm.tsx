@@ -153,6 +153,11 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
                 </option>
               ))}
             </SelectField>
+            {group?.teacherRemoved && (
+              <p role="status" className="rounded-md bg-late-soft p-3 text-sm text-late">
+                {t('groups.teacherRemovedHint', { name: group.teacherName })}
+              </p>
+            )}
             {isOwner && (
               <SelectField
                 label={t('groups.teacher')}

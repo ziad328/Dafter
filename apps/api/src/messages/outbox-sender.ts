@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Db } from '@dafter/db';
 import { Clock } from '../clock.js';
 import { DB } from '../db.js';
+import { requestTx } from '../request-tx.js';
 import { sendDueMessages } from '../jobs/send-outbox.js';
 import { ConsoleProvider } from './provider.js';
 
@@ -25,9 +26,22 @@ export class OutboxSender {
     return sendDueMessages(this.db, this.clock, this.provider);
   }
 
-  /** After a committed write; never fails the request (the row stays queued for the next tick). */
+  /**
+   * After a committed write; never fails the request (the row stays queued for the next tick).
+   * Inside a request transaction it waits for that commit: the sender's own connection can't see
+   * uncommitted rows.
+   */
   async afterCommit(workspaceId: string) {
     if (process.env.OUTBOX_SEND_INLINE !== '1') return;
+    const current = requestTx.getStore();
+    if (current) {
+      current.after.push(() => this.flush(workspaceId));
+      return;
+    }
+    await this.flush(workspaceId);
+  }
+
+  private async flush(workspaceId: string) {
     try {
       await sendDueMessages(this.db, this.clock, this.provider, workspaceId);
     } catch (err) {

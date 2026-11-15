@@ -91,7 +91,15 @@ export class GroupsRepository extends TenantRepository {
         ? await tx
             .select({ role: memberships.role })
             .from(memberships)
-            .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.id, t)))
+            .where(
+              and(
+                eq(memberships.workspaceId, workspaceId),
+                eq(memberships.id, t),
+                eq(memberships.status, 'active'),
+              ),
+            )
+            // Held to the end of the request: a demotion or removal of this teacher waits.
+            .for('share')
         : [];
       const [subjectRow] = s
         ? await tx
@@ -240,6 +248,7 @@ export class GroupsRepository extends TenantRepository {
         id: groups.id,
         teacherMembershipId: groups.teacherMembershipId,
         teacherName: users.name,
+        teacherRemoved: sql<boolean>`${memberships.status} = 'removed'`,
         subject: item(subject),
         gradeLevel: item(grade),
         label: groups.label,

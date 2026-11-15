@@ -132,7 +132,9 @@
     "confirmArchive": "Tap again to archive",
     "restore": "Restore group",
     "archiveHint": "The group leaves Today and the timetable, and its upcoming sessions are removed. Its records stay.",
-    "overRoom": "The capacity is more than the seats in {room} ({capacity})"
+    "overRoom": "The capacity is more than the seats in {room} ({capacity})",
+    "teacherRemoved": "No teacher",
+    "teacherRemovedHint": "{name} is no longer in the center. Pick a teacher for this group."
   },
   "roles": {
     "owner": "Owner",
@@ -199,7 +201,9 @@
     "ROOM_BOOKED": "The room is taken at that time.",
     "TEMPLATE_PLACEHOLDER_UNKNOWN": "That part isn’t available for this message.",
     "GROUP_FULL": "The group is full.",
-    "TEACHER_BOOKED": "The teacher has another session at that time."
+    "TEACHER_BOOKED": "The teacher has another session at that time.",
+    "LAST_OWNER": "The last owner can't be removed or change role. Make someone else an owner first.",
+    "MEMBER_TEACHES_GROUPS": "This person teaches active groups. Move them to another teacher first."
   },
   "timetable": {
     "title": "Timetable",
@@ -513,7 +517,14 @@
     "worksFor": "Works for",
     "resetFor": "Password link for {name}",
     "resetHint": "For someone who forgot their password. The link works once, for 24 hours. Send it only to them.",
-    "createResetLink": "Create the link"
+    "createResetLink": "Create the link",
+    "inviteWorksFor": "Works with (optional)",
+    "manage": "Manage {name}",
+    "saveRole": "Save role",
+    "remove": "Remove from the center",
+    "removeHint": "{name} will no longer get in. Their groups and records stay, and need a new teacher.",
+    "confirmRemove": "Yes, remove",
+    "teachesGroups": "{count, plural, one {Teaches an active group} other {Teaches # active groups}}. Move them to another teacher first."
   },
   "nav": {
     "label": "Main",

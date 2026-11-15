@@ -1,20 +1,24 @@
 import { type Member, normalizeArabic } from '@dafter/contracts';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, UserCog } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import {
   useCreateInviteMutation,
   useCreateStaffResetLinkMutation,
   useGetCurrentWorkspaceQuery,
+  useGetMeQuery,
   useListMembersQuery,
   useSetAssistantScopesMutation,
+  useUpdateMemberMutation,
 } from '@/api/generated';
 import { FormError, SelectField, Skeleton } from '@/components/Field';
 import { ShareButton } from '@/components/ShareButton';
 import { Avatar, PageHeader, Panel, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { errorKey } from '@/lib/session';
+import { setWorkspaceId } from '@/api/base';
+import { errorDetails, errorKey } from '@/lib/session';
 
 /** Staff of the workspace; the owner invites teachers and assistants and picks assistants' teachers. */
 export default function Members() {
@@ -33,7 +37,7 @@ export default function Members() {
   return (
     <div className="grid gap-5">
       <PageHeader title={t('members.title')} />
-      {isOwner && <InviteCard />}
+      {isOwner && <InviteCard teachers={teachers} />}
       <FormError message={members.error && t(errorKey(members.error))} />
       {/* A search once the team outgrows one screen (audit MB1). */}
       {all.length > 10 && (
@@ -59,9 +63,11 @@ export default function Members() {
   );
 }
 
-function InviteCard() {
+/** A one-time link; an assistant's link can carry the teachers they will work for. */
+function InviteCard({ teachers }: { teachers: Member[] }) {
   const { t } = useTranslation();
   const [role, setRole] = useState<'teacher' | 'assistant'>('assistant');
+  const [ids, setIds] = useState<string[]>([]);
   const [create, created] = useCreateInviteMutation();
   const link = created.data && `${location.origin}/invite/${created.data.token}`;
   return (
@@ -81,10 +87,37 @@ function InviteCard() {
           <option value="assistant">{t('roles.assistant')}</option>
           <option value="teacher">{t('roles.teacher')}</option>
         </SelectField>
+        {role === 'assistant' && teachers.length > 0 && (
+          <fieldset className="grid gap-1">
+            <legend className="mb-1 text-sm font-medium">{t('members.inviteWorksFor')}</legend>
+            {teachers.map((teacher) => (
+              <label key={teacher.id} className="flex min-h-10 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="size-4"
+                  checked={ids.includes(teacher.id)}
+                  onChange={(e) =>
+                    setIds(
+                      e.target.checked ? [...ids, teacher.id] : ids.filter((x) => x !== teacher.id),
+                    )
+                  }
+                />
+                {teacher.name}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <Button
           type="button"
           disabled={created.isLoading}
-          onClick={() => void create({ createInviteRequest: { role } })}
+          onClick={() =>
+            void create({
+              createInviteRequest: {
+                role,
+                teacherMembershipIds: role === 'assistant' ? ids : undefined,
+              },
+            })
+          }
         >
           {t('members.createLink')}
         </Button>
@@ -208,6 +241,7 @@ function MemberRow({
         </Button>
       )}
       {m.role !== 'owner' && canEdit && <ResetLink member={m} />}
+      {canEdit && <ManageMember member={m} />}
       <Sheet
         open={editing}
         onClose={() => setEditing(false)}
@@ -230,5 +264,95 @@ function MemberRow({
         </div>
       </Sheet>
     </div>
+  );
+}
+
+/**
+ * The owner changes someone's role or removes them (a second tap confirms). Removing keeps their
+ * groups, flagged on the groups screen until another teacher takes them.
+ */
+function ManageMember({ member: m }: { member: Member }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [role, setRole] = useState(m.role);
+  const [confirm, setConfirm] = useState(false);
+  const [update, updated] = useUpdateMemberMutation();
+  const navigate = useNavigate();
+  const isMe = useGetMeQuery().data?.id === m.userId;
+  const teaching = errorDetails(updated.error, 'MEMBER_TEACHES_GROUPS');
+  const save = async (body: { role: Member['role'] } | { status: 'removed' }) => {
+    const res = await update({ id: m.id, updateMemberRequest: body });
+    if (!res.data) return;
+    setOpen(false);
+    // Removed themselves (another owner stays): this center is gone for them.
+    if (isMe && 'status' in body) {
+      setWorkspaceId(null);
+      void navigate('/workspaces', { replace: true });
+    }
+  };
+  return (
+    <>
+      <Button
+        size="icon"
+        variant="outline"
+        aria-label={t('members.manage', { name: m.name })}
+        onClick={() => {
+          setRole(m.role);
+          setConfirm(false);
+          updated.reset();
+          setOpen(true);
+        }}
+      >
+        <UserCog className="size-4" aria-hidden />
+      </Button>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t('members.manage', { name: m.name })}
+      >
+        <div className="grid gap-3 text-sm">
+          <SelectField
+            label={t('members.role')}
+            value={role}
+            onChange={(e) => setRole(e.target.value as Member['role'])}
+          >
+            <option value="owner">{t('roles.owner')}</option>
+            <option value="teacher">{t('roles.teacher')}</option>
+            <option value="assistant">{t('roles.assistant')}</option>
+          </SelectField>
+          <Button
+            type="button"
+            disabled={role === m.role || updated.isLoading}
+            onClick={() => void save({ role })}
+          >
+            {t('members.saveRole')}
+          </Button>
+          {confirm ? (
+            <div className="grid gap-2 rounded-md border border-rose/40 bg-rose-soft p-3">
+              <p>{t('members.removeHint', { name: m.name })}</p>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={updated.isLoading}
+                onClick={() => void save({ status: 'removed' })}
+              >
+                {t('members.confirmRemove')}
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" variant="outline" onClick={() => setConfirm(true)}>
+              {t('members.remove')}
+            </Button>
+          )}
+          <FormError
+            message={
+              teaching
+                ? t('members.teachesGroups', { count: Number(teaching.count) })
+                : updated.error && t(errorKey(updated.error))
+            }
+          />
+        </div>
+      </Sheet>
+    </>
   );
 }

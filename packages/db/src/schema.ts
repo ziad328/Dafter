@@ -26,6 +26,9 @@ const createdAt = () => tz('created_at').notNull().defaultNow();
 
 export const workspaceType = pgEnum('workspace_type', ['center', 'independent']);
 export const memberRole = pgEnum('member_role', ['owner', 'teacher', 'assistant']);
+// removed: the person left the workspace; the row stays (groups, sessions and the audit log
+// point at it) and every membership check reads active rows only.
+export const memberStatus = pgEnum('member_status', ['active', 'removed']);
 export const locale = pgEnum('locale', ['ar', 'en']);
 export const groupStatus = pgEnum('group_status', ['active', 'archived']);
 export const sessionStatus = pgEnum('session_status', ['scheduled', 'open', 'closed', 'cancelled']);
@@ -110,6 +113,8 @@ export const memberships = pgTable(
       .notNull()
       .references(() => users.id),
     role: memberRole('role').notNull(),
+    status: memberStatus('status').notNull().default('active'),
+    removedAt: tz('removed_at'),
     createdAt: createdAt(),
   },
   (t) => [
@@ -153,6 +158,11 @@ export const invites = pgTable(
       .notNull()
       .references(() => workspaces.id),
     role: memberRole('role').notNull(),
+    // An assistant invite: the teacher memberships they will work for, written on accept.
+    teacherMembershipIds: uuid('teacher_membership_ids')
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
     tokenHash: text('token_hash').notNull().unique(),
     expiresAt: tz('expires_at').notNull(),
     usedAt: tz('used_at'),
