@@ -36,7 +36,7 @@ Written on Nov 15 after exams, the dashboard and fee reminders (`93662a4`, `cc3c
 | 1. Accounts | ~~An invite carries the assistant's teachers~~ done Nov 15 (limits plan, Batch 3) | — |
 | 5. Fees | Per-session and package-of-N fee plans | The center interviews (open questions in `product.md`) |
 
-Outside the code: the manual iPhone and Android try (`docs/deploy.md` step 6), deleting the local `.env.vercel-secrets`, the demo video, and the center interviews.
+Outside the code: the demo video and the center interviews. Done by Ziad on Nov 16: the manual iPhone and Android try, and deleting the local `.env.vercel-secrets`. The rest of the open work is numbered in `docs/backlog.md`.
 
 ## Next feature
 

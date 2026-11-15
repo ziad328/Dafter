@@ -57,7 +57,6 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| Real camera, PWA install, invite paste and binding never checked on a real iPhone and Android phone | The core student flow is only tested with hooks | v0 (one manual try each) |
 | The QR screen's wake lock needs the Screen Wake Lock API (iOS 16.4+, Chrome 84+); older phones may still dim | Rare on current phones | — |
 | A student on a video call can relay the QR | Known weakness of rotating QR (architecture.md) | — (documented) |
 | No offline screen when the API is unreachable | The PWA shows errors | later |
