@@ -197,7 +197,9 @@
     "ROOM_NOT_FOUND": "Room not found.",
     "ROOM_NAME_TAKEN": "A room with this name already exists.",
     "ROOM_BOOKED": "The room is taken at that time.",
-    "TEMPLATE_PLACEHOLDER_UNKNOWN": "That part isn’t available for this message."
+    "TEMPLATE_PLACEHOLDER_UNKNOWN": "That part isn’t available for this message.",
+    "GROUP_FULL": "The group is full.",
+    "TEACHER_BOOKED": "The teacher has another session at that time."
   },
   "timetable": {
     "title": "Timetable",
@@ -221,7 +223,8 @@
       "cancelled": "Cancelled"
     },
     "moved": "Rescheduled",
-    "actions": "Session actions"
+    "actions": "Session actions",
+    "teacherBookedAt": "The teacher has another session on {day} {time}"
   },
   "students": {
     "sections": {
@@ -278,7 +281,10 @@
     "add": "Add to group",
     "open": "Add to a group…",
     "leave": "Remove from group",
-    "notJoined": "The student was saved, but not added to the group."
+    "notJoined": "The student was saved, but not added to the group.",
+    "full": "The group is full ({seats}). Add anyway?",
+    "addAnyway": "Add anyway",
+    "cancelAdd": "Cancel"
   },
   "studentApp": {
     "activateTitle": "Activate the Dafter app",
@@ -594,7 +600,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "The last 8 weeks",
+    "subtitle": "The last {count} weeks",
     "attendance": "Attendance per week",
     "money": "Collected per month",
     "groups": "Groups",
@@ -602,7 +608,9 @@
     "noRecords": "No attendance recorded",
     "groupAttendance": "Attendance of {name}",
     "exams": "{count, plural, =0 {No graded exams} one {# exam} other {# exams}}",
-    "lastAverage": "Last average {pct}%"
+    "lastAverage": "Last average {pct}%",
+    "weeks": "{count} weeks",
+    "range": "Range"
   },
   "cashSummary": {
     "title": "End-of-day cash summary",

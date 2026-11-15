@@ -259,7 +259,12 @@ const injectedRtkApi = api
         providesTags: ['attendance'],
       }),
       getTrendStats: build.query<GetTrendStatsApiResponse, GetTrendStatsApiArg>({
-        query: () => ({ url: `/api/v1/stats/trends` }),
+        query: (queryArg) => ({
+          url: `/api/v1/stats/trends`,
+          params: {
+            weeks: queryArg.weeks,
+          },
+        }),
         providesTags: ['stats'],
       }),
       getOwingStudents: build.query<GetOwingStudentsApiResponse, GetOwingStudentsApiArg>({
@@ -641,7 +646,9 @@ export type ListAttendanceApiArg = {
 export type GetTodayStatsApiResponse = /** status 200 Stats */ TodayStats;
 export type GetTodayStatsApiArg = void;
 export type GetTrendStatsApiResponse = /** status 200 Trends */ TrendStats;
-export type GetTrendStatsApiArg = void;
+export type GetTrendStatsApiArg = {
+  weeks?: '8' | '13' | '26';
+};
 export type GetOwingStudentsApiResponse = /** status 200 Who owes */ OwingList;
 export type GetOwingStudentsApiArg = void;
 export type GetCollectionStatsApiResponse = /** status 200 Collected */ CollectionStats;
@@ -799,6 +806,7 @@ export type ErrorCode =
   | 'SESSION_NOT_FOUND'
   | 'SESSION_NOT_SCHEDULED'
   | 'SESSION_TIME_INVALID'
+  | 'TEACHER_BOOKED'
   | 'STUDENT_NOT_FOUND'
   | 'STUDENT_REFERENCE_INVALID'
   | 'OTP_INVALID'
@@ -806,6 +814,7 @@ export type ErrorCode =
   | 'DEVICE_ALREADY_BOUND'
   | 'DEVICE_KEY_INVALID'
   | 'ENROLLMENT_EXISTS'
+  | 'GROUP_FULL'
   | 'ENROLLMENT_NOT_FOUND'
   | 'SESSION_NOT_OPEN'
   | 'CHECKIN_CODE_INVALID'
@@ -1354,6 +1363,7 @@ export type EnrollmentList = Enrollment[];
 export type CreateEnrollmentRequest = {
   groupId: string;
   discountPct?: number;
+  force?: boolean;
 };
 export type StudentInvite = {
   token: string;

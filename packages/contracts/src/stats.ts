@@ -82,7 +82,7 @@ export const monthTotals = methodTotals
   .meta({ id: 'MonthTotals' });
 
 /**
- * The dashboard: the last 8 weeks (Saturday starts, workspace timezone) for the caller's visible
+ * The dashboard: the last 8, 13 or 26 weeks (Saturday starts, workspace timezone) for the caller's visible
  * groups, and money in for the last 6 months (owner and assistant; null for a teacher).
  */
 export const trendStats = z
@@ -92,6 +92,11 @@ export const trendStats = z
     money: z.array(monthTotals).nullable(),
   })
   .meta({ id: 'TrendStats' });
+
+/** How many weeks the dashboard covers: 8 (default), 13 (a term) or 26 (half a year). */
+export const trendsQuery = z
+  .object({ weeks: z.enum(['8', '13', '26']).default('8') })
+  .meta({ id: 'TrendsQuery' });
 
 /** The day of a cash summary; omitted = today in the workspace timezone. */
 export const cashSummaryQuery = z
@@ -145,6 +150,7 @@ export type WeekCount = z.infer<typeof weekCount>;
 export type GroupTrend = z.infer<typeof groupTrend>;
 export type MonthTotals = z.infer<typeof monthTotals>;
 export type TrendStats = z.infer<typeof trendStats>;
+export type TrendsQuery = z.infer<typeof trendsQuery>;
 export type CashSummaryQuery = z.infer<typeof cashSummaryQuery>;
 export type CashEntry = z.infer<typeof cashEntry>;
 export type StaffCash = z.infer<typeof staffCash>;

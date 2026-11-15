@@ -11,6 +11,14 @@ export function errorKey(error: unknown): `errors.${ErrorCode}` {
   return `errors.${ERROR_CODES.includes(code as ErrorCode) ? (code as ErrorCode) : 'INTERNAL'}`;
 }
 
+/** The error's details when its code is `code` (GROUP_FULL's count, a clash's times), else undefined. */
+export function errorDetails(error: unknown, code: ErrorCode): Record<string, string> | undefined {
+  const data = (
+    error as { data?: { code?: unknown; details?: Record<string, string> } } | undefined
+  )?.data;
+  return data?.code === code ? (data.details ?? {}) : undefined;
+}
+
 export const workspaceName = (ws: Workspace, lang: string) =>
   lang === 'en' && ws.nameEn ? ws.nameEn : ws.nameAr;
 

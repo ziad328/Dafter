@@ -1,7 +1,8 @@
 import type { GroupTrend, WeekCount } from '@dafter/contracts';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useGetTrendStatsQuery } from '@/api/generated';
+import { type GetTrendStatsApiArg, useGetTrendStatsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { PageHeader, Panel } from '@/components/Page';
 import { itemName } from '@/lib/groups';
@@ -17,6 +18,9 @@ const sum = (cs: WeekCount[]) =>
     total: 0,
   });
 
+type Range = NonNullable<GetTrendStatsApiArg['weeks']>;
+const RANGES: Range[] = ['8', '13', '26'];
+
 /**
  * Trends for the groups the caller can see: attendance per week, exam averages per group, and
  * (owner and assistant) money in per month.
@@ -24,7 +28,9 @@ const sum = (cs: WeekCount[]) =>
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const { data, isLoading, error } = useGetTrendStatsQuery();
+  // 8 weeks, a term (13) or half a year (26); money stays at 6 months.
+  const [range, setRange] = useState<Range>('8');
+  const { data, isLoading, isFetching, error } = useGetTrendStatsQuery({ weeks: range });
   if (isLoading) return <Skeleton />;
   if (error) return <FormError message={t(errorKey(error))} />;
   const { weeks, groups, money } = data!;
@@ -39,7 +45,33 @@ export default function Dashboard() {
 
   return (
     <div className="grid gap-5">
-      <PageHeader title={t('dashboard.title')} subtitle={t('dashboard.subtitle')} />
+      <PageHeader
+        title={t('dashboard.title')}
+        subtitle={t('dashboard.subtitle', { count: weeks.length })}
+      />
+      <div
+        role="group"
+        aria-label={t('dashboard.range')}
+        aria-busy={isFetching}
+        className="flex gap-2"
+      >
+        {RANGES.map((r) => (
+          <button
+            key={r}
+            type="button"
+            aria-pressed={range === r}
+            onClick={() => setRange(r)}
+            className={cn(
+              'h-9 rounded-full border px-4 text-sm font-medium transition-colors',
+              range === r
+                ? 'border-ink bg-ink text-primary-foreground'
+                : 'bg-card hover:bg-ink-soft',
+            )}
+          >
+            {t('dashboard.weeks', { count: Number(r) })}
+          </button>
+        ))}
+      </div>
 
       <Panel className="grid gap-4 p-5">
         <div className="flex items-baseline justify-between gap-2">
@@ -157,21 +189,31 @@ function Bars({
   // The value of a full bar: 100 for rates, the largest value otherwise.
   top?: number;
 }) {
-  return (
-    <ol className="flex items-end gap-1.5" aria-label={label}>
+  // More than 8 bars (13 or 26 weeks) are too narrow for a label each at 375 px: one axis row
+  // under them with 4 labels, the first and last flush with the edges.
+  const axis = !small && items.length > 8;
+  const ticks = [
+    0,
+    Math.round(items.length / 3),
+    Math.round((2 * items.length) / 3),
+    items.length - 1,
+  ];
+  const bars = (
+    <ol className={cn('flex items-end', axis ? 'gap-0.5' : 'gap-1.5')} aria-label={label}>
       {items.map((b, i) => (
         <li key={b.key} className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <div className={cn('flex w-full items-end', small ? 'h-12' : 'h-28')} title={b.text}>
             <div
               className={cn(
                 'w-full rounded-t-md',
+                axis && 'rounded-t-sm',
                 i === items.length - 1 ? 'bg-ink' : 'bg-ink/30',
                 b.value === null && 'bg-muted',
               )}
               style={{ height: `${Math.max(((b.value ?? 0) / top) * 100, 4)}%` }}
             />
           </div>
-          {!small && (
+          {!small && !axis && (
             <span className="w-full truncate text-center text-[10px] text-muted-foreground">
               {b.label}
             </span>
@@ -180,5 +222,20 @@ function Bars({
         </li>
       ))}
     </ol>
+  );
+  if (!axis) return bars;
+  return (
+    <div className="grid gap-1">
+      {bars}
+      <div
+        aria-hidden="true"
+        data-testid="bar-axis"
+        className="flex justify-between text-[10px] text-muted-foreground"
+      >
+        {ticks.map((i) => (
+          <span key={i}>{items[i]!.label}</span>
+        ))}
+      </div>
+    </div>
   );
 }

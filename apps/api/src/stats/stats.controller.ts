@@ -7,6 +7,8 @@ import {
   type OwingStudent,
   type TodayStats,
   type TrendStats,
+  trendsQuery,
+  type TrendsQuery,
 } from '@dafter/contracts';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { AuthModule } from '../auth/auth.module.js';
@@ -37,9 +39,18 @@ export class StatsController {
 
   /** Visible groups like `today`; the money part follows the money policy (null for teachers). */
   @Get('trends')
-  async trends(@Req() req: TenantedRequest): Promise<TrendStats> {
+  async trends(
+    @Req() req: TenantedRequest,
+    @Query(new ZodPipe(trendsQuery)) q: TrendsQuery,
+  ): Promise<TrendStats> {
     const teachers = await this.groups.visibleTeachers(req);
-    return this.repo.trends(req.workspaceId, this.clock.now(), teachers, req.role !== 'teacher');
+    return this.repo.trends(
+      req.workspaceId,
+      this.clock.now(),
+      teachers,
+      req.role !== 'teacher',
+      Number(q.weeks),
+    );
   }
 
   /** Policy: the center's money is for the owner and assistants (who take payments), not teachers. */

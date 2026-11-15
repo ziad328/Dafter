@@ -1452,7 +1452,7 @@
       "patch": {
         "operationId": "moveSession",
         "tags": ["sessions"],
-        "description": "Owner, or the teacher of the group. Only a scheduled session moves.",
+        "description": "Owner, or the teacher of the group. Only a scheduled session moves; TEACHER_BOOKED when the teacher has another session at the new time.",
         "security": [
           {
             "bearer": []
@@ -1679,10 +1679,21 @@
       "get": {
         "operationId": "getTrendStats",
         "tags": ["stats"],
-        "description": "The dashboard: attendance per visible group per week and exam averages over the last 8 weeks, and money in per month for the last 6 months (owner and assistant; null for a teacher).",
+        "description": "The dashboard: attendance per visible group per week and exam averages over the last `weeks` weeks (8, 13 or 26), and money in per month for the last 6 months (owner and assistant; null for a teacher).",
         "security": [
           {
             "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "weeks",
+            "schema": {
+              "default": "8",
+              "type": "string",
+              "enum": ["8", "13", "26"]
+            }
           }
         ],
         "responses": {
@@ -2857,7 +2868,7 @@
       "post": {
         "operationId": "createEnrollment",
         "tags": ["students"],
-        "description": "Into a group the caller can see (same scope as GET /groups).",
+        "description": "Into a group the caller can see (same scope as GET /groups). GROUP_FULL at capacity unless force is true.",
         "security": [
           {
             "bearer": []
@@ -3844,6 +3855,9 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100
+          },
+          "force": {
+            "type": "boolean"
           }
         },
         "required": ["groupId"]
@@ -3957,6 +3971,7 @@
           "SESSION_NOT_FOUND",
           "SESSION_NOT_SCHEDULED",
           "SESSION_TIME_INVALID",
+          "TEACHER_BOOKED",
           "STUDENT_NOT_FOUND",
           "STUDENT_REFERENCE_INVALID",
           "OTP_INVALID",
@@ -3964,6 +3979,7 @@
           "DEVICE_ALREADY_BOUND",
           "DEVICE_KEY_INVALID",
           "ENROLLMENT_EXISTS",
+          "GROUP_FULL",
           "ENROLLMENT_NOT_FOUND",
           "SESSION_NOT_OPEN",
           "CHECKIN_CODE_INVALID",

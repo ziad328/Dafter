@@ -163,3 +163,14 @@ A loop re-reads its own output: a student named «{center}» would be replaced a
 
 **3. Why do the default texts live in `packages/contracts` instead of the API?**
 The web preview has to match what parents receive exactly. With the defaults and `fillTemplate` in the shared package, the API and the screen use the same code; only the values differ (real snapshot vs. sample names). It also means saving the default text sends `null`, so a later improvement to the default reaches centers that never customised it.
+
+## v1 · Group capacity and teacher double-booking
+
+**1. Two assistants enroll the 20th and 21st student into a 20-seat group at the same moment. How does `GROUP_FULL` stay right?**
+The enroll locks the group row (`SELECT … FOR UPDATE`) before counting active enrollments, so the second transaction waits until the first commits and then counts 20. Without the lock both count 19 and both insert. A unique or check constraint can't express "count below capacity", so a row lock is the simple fix.
+
+**2. Why lock the teacher with `pg_advisory_xact_lock` on a move instead of `FOR UPDATE` on the membership row?**
+Two moves of different groups by one teacher touch different session rows, so nothing they share gets locked by the update itself. An advisory lock keyed on the teacher's membership id serialises them without needing UPDATE rights or RLS write policies on `memberships`, and it is released automatically at commit or rollback.
+
+**3. Why check the teacher clash after the `UPDATE` instead of before?**
+After the update the session row already holds the new times, so the overlap query compares stored rows only (no time maths repeated in two places), skips the session itself with `o.id <> s.id`, and a clash just throws: the transaction rolls the move back and no "session moved" message is queued.

@@ -16,9 +16,17 @@ import { FilterChips, uniqueOptions } from '@/components/FilterChips';
 import { PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
-import { errorKey } from '@/lib/session';
+import { errorDetails, errorKey } from '@/lib/session';
 import { cn } from '@/lib/utils';
-import { addDays, dayLabel, displayTime, localDate, localTime, weekStart } from '@/lib/time';
+import {
+  addDays,
+  clockLabel,
+  dayLabel,
+  displayTime,
+  localDate,
+  localTime,
+  weekStart,
+} from '@/lib/time';
 
 /** One week (Saturday first) of the workspace's sessions, in the workspace timezone. */
 export default function Timetable() {
@@ -229,7 +237,7 @@ function MoveForm({
   tz: string;
   onDone: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [move, moved] = useMoveSessionMutation();
   const { register, handleSubmit, formState } = useForm<MoveSessionRequest>({
     resolver: zodResolver(moveSessionRequest),
@@ -244,6 +252,15 @@ function MoveForm({
     const res = await move({ id: s.id, moveSessionRequest: body });
     if (res.data) onDone();
   });
+  // TEACHER_BOOKED says which of the teacher's sessions is in the way.
+  const clash = errorDetails(moved.error, 'TEACHER_BOOKED');
+  const moveError = clash
+    ? t('timetable.teacherBookedAt', {
+        day: dayLabel(clash.date!, i18n.language),
+        // Isolated, so the times keep their order inside an Arabic sentence (rule 5).
+        time: `\u2068${clockLabel(clash.startTime!, i18n.language)} – ${clockLabel(clash.endTime!, i18n.language)}\u2069`,
+      })
+    : moved.error && t(errorKey(moved.error));
 
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-3">
@@ -277,7 +294,7 @@ function MoveForm({
           {...register('endTime')}
         />
       </div>
-      <FormError message={moved.error && t(errorKey(moved.error))} />
+      <FormError message={moveError} />
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={moved.isLoading}>
           {t('timetable.save')}

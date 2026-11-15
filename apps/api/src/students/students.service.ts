@@ -84,12 +84,16 @@ export class StudentsService {
     const group = await this.groups.get(ctx, body.groupId);
     if (group.status !== 'active')
       throw new AppError('STUDENT_REFERENCE_INVALID', { field: 'groupId' });
-    const id = await this.repo.enroll(ctx.workspaceId, {
-      studentId,
-      groupId: group.id,
-      discountPct: body.discountPct ?? 0,
-      joinedAt: this.clock.now(),
-    });
+    const id = await this.repo.enroll(
+      ctx.workspaceId,
+      {
+        studentId,
+        groupId: group.id,
+        discountPct: body.discountPct ?? 0,
+        joinedAt: this.clock.now(),
+      },
+      body.force,
+    );
     if (!id) throw new AppError('ENROLLMENT_EXISTS');
     return this.enrollment(ctx, studentId, id);
   }

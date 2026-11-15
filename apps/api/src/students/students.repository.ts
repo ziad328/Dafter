@@ -31,6 +31,7 @@ import {
   type Tx,
   users,
 } from '@dafter/db';
+import { AppError } from '../errors.js';
 import { chargeMonth } from '../money/charges.js';
 import { TenantRepository } from '../tenant.repository.js';
 
@@ -223,11 +224,38 @@ export class StudentsRepository extends TenantRepository {
     });
   }
 
+  /**
+   * GROUP_FULL (details: count, capacity) when the group has a capacity, its active enrollments
+   * already reach it, and `force` is not set. The group row is locked first, so two enrolls
+   * into the last seat run one after the other instead of both passing the count.
+   */
   async enroll(
     workspaceId: string,
     values: { studentId: string; groupId: string; discountPct: number; joinedAt: Date },
+    force = false,
   ) {
     return this.inTenant(workspaceId, async (tx) => {
+      const [group] = await tx
+        .select({ capacity: groups.capacity })
+        .from(groups)
+        .where(and(eq(groups.workspaceId, workspaceId), eq(groups.id, values.groupId)))
+        .for('update');
+      const active = await tx
+        .select({ studentId: enrollments.studentId })
+        .from(enrollments)
+        .where(
+          and(
+            eq(enrollments.workspaceId, workspaceId),
+            eq(enrollments.groupId, values.groupId),
+            eq(enrollments.status, 'active'),
+          ),
+        );
+      const { capacity } = group!;
+      const count = active.length;
+      const mine = active.some((e) => e.studentId === values.studentId);
+      // Already in the group: fall through to ENROLLMENT_EXISTS, not GROUP_FULL.
+      if (!force && !mine && capacity !== null && count >= capacity)
+        throw new AppError('GROUP_FULL', { count, capacity });
       const [row] = await tx
         .insert(enrollments)
         .values({ workspaceId, ...values })

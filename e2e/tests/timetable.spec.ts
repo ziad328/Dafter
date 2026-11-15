@@ -1,6 +1,5 @@
-import { expect, signIn, STAFF, test, openNav, choose, enterWorkspace } from './fixtures';
+import { choose, enterWorkspace, expect, openNav, PASSWORD, signIn, STAFF, test } from './fixtures';
 
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
 
@@ -18,7 +17,22 @@ const twelve = (hhmm: string) => {
 // A timetable row shows the start above the end.
 const range = (a: string, b: string) => new RegExp(`${twelve(a)}[\\s\\S]*${twelve(b)}`);
 
-test('owner sees generated sessions, then moves and cancels one', async ({ page, lang, t }) => {
+test('owner sees generated sessions, then moves and cancels one', async ({
+  page,
+  request,
+  lang,
+  t,
+}) => {
+  // A fresh center: the dev database keeps every run's groups, and a move onto another run's
+  // session of the same teacher is TEACHER_BOOKED.
+  const center = `سنتر الجدول ${Math.floor(Math.random() * 1e8)}`;
+  const login = await request.post('/api/v1/auth/login', {
+    data: { login: STAFF.owner, password: PASSWORD },
+  });
+  await request.post('/api/v1/workspaces', {
+    headers: { authorization: `Bearer ${(await login.json()).accessToken}` },
+    data: { type: 'center', nameAr: center },
+  });
   // The dev database is not reset between runs, so this run's group gets a random time.
   const hour = 8 + Math.floor(Math.random() * 10);
   const minute = pad(Math.floor(Math.random() * 60));
@@ -26,7 +40,7 @@ test('owner sees generated sessions, then moves and cancels one', async ({ page,
   const tomorrow = addDays(cairoDate(new Date()), 1);
 
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, center);
   await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
   await choose(page, t.groups.subject, PHYSICS[lang]);

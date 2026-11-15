@@ -43,8 +43,9 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Rooms: a group above the room's seats gets a warning on the form, not an error | The owner decides | — |
 | Rooms work in independent workspaces too (the data model said centers only) | Harmless; the screen sits under More for everyone | — |
 | Curriculum (subjects, grades) can't be edited | Centers with other subjects are stuck | centers |
-| No group capacity check on enroll | A group can be over-filled | centers |
-| Moving a session doesn't check the teacher's other sessions | Double-booked teacher | centers |
+| A full group is a confirm, not a hard stop (`force: true` adds anyway) | Staff can still over-fill on purpose | — |
+| Group slots don't check the teacher's other groups (only a session move does) | A new group can double-book its teacher | later (move the e2e groups at Saturday 16:00 to distinct times first) |
+| The teacher check uses each group's current teacher; a past session keeps no teacher of its own | A teacher change re-labels old sessions | — |
 | `GET /groups/:id/sessions` not built | Not needed by the timetable | later |
 | No cursor pagination (groups, students: first 50) | Big centers can't see everyone | later |
 | Teachers see every student in the workspace | Privacy choice not settled | centers |
@@ -82,7 +83,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 |:--|:--|:--|
 | No CSV import or export of exam scores | Big groups are typed by hand | centers (export first, import later) |
 | A corrected score resends the same sentence with «تصحيح:» only | Parents don't see the old score | — |
-| Dashboard: last 8 weeks and 6 months only, no date range | No term view | later (a `weeks` param, max 26) |
+| Dashboard: 8, 13 or 26 weeks; money is always the last 6 months; no free date range | No custom term dates | later |
 | Dashboard: archived groups are left out | Last term's groups disappear | later (include them with a filter) |
 | Dashboard bars are plain CSS, no chart library | No tooltips or axis | — |
 | The exam grid, "My grades", the dashboard and the fee-reminder switch were checked by the 375 px tests only | Not checked by eye on a real phone | centers |

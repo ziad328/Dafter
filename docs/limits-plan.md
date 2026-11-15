@@ -11,10 +11,10 @@ Nothing here needs the center interviews. Good filler between bigger features.
 - [x] **Archive a group from the UI.** Done Nov 15. An "Archive" / "Restore" action on the group page (the API already takes `status`). Archived groups drop out of Today and the timetable.
 - [x] **Late threshold setting.** Done Nov 15 (on a new `/settings` screen). A number field on the workspace settings («يُعتبر متأخرًا بعد … دقيقة»), saved to `settings.lateAfterMinutes` (default 15, 0–120).
 - [x] **Keep the QR screen awake.** Done Nov 15. `navigator.wakeLock.request('screen')` while the live session is open, released on close or tab hide; no-op where unsupported.
-- [ ] **Group capacity on enroll.** `GROUP_FULL` when active enrollments reach `capacity`; the owner can still override with a confirm (`force: true`).
-- [ ] **Teacher double-booking on move.** Moving a session to a time when the teacher has another non-cancelled session returns `TEACHER_BOOKED`. The same check on group slots waits: the e2e tests create many groups for one seeded teacher at Saturday 16:00, so it needs those fixtures moved to distinct times first.
+- [x] **Group capacity on enroll.** Done Nov 15. `GROUP_FULL` when active enrollments reach `capacity`; staff can still add after a confirm (`force: true`), on the student page and the new-student form.
+- [x] **Teacher double-booking on move.** Done Nov 15 (moves only). Moving a session to a time when the teacher has another non-cancelled session returns `TEACHER_BOOKED`. The same check on group slots waits: the e2e tests create many groups for one seeded teacher at Saturday 16:00, so it needs those fixtures moved to distinct times first.
 - [x] **Room capacity hint.** Done Nov 15. A warning (not an error) on the group form when the group's capacity is above the room's.
-- [ ] **Dashboard range.** A `weeks` query param (8 default, max 26) and a 8 / 13 / 26 switch on the screen.
+- [x] **Dashboard range.** Done Nov 15. A `weeks` query param (8 default; 8, 13 or 26) and an 8 / 13 / 26 switch on the screen; money stays at 6 months.
 
 ## Batch 2 · Messages that are always right (M, *hard part: outbox*)
 

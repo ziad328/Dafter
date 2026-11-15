@@ -12,6 +12,7 @@ import {
   users,
   workspaces,
 } from '@dafter/db';
+import { AppError } from '../errors.js';
 import { enqueueSessionChange } from '../messages/outbox.js';
 import { roomBooked } from '../rooms/pg-errors.js';
 import { TenantRepository } from '../tenant.repository.js';
@@ -82,6 +83,7 @@ export class SessionsRepository extends TenantRepository {
           ),
         );
       if (same) return true;
+      await this.lockTeacher(tx, workspaceId, id);
       const rows = await tx
         .update(sessions)
         .set({
@@ -97,9 +99,46 @@ export class SessionsRepository extends TenantRepository {
           ),
         )
         .returning({ id: sessions.id });
-      if (rows.length) await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved');
-      return rows.length > 0;
+      if (!rows.length) return false;
+      await this.checkTeacher(tx, workspaceId, id);
+      await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved');
+      return true;
     }).catch(roomBooked);
+  }
+
+  /**
+   * Moves of one teacher's sessions run one after the other (a transaction-scoped advisory lock
+   * on the teacher's membership), so two moves into the same free hour can't both pass the check.
+   */
+  private async lockTeacher(tx: Tx, workspaceId: string, sessionId: string) {
+    await tx.execute(sql`
+      select pg_advisory_xact_lock(hashtextextended(g.teacher_membership_id::text, 0))
+      from sessions s join groups g on g.workspace_id = s.workspace_id and g.id = s.group_id
+      where s.workspace_id = ${workspaceId} and s.id = ${sessionId}`);
+  }
+
+  /**
+   * TEACHER_BOOKED with the first clash when, after the move, the session overlaps another
+   * non-cancelled session of a group with the same teacher. Throwing rolls the move back.
+   * Touching sessions (one ends 17:30, the next starts 17:30) are fine.
+   */
+  private async checkTeacher(tx: Tx, workspaceId: string, sessionId: string) {
+    const { rows } = await tx.execute<{ date: string; startTime: string; endTime: string }>(sql`
+      select to_char(o.starts_at at time zone w.timezone, 'YYYY-MM-DD') as date,
+        to_char(o.starts_at at time zone w.timezone, 'HH24:MI') as "startTime",
+        to_char(o.ends_at at time zone w.timezone, 'HH24:MI') as "endTime"
+      from sessions s
+      join workspaces w on w.id = s.workspace_id
+      join groups g on g.workspace_id = s.workspace_id and g.id = s.group_id
+      join groups og on og.workspace_id = g.workspace_id
+        and og.teacher_membership_id = g.teacher_membership_id
+      join sessions o on o.workspace_id = og.workspace_id and o.group_id = og.id
+      where s.workspace_id = ${workspaceId} and s.id = ${sessionId}
+        and o.id <> s.id and o.status <> 'cancelled'
+        and o.starts_at < s.ends_at and s.starts_at < o.ends_at
+      order by o.starts_at
+      limit 1`);
+    if (rows[0]) throw new AppError('TEACHER_BOOKED', { ...rows[0] });
   }
 
   private scheduled(workspaceId: string, id: string) {

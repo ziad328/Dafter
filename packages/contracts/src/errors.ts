@@ -42,6 +42,9 @@ export const ERROR_STATUS = {
   SESSION_NOT_SCHEDULED: 409,
   // A move to a time that has already passed.
   SESSION_TIME_INVALID: 400,
+  // A move onto another non-cancelled session of the same teacher (details: the clash's local
+  // date, startTime and endTime).
+  TEACHER_BOOKED: 409,
   // Unknown id or another workspace's student: never 403.
   STUDENT_NOT_FOUND: 404,
   // A grade level that is not in this workspace.
@@ -53,6 +56,9 @@ export const ERROR_STATUS = {
   DEVICE_ALREADY_BOUND: 409,
   DEVICE_KEY_INVALID: 400,
   ENROLLMENT_EXISTS: 409,
+  // The group's active enrollments already reach its capacity (details: count, capacity).
+  // Resend with force: true to add the student anyway.
+  GROUP_FULL: 409,
   ENROLLMENT_NOT_FOUND: 404,
   // Check-in or manual mark on a session that is not open (manual also allows closed).
   SESSION_NOT_OPEN: 409,

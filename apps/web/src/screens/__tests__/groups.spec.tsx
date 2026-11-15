@@ -325,6 +325,28 @@ describe('timetable', () => {
     await expect.poll(() => screen.queryByLabelText(tr('timetable.date'))).toBeNull();
   });
 
+  it('says when the teacher is booked at the new time', async () => {
+    withWeek([session(today, 'scheduled')]);
+    server.use(
+      http.patch(route('sessions/:id'), () =>
+        Response.json(
+          {
+            code: 'TEACHER_BOOKED',
+            details: { date: '2026-11-21', startTime: '16:00', endTime: '17:30' },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const { user } = await renderAt('/timetable', { lang: 'en' });
+    await user.click(await screen.findByRole('button', { name: tr('timetable.actions') }));
+    await user.click(screen.getByRole('button', { name: tr('timetable.move') }));
+    await user.click(screen.getByRole('button', { name: tr('timetable.save') }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('The teacher has another session on Saturday, November 21');
+    expect(alert).toHaveTextContent(/4:00\sPM – 5:30\sPM/);
+  });
+
   it('shows a failed move, and closes the form', async () => {
     withWeek([session(today, 'scheduled')]);
     server.use(http.patch(route('sessions/:id'), fail('SESSION_NOT_SCHEDULED', 409)));

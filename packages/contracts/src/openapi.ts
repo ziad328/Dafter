@@ -71,6 +71,7 @@ import {
   owingList,
   todayStats,
   trendStats,
+  trendsQuery,
 } from './stats.js';
 import {
   createInviteRequest,
@@ -452,7 +453,8 @@ export function buildOpenApi() {
         patch: {
           operationId: 'moveSession',
           tags: ['sessions'],
-          description: 'Owner, or the teacher of the group. Only a scheduled session moves.',
+          description:
+            'Owner, or the teacher of the group. Only a scheduled session moves; TEACHER_BOOKED when the teacher has another session at the new time.',
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           requestBody: { required: true, content: json(moveSessionRequest) },
@@ -509,8 +511,9 @@ export function buildOpenApi() {
           operationId: 'getTrendStats',
           tags: ['stats'],
           description:
-            'The dashboard: attendance per visible group per week and exam averages over the last 8 weeks, and money in per month for the last 6 months (owner and assistant; null for a teacher).',
+            'The dashboard: attendance per visible group per week and exam averages over the last `weeks` weeks (8, 13 or 26), and money in per month for the last 6 months (owner and assistant; null for a teacher).',
           security: [{ bearer: [] }],
+          requestParams: { query: trendsQuery },
           responses: { 200: { description: 'Trends', content: json(trendStats) }, ...errors },
         },
       },
@@ -813,7 +816,8 @@ export function buildOpenApi() {
         post: {
           operationId: 'createEnrollment',
           tags: ['students'],
-          description: 'Into a group the caller can see (same scope as GET /groups).',
+          description:
+            'Into a group the caller can see (same scope as GET /groups). GROUP_FULL at capacity unless force is true.',
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           requestBody: { required: true, content: json(createEnrollmentRequest) },

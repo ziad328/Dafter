@@ -21,13 +21,13 @@ import {
   useUpdateStudentMutation,
 } from '@/api/generated';
 import { Field, FormError, SelectField, Skeleton } from '@/components/Field';
-import { AppAccess, Enrollments } from '@/components/StudentAccount';
+import { AppAccess, Enrollments, GroupFullConfirm } from '@/components/StudentAccount';
 import { StudentFees } from '@/components/StudentFees';
 import { PageHeader } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
-import { errorKey } from '@/lib/session';
+import { errorDetails, errorKey } from '@/lib/session';
 
 const formSchema = createStudentRequest.extend({ status: studentStatus.optional() });
 type FormValues = z.infer<typeof formSchema>;
@@ -188,6 +188,9 @@ function StudentFormBody({
   const [groupId, setGroupId] = useState('');
   const [discount, setDiscount] = useState('');
   const pct = Number(discount || 0);
+  // Set when the student was saved but their group is full: confirm, or go on without it.
+  const [savedId, setSavedId] = useState<string>();
+  const full = errorDetails(enrolled.error, 'GROUP_FULL');
   const saving = created.isLoading || updated.isLoading || enrolled.isLoading;
   const error = created.error ?? updated.error;
 
@@ -198,7 +201,8 @@ function StudentFormBody({
   const { errors } = formState;
 
   const onSubmit = handleSubmit(async (body) => {
-    if (pct > 100) return;
+    // Already saved and waiting on the full-group confirm: Enter must not register them twice.
+    if (pct > 100 || savedId) return;
     const res = id
       ? await update({
           id,
@@ -216,14 +220,21 @@ function StudentFormBody({
       if (id) return onDone?.();
       // The student exists either way: a failed enrolment is reported on their page, where the
       // group card can retry it (resubmitting this form would register them twice).
-      const joined = groupId
-        ? await enroll({ id: res.data.id, createEnrollmentRequest: { groupId, discountPct: pct } })
-        : undefined;
-      void navigate(`/students/${res.data.id}`, {
-        state: joined?.error ? { enrollError: errorKey(joined.error) } : undefined,
-      });
+      if (groupId) await join(res.data.id);
+      else void navigate(`/students/${res.data.id}`);
     }
   });
+
+  const join = async (studentId: string, force?: true) => {
+    const joined = await enroll({
+      id: studentId,
+      createEnrollmentRequest: { groupId, discountPct: pct, force },
+    });
+    if (errorDetails(joined.error, 'GROUP_FULL')) return setSavedId(studentId);
+    void navigate(`/students/${studentId}`, {
+      state: joined.error ? { enrollError: errorKey(joined.error) } : undefined,
+    });
+  };
 
   return (
     <div className="grid gap-5">
@@ -378,9 +389,18 @@ function StudentFormBody({
             </details>
 
             <FormError message={error && t(errorKey(error))} />
-            <Button type="submit" disabled={saving}>
-              {t(id ? 'students.save' : 'students.create')}
-            </Button>
+            {full && savedId ? (
+              <GroupFullConfirm
+                full={full}
+                busy={enrolled.isLoading}
+                onConfirm={() => void join(savedId, true)}
+                onCancel={() => void navigate(`/students/${savedId}`)}
+              />
+            ) : (
+              <Button type="submit" disabled={saving}>
+                {t(id ? 'students.save' : 'students.create')}
+              </Button>
+            )}
             {onDone && (
               <Button type="button" variant="ghost" onClick={onDone}>
                 {t('students.cancelEdit')}

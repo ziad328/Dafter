@@ -197,7 +197,9 @@
     "ROOM_NOT_FOUND": "القاعة غير موجودة.",
     "ROOM_NAME_TAKEN": "يوجد قاعة بنفس الاسم.",
     "ROOM_BOOKED": "القاعة محجوزة في هذا الوقت.",
-    "TEMPLATE_PLACEHOLDER_UNKNOWN": "هذا الجزء غير متاح لهذه الرسالة."
+    "TEMPLATE_PLACEHOLDER_UNKNOWN": "هذا الجزء غير متاح لهذه الرسالة.",
+    "GROUP_FULL": "المجموعة مكتملة.",
+    "TEACHER_BOOKED": "المدرس عنده حصة أخرى في هذا الوقت."
   },
   "timetable": {
     "title": "الجدول",
@@ -221,7 +223,8 @@
       "cancelled": "ملغاة"
     },
     "moved": "موعد معدّل",
-    "actions": "إجراءات الحصة"
+    "actions": "إجراءات الحصة",
+    "teacherBookedAt": "المدرس عنده حصة أخرى يوم {day} {time}"
   },
   "students": {
     "sections": {
@@ -278,7 +281,10 @@
     "add": "إضافة إلى المجموعة",
     "open": "إضافة إلى مجموعة…",
     "leave": "إخراج من المجموعة",
-    "notJoined": "تم حفظ الطالب، لكن لم تتم إضافته إلى المجموعة."
+    "notJoined": "تم حفظ الطالب، لكن لم تتم إضافته إلى المجموعة.",
+    "full": "المجموعة مكتملة ({seats}). إضافة على أي حال؟",
+    "addAnyway": "إضافة على أي حال",
+    "cancelAdd": "إلغاء"
   },
   "studentApp": {
     "activateTitle": "تفعيل تطبيق دفتر",
@@ -594,7 +600,7 @@
   },
   "dashboard": {
     "title": "لوحة المتابعة",
-    "subtitle": "آخر 8 أسابيع",
+    "subtitle": "{count, plural, few {آخر # أسابيع} other {آخر # أسبوعًا}}",
     "attendance": "نسبة الحضور كل أسبوع",
     "money": "المحصّل كل شهر",
     "groups": "المجموعات",
@@ -602,7 +608,9 @@
     "noRecords": "لا حضور مسجّل",
     "groupAttendance": "حضور {name}",
     "exams": "{count, plural, =0 {لا امتحانات مرصودة} one {امتحان واحد} two {امتحانان} few {# امتحانات} many {# امتحانًا} other {# امتحان}}",
-    "lastAverage": "آخر متوسط {pct}%"
+    "lastAverage": "آخر متوسط {pct}%",
+    "weeks": "{count, plural, few {# أسابيع} other {# أسبوعًا}}",
+    "range": "الفترة"
   },
   "cashSummary": {
     "title": "ملخص النقدية اليومي",

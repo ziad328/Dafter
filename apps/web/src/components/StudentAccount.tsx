@@ -15,7 +15,43 @@ import { ShareButton } from '@/components/ShareButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
-import { errorKey } from '@/lib/session';
+import { errorDetails, errorKey } from '@/lib/session';
+
+/** GROUP_FULL: «المجموعة مكتملة (20/20). إضافة على أي حال؟» with Add anyway and Cancel. */
+export function GroupFullConfirm({
+  full,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  full: Record<string, string>;
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      role="alert"
+      className="grid gap-2 rounded-md border border-late/40 bg-late-soft p-3 text-sm"
+    >
+      <p>
+        {t('enrollments.full', {
+          // Isolated, so "20/20" keeps its order inside an Arabic sentence (rule 5).
+          seats: `\u2068${full.count}/${full.capacity}\u2069`,
+        })}
+      </p>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" disabled={busy} onClick={onConfirm}>
+          {t('enrollments.addAnyway')}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onCancel}>
+          {t('enrollments.cancelAdd')}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 /** Groups the student is in, with add and leave. Only groups the caller can see are offered. */
 export function Enrollments({ studentId }: { studentId: string }) {
@@ -35,10 +71,13 @@ export function Enrollments({ studentId }: { studentId: string }) {
   // Set by the new-student form when the student was saved but joining the group failed.
   const fromCreate = (useLocation().state as { enrollError?: string } | null)?.enrollError;
 
-  const onAdd = async () => {
+  const full = errorDetails(enrolled.error, 'GROUP_FULL');
+
+  // force: the staff member confirmed adding to a full group.
+  const onAdd = async (force?: true) => {
     const res = await enroll({
       id: studentId,
-      createEnrollmentRequest: { groupId, discountPct: pct },
+      createEnrollmentRequest: { groupId, discountPct: pct, force },
     });
     if (res.data) {
       setGroupId('');
@@ -107,16 +146,29 @@ export function Enrollments({ studentId }: { studentId: string }) {
               onChange={(ev) => setDiscount(ev.target.value.replace(/\D/g, '').slice(0, 3))}
               error={pct > 100 ? t('form.invalid.discount') : undefined}
             />
-            <FormError
-              message={(enrolled.error ?? left.error) && t(errorKey(enrolled.error ?? left.error))}
-            />
-            <Button
-              type="button"
-              disabled={!groupId || pct > 100 || enrolled.isLoading}
-              onClick={() => void onAdd()}
-            >
-              {t('enrollments.add')}
-            </Button>
+            {full ? (
+              <GroupFullConfirm
+                full={full}
+                busy={enrolled.isLoading}
+                onConfirm={() => void onAdd(true)}
+                onCancel={() => enrolled.reset()}
+              />
+            ) : (
+              <>
+                <FormError
+                  message={
+                    (enrolled.error ?? left.error) && t(errorKey(enrolled.error ?? left.error))
+                  }
+                />
+                <Button
+                  type="button"
+                  disabled={!groupId || pct > 100 || enrolled.isLoading}
+                  onClick={() => void onAdd()}
+                >
+                  {t('enrollments.add')}
+                </Button>
+              </>
+            )}
           </>
         ) : (
           <Button type="button" variant="outline" onClick={() => setAdding(true)}>

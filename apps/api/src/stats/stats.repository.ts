@@ -15,7 +15,6 @@ import type { Tx } from '@dafter/db';
 import { TenantRepository } from '../tenant.repository.js';
 
 const CHECKED_IN = sql`('present', 'late', 'makeup')`;
-const WEEKS = 8;
 const MONTHS = 6;
 
 /** "YYYY-MM" of `back` months before `ym`. */
@@ -282,7 +281,7 @@ export class StatsRepository extends TenantRepository {
   }
 
   /**
-   * The dashboard over the visible active groups: 8 Saturday-start weeks up to this week in the
+   * The dashboard over the visible active groups: `weekCount` Saturday-start weeks up to this week in the
    * workspace timezone (attendance records of non-cancelled sessions, exams held in them), and,
    * when `withMoney`, payments minus their reversals per local month for 6 months.
    */
@@ -291,6 +290,7 @@ export class StatsRepository extends TenantRepository {
     now: Date,
     teacherIds: string[] | undefined,
     withMoney: boolean,
+    weekCount = 8,
   ): Promise<TrendStats> {
     const at = now.toISOString();
     const ctx = sql`
@@ -300,7 +300,7 @@ export class StatsRepository extends TenantRepository {
         from (select (${at}::timestamptz at time zone w.timezone)::date as today, w.timezone as tz
               from workspaces w where w.id = ${workspaceId}) l
       ),
-      weeks as (select (ctx.this_week - 7 * k)::date as wk from ctx, generate_series(0, ${WEEKS - 1}::int) k)`;
+      weeks as (select (ctx.this_week - 7 * k)::date as wk from ctx, generate_series(0, ${weekCount - 1}::int) k)`;
     const vis = sql`g.workspace_id = ${workspaceId} and g.status = 'active' ${visibleGroups(teacherIds)}`;
 
     return this.inTenant(workspaceId, async (tx) => {
@@ -364,7 +364,7 @@ export class StatsRepository extends TenantRepository {
         join groups g on g.workspace_id = ex.workspace_id and g.id = ex.group_id
         left join exam_results r on r.workspace_id = ex.workspace_id and r.exam_id = ex.id
         where ex.workspace_id = ${workspaceId} and ${vis}
-          and ex.held_on between ctx.this_week - ${7 * (WEEKS - 1)}::int and ctx.today
+          and ex.held_on between ctx.this_week - ${7 * (weekCount - 1)}::int and ctx.today
         group by ex.id
         order by ex.held_on, ex.created_at`);
 

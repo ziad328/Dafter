@@ -64,6 +64,37 @@ describe('enrollments', () => {
     expect(bad.json().code).toBe('VALIDATION_FAILED');
   });
 
+  it('refuses GROUP_FULL at capacity unless forced; a left enrollment frees the seat', async () => {
+    const f = await center();
+    await f.owner('PATCH', `groups/${f.groupId}`, { capacity: 2 });
+    const enroll = async (body: object = {}) => {
+      const id = await f.newStudent();
+      const res = await f.owner('POST', `students/${id}/enrollments`, {
+        groupId: f.groupId,
+        ...body,
+      });
+      return { id, res };
+    };
+    const first = await enroll();
+    await enroll();
+    const full = (await enroll()).res;
+    expect([full.statusCode, full.json()]).toEqual([
+      409,
+      { code: 'GROUP_FULL', details: { count: 2, capacity: 2 } },
+    ]);
+    // Already in the full group: the usual ENROLLMENT_EXISTS, not GROUP_FULL.
+    const again = await f.owner('POST', `students/${first.id}/enrollments`, { groupId: f.groupId });
+    expect(again.json().code).toBe('ENROLLMENT_EXISTS');
+    expect((await enroll({ force: true })).res.statusCode).toBe(201);
+
+    await f.owner('PATCH', `groups/${f.groupId}`, { capacity: 3 });
+    await f.owner('DELETE', `students/${first.id}/enrollments/${first.res.json().id}`);
+    expect((await enroll()).res.statusCode).toBe(201);
+    // No capacity: no limit.
+    await f.owner('PATCH', `groups/${f.groupId}`, { capacity: null });
+    expect((await enroll()).res.statusCode).toBe(201);
+  });
+
   it("returns 404 for another workspace's student on every student-scoped route", async () => {
     const other = await center();
     const id = await c.newStudent();

@@ -309,6 +309,20 @@ describe('GET /stats/trends', () => {
     expect(body.money.at(-2).total).toBe(7000);
     expect(body.money.at(0).total).toBe(4000);
 
+    // A term (13 weeks) reaches the September exam; money stays at 6 months.
+    const term = (await c.owner('GET', 'stats/trends?weeks=13')).json();
+    expect([term.weeks.length, term.weeks.at(0), term.weeks.at(-1)]).toEqual([
+      13,
+      '2026-08-29',
+      '2026-11-21',
+    ]);
+    expect(term.groups[0].attendance).toHaveLength(13);
+    expect(term.groups[0].exams.map((e: { title: string }) => e.title)).toEqual(['قديم', 'شهر']);
+    expect(term.money).toHaveLength(6);
+    expect((await c.owner('GET', 'stats/trends?weeks=26')).json().weeks).toHaveLength(26);
+    const bad = await c.owner('GET', 'stats/trends?weeks=10');
+    expect([bad.statusCode, bad.json().code]).toEqual([400, 'VALIDATION_FAILED']);
+
     // Teachers see their groups but no money; an unscoped assistant sees no groups and zeros.
     const teacher = (await c.teacher('GET', 'stats/trends')).json();
     expect([teacher.groups.length, teacher.money]).toEqual([1, null]);

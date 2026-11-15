@@ -10,6 +10,23 @@ const call = (c: string) => sent.find((s) => s.call === c);
 const groupName = (g: (typeof fx.groups)[number]) =>
   `${g.subject.nameAr} · ${g.gradeLevel.nameAr} · ${g.teacherName}`;
 
+const lastEnroll = () =>
+  sent.findLast((s) => s.call.startsWith('POST') && s.call.endsWith('/enrollments'))?.body;
+/** GROUP_FULL (20/20) until the request carries force: true. */
+const fullUntilForced = () =>
+  server.use(
+    http.post(route('students/:id/enrollments'), async ({ request }) => {
+      const body = (await request.clone().json()) as { force?: boolean };
+      sent.push({ call: `POST ${new URL(request.url).pathname}`, body });
+      return body.force
+        ? Response.json(fx.enrollments[0], { status: 201 })
+        : Response.json(
+            { code: 'GROUP_FULL', details: { count: 20, capacity: 20 } },
+            { status: 409 },
+          );
+    }),
+  );
+
 describe('students list', () => {
   it('lists students and searches after typing pauses', async () => {
     const asked: (string | null)[] = [];
@@ -126,6 +143,40 @@ describe('new student', () => {
       groupId: fx.groups[0]!.id,
       discountPct: 10,
     });
+  });
+
+  it('asks before adding to a full group, then adds with force or goes on without it', async () => {
+    fullUntilForced();
+    const fill = async () => {
+      const r = await renderAt('/students/new');
+      await r.user.type(await screen.findByLabelText(tr('students.nameAr')), 'سارة');
+      await pick(
+        r.user,
+        `${tr('enrollments.group')} ${tr('form.optional')}`,
+        groupName(fx.groups[0]!),
+      );
+      await r.user.type(screen.getByLabelText(tr('students.guardianPhone')), '01112345678');
+      await r.user.click(screen.getByRole('button', { name: tr('students.create') }));
+      return r;
+    };
+    const first = await fill();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/20\/20/);
+    expect(screen.queryByRole('button', { name: tr('students.create') })).toBeNull();
+    expect(first.router.state.location.pathname).toBe('/students/new');
+    // Enter in a field while the confirm is up doesn't register the student again.
+    await first.user.type(screen.getByLabelText(tr('students.nameAr')), '{Enter}');
+    expect(sent.filter((s) => s.call === 'POST /api/v1/students')).toHaveLength(1);
+    await first.user.click(screen.getByRole('button', { name: tr('enrollments.addAnyway') }));
+    await expect.poll(() => first.router.state.location.pathname).toBe(page);
+    expect(lastEnroll()).toEqual({ groupId: fx.groups[0]!.id, discountPct: 0, force: true });
+    first.unmount();
+
+    const second = await fill();
+    await second.user.click(
+      await screen.findByRole('button', { name: tr('enrollments.cancelAdd') }),
+    );
+    await expect.poll(() => second.router.state.location.pathname).toBe(page);
+    expect(sent.filter((s) => (s.body as { force?: boolean } | undefined)?.force)).toHaveLength(1);
   });
 
   it('opens the page with the enrolment error when joining fails', async () => {
@@ -266,6 +317,25 @@ describe('enrolments', () => {
       .toEqual({ groupId: fx.groups[0]!.id, discountPct: 5 });
     // Added: the form folds away again.
     await expect.poll(() => within(card).queryByRole('combobox')).toBeNull();
+  });
+
+  it('asks before adding to a full group: cancel keeps the form, add anyway sends force', async () => {
+    fullUntilForced();
+    const { user } = await renderAt(page);
+    await screen.findByRole('heading', { name: tr('enrollments.title') });
+    await user.click(screen.getByRole('button', { name: tr('enrollments.open') }));
+    await pick(user, tr('enrollments.group'), groupName(fx.groups[0]!));
+    await user.click(screen.getByRole('button', { name: tr('enrollments.add') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      tr('enrollments.full', { seats: '⁨20/20⁩' }),
+    );
+    await user.click(screen.getByRole('button', { name: tr('enrollments.cancelAdd') }));
+    expect(screen.queryByRole('alert')).toBeNull();
+    await user.click(screen.getByRole('button', { name: tr('enrollments.add') }));
+    await user.click(await screen.findByRole('button', { name: tr('enrollments.addAnyway') }));
+    await expect.poll(lastEnroll).toMatchObject({ force: true });
+    // Added: the form folds away again.
+    expect(await screen.findByRole('button', { name: tr('enrollments.open') })).toBeVisible();
   });
 
   it('shows a failed enrolment', async () => {

@@ -192,6 +192,57 @@ describe('cancel and move', () => {
     });
   });
 
+  it('refuses TEACHER_BOOKED onto another session of the same teacher, and rolls it back', async () => {
+    const f = await center();
+    const subjects = (await f.owner('GET', 'subjects')).json();
+    const grades = (await f.owner('GET', 'grade-levels')).json();
+    const group = async (call: typeof f.owner, weekday: number) =>
+      (
+        await call('POST', 'groups', {
+          subjectId: subjects[0].id,
+          gradeLevelId: grades[0].id,
+          slots: [{ weekday, startTime: '10:00', endTime: '11:00' }],
+        })
+      ).json().id as string;
+    const sunday = await group(f.t1.call, 0);
+    await group(f.t2.call, 1);
+    const sessions = (await list(f.owner, 'sessions?from=2026-11-21&to=2026-11-29')) as unknown as {
+      id: string;
+      groupId: string;
+      startsAt: string;
+    }[];
+    const sun = sessions.find((s) => s.groupId === sunday)!;
+    const sat = sessions.find((s) => s.groupId === f.group.id)!;
+
+    // Onto Saturday Nov 21, 16:00-17:30 (the other group of teacher 1).
+    const clash = await f.owner('PATCH', `sessions/${sun.id}`, {
+      date: '2026-11-21',
+      startTime: '17:00',
+      endTime: '18:00',
+    });
+    expect([clash.statusCode, clash.json()]).toEqual([
+      409,
+      {
+        code: 'TEACHER_BOOKED',
+        details: { date: '2026-11-21', startTime: '16:00', endTime: '17:30' },
+      },
+    ]);
+    const after = await f.owner('GET', 'sessions?from=2026-11-22&to=2026-11-22');
+    expect(after.json().map((s: { startsAt: string }) => s.startsAt)).toEqual([sun.startsAt]);
+
+    // Touching is fine; another teacher's session at the same time is fine.
+    const touch = { date: '2026-11-21', startTime: '17:30', endTime: '18:30' };
+    expect((await f.owner('PATCH', `sessions/${sun.id}`, touch)).statusCode).toBe(200);
+    const monday = { date: '2026-11-23', startTime: '10:00', endTime: '11:00' };
+    expect((await f.owner('PATCH', `sessions/${sun.id}`, monday)).statusCode).toBe(200);
+    // A cancelled session doesn't block; a session doesn't clash with itself.
+    await f.owner('POST', `sessions/${sat.id}/cancel`);
+    const onto = { date: '2026-11-21', startTime: '16:00', endTime: '17:00' };
+    expect((await f.owner('PATCH', `sessions/${sun.id}`, onto)).statusCode).toBe(200);
+    const shorter = { date: '2026-11-21', startTime: '16:00', endTime: '16:30' };
+    expect((await f.owner('PATCH', `sessions/${sun.id}`, shorter)).statusCode).toBe(200);
+  });
+
   it('rejects a move into the past or with the end before the start', async () => {
     const past = { date: '2026-11-16', startTime: '09:00', endTime: '09:30' };
     expect((await c.t1.call('PATCH', `sessions/${ids[2]}`, past)).json().code).toBe(

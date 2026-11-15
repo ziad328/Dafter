@@ -4,7 +4,12 @@ import { curriculumItem } from './groups.js';
 export const enrollmentStatus = z.enum(['active', 'left']);
 
 export const createEnrollmentRequest = z
-  .object({ groupId: z.uuid(), discountPct: z.int().min(0).max(100).optional() })
+  .object({
+    groupId: z.uuid(),
+    discountPct: z.int().min(0).max(100).optional(),
+    // Add even when the group is full (the staff member confirmed GROUP_FULL).
+    force: z.boolean().optional(),
+  })
   .meta({ id: 'CreateEnrollmentRequest' });
 
 export const enrollment = z
