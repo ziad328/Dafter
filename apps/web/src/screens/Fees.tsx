@@ -7,26 +7,42 @@ import { Avatar, PageHeader, Panel } from '@/components/Page';
 import { itemName } from '@/lib/groups';
 import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
+import { cn } from '@/lib/utils';
 
 const METHODS = ['cash', 'vodafone_cash', 'instapay'] as const;
 
-function Totals({ title, totals }: { title: string; totals: MethodTotals }) {
+/** One half of the totals card: the sum, then only the methods that took money (audit 3 F1). */
+function Totals({
+  title,
+  totals,
+  className,
+}: {
+  title: string;
+  totals: MethodTotals;
+  className?: string;
+}) {
   const { t, i18n } = useTranslation();
+  const used = METHODS.filter((m) => totals[m] > 0);
   return (
-    <Panel className="grid gap-3 p-5">
+    <div className={cn('grid content-start gap-1 p-4', className)}>
       <h2 className="text-sm text-muted-foreground">{title}</h2>
       <bdi className="text-2xl font-bold">{formatEgp(totals.total, i18n.language)}</bdi>
-      <dl className="grid gap-1 text-sm">
-        {METHODS.map((m) => (
-          <div key={m} className="flex justify-between gap-3">
-            <dt className="text-muted-foreground">{t(`fees.methods.${m}`)}</dt>
-            <dd>
-              <bdi>{formatEgp(totals[m], i18n.language)}</bdi>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </Panel>
+      {used.length > 1 && (
+        <dl className="grid gap-0.5 text-xs text-muted-foreground">
+          {used.map((m) => (
+            <div key={m} className="flex justify-between gap-3">
+              <dt>{t(`fees.methods.${m}`)}</dt>
+              <dd>
+                <bdi>{formatEgp(totals[m], i18n.language)}</bdi>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {used.length === 1 && (
+        <p className="text-xs text-muted-foreground">{t(`fees.methods.${used[0]!}`)}</p>
+      )}
+    </div>
   );
 }
 
@@ -43,10 +59,10 @@ export default function Fees() {
       <FormError message={error && t(errorKey(error))} />
       {stats.isLoading && <Skeleton />}
       {stats.data && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <Panel className="grid grid-cols-2">
           <Totals title={t('feesView.today')} totals={stats.data.today} />
-          <Totals title={t('feesView.month')} totals={stats.data.month} />
-        </div>
+          <Totals className="border-s" title={t('feesView.month')} totals={stats.data.month} />
+        </Panel>
       )}
       <section className="grid gap-3">
         <h2 className="text-lg font-semibold">

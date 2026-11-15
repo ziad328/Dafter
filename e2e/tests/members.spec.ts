@@ -24,6 +24,7 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
   await signIn(page, t, STAFF.owner);
   await enterWorkspace(page, t, CENTER[lang]);
   await openNav(page, t, t.nav.staff);
+  await page.getByRole('button', { name: t.members.inviteShort }).click();
   await choose(page, t.members.role, t.roles.assistant);
   await page.getByRole('button', { name: t.members.createLink }).click();
   const link = (await page.getByTestId('staff-invite-link').textContent())!;

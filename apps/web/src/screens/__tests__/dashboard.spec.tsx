@@ -77,7 +77,9 @@ describe('dashboard', () => {
       ),
     );
     await renderAt('/dashboard');
-    expect(await screen.findByText(tr('dashboard.exams', { count: 0 }))).toBeVisible();
+    expect(
+      await screen.findByRole('link', { name: new RegExp(tr('dashboard.exams', { count: 0 })) }),
+    ).toBeVisible();
   });
 
   it('shows the error code translated', async () => {

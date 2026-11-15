@@ -80,7 +80,7 @@ test('a cancelled session shows in the message log; the owner switches messages 
   await expect(workspaceChip(page, t)).toBeVisible();
   await page.goto('/workspaces');
   await page.getByRole('button', { name: MONA[lang] }).click();
-  await page.goto('/messages');
+  await page.goto('/messages/settings');
   const toggle = page.getByLabel(t.messages.toggles.sessionChange);
   await toggle.check(); // on by default; a failed earlier run may have left it off
   await toggle.uncheck();

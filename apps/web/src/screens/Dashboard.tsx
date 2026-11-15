@@ -107,30 +107,53 @@ export default function Dashboard() {
         </section>
       )}
 
-      <section className="grid gap-3">
-        <h2 className="font-semibold">{t('dashboard.groups')}</h2>
-        {groups.length === 0 && (
-          <Panel className="p-8 text-center text-muted-foreground">{t('dashboard.empty')}</Panel>
-        )}
-        <ul className="grid gap-3 md:grid-cols-2">
-          {groups.map((g) => (
-            <GroupCard key={g.id} group={g} weekLabel={week} weeks={weeks} />
-          ))}
-        </ul>
-      </section>
+      <GroupList groups={groups} />
     </div>
   );
 }
 
-function GroupCard({
-  group: g,
-  weeks,
-  weekLabel,
-}: {
-  group: GroupTrend;
-  weeks: string[];
-  weekLabel: (date: string) => string;
-}) {
+/** How many group rows show before «عرض الكل». */
+const FIRST = 10;
+
+/**
+ * One short row per group, lowest attendance first, so the groups that need a look come first
+ * (audit 3 D1). The per-group charts are gone: a phone showed ~20,000 px of them.
+ */
+function GroupList({ groups }: { groups: GroupTrend[] }) {
+  const { t } = useTranslation();
+  const [all, setAll] = useState(false);
+  const sorted = [...groups].sort(
+    (a, b) => (rate(sum(a.attendance)) ?? 101) - (rate(sum(b.attendance)) ?? 101),
+  );
+  const shown = all ? sorted : sorted.slice(0, FIRST);
+  return (
+    <section className="grid gap-3">
+      <h2 className="font-semibold">{t('dashboard.groups')}</h2>
+      {groups.length === 0 ? (
+        <Panel className="p-8 text-center text-muted-foreground">{t('dashboard.empty')}</Panel>
+      ) : (
+        <Panel className="overflow-hidden">
+          <ul className="divide-y">
+            {shown.map((g) => (
+              <GroupRow key={g.id} group={g} />
+            ))}
+          </ul>
+          {sorted.length > FIRST && !all && (
+            <button
+              type="button"
+              className="w-full border-t px-4 py-3 text-sm font-medium text-ink hover:bg-ink-soft/50"
+              onClick={() => setAll(true)}
+            >
+              {t('dashboard.showAll', { count: sorted.length })}
+            </button>
+          )}
+        </Panel>
+      )}
+    </section>
+  );
+}
+
+function GroupRow({ group: g }: { group: GroupTrend }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const r = rate(sum(g.attendance));
@@ -138,38 +161,32 @@ function GroupCard({
   const last = graded.at(-1);
   const name = `${itemName(g.subject, lang)} · ${itemName(g.gradeLevel, lang)}${g.label ? ` · ${g.label}` : ''}`;
   return (
-    <li>
-      <Panel className="grid gap-3 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="grid min-w-0">
-            <h3 className="truncate font-semibold">{name}</h3>
-            <p className="truncate text-sm text-muted-foreground">{g.teacherName}</p>
-          </div>
-          {r !== null && <bdi className="shrink-0 text-lg font-bold text-present">{`${r}%`}</bdi>}
-        </div>
-        <Bars
-          small
-          top={100}
-          label={t('dashboard.groupAttendance', { name })}
-          items={g.attendance.map((c, i) => ({
-            key: weeks[i]!,
-            label: weekLabel(weeks[i]!),
-            value: rate(c),
-            text: rate(c) === null ? t('dashboard.noRecords') : `${rate(c)}%`,
-          }))}
-        />
+    <li className="flex items-center gap-3 px-4 py-3">
+      <div className="grid min-w-0 flex-1">
+        <h3 className="truncate text-sm font-semibold">{name}</h3>
         <Link
           to={`/groups/${g.id}/exams`}
-          className="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2 text-sm hover:bg-muted/70 focus-visible:ring-2"
+          className="truncate text-xs text-muted-foreground hover:underline"
         >
-          <span>{t('dashboard.exams', { count: graded.length })}</span>
+          {g.teacherName}
+          {' · '}
+          {t('dashboard.exams', { count: graded.length })}
           {last && (
-            <bdi className="font-semibold">
-              {t('dashboard.lastAverage', { pct: last.averagePct })}
-            </bdi>
+            <>
+              {' · '}
+              <bdi>{t('dashboard.lastAverage', { pct: last.averagePct })}</bdi>
+            </>
           )}
         </Link>
-      </Panel>
+      </div>
+      <bdi
+        className={cn(
+          'shrink-0 font-bold',
+          r === null ? 'text-sm text-muted-foreground' : r < 70 ? 'text-rose' : 'text-present',
+        )}
+      >
+        {r === null ? '—' : `${r}%`}
+      </bdi>
     </li>
   );
 }

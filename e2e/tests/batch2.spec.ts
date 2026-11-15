@@ -120,6 +120,7 @@ test('a corrected absence is not sent, a move names the old time, and primary on
   await expect(log.getByRole('listitem')).toHaveCount(1);
 
   // Primary guardian only: saved, and still on after a reload.
+  await page.getByRole('link', { name: t.messages.settingsTitle }).click();
   const primary = page.getByRole('checkbox', { name: t.messages.toggles.primaryOnly });
   await expect(primary).not.toBeChecked();
   await primary.check();

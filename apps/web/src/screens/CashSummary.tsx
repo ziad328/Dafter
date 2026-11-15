@@ -83,7 +83,8 @@ export default function CashSummary() {
   );
 
   return (
-    <article className="grid gap-4 rounded-md bg-white p-6 text-black print:p-0">
+    // The app's colours on screen; white paper only when printed (audit 3 F3).
+    <article className="grid gap-4 rounded-2xl border bg-card p-6 text-card-foreground shadow-card print:border-0 print:bg-white print:p-0 print:text-black print:shadow-none">
       <header className="text-center">
         <p className="font-bold">{centerName}</p>
         <h1 className="text-xl font-bold">{t('cashSummary.title')}</h1>

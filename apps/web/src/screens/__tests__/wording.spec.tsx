@@ -1,15 +1,11 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { fail, fx, http, route, sent, server } from '@/test/server';
+import { fail, http, route, sent, server } from '@/test/server';
 import { renderAt, tr } from '@/test/render';
 
 const body = (c: string) => sent.findLast((s) => s.call === c)?.body;
-const asRole = (role: string) =>
-  server.use(
-    http.get(route('workspaces/current'), () => Response.json({ ...fx.currentWorkspace, role })),
-  );
 
-/** Opens one trigger's card on /messages. */
+/** Opens one trigger's card on /messages/settings. */
 async function openCard(trigger: string) {
   const summary = await screen.findByText(tr(`messages.triggers.${trigger}`), {
     selector: 'summary',
@@ -20,7 +16,7 @@ async function openCard(trigger: string) {
 
 describe('message wording', () => {
   it('the owner edits a text with a live preview, inserts a part, and saves', async () => {
-    const { user } = await renderAt('/messages');
+    const { user } = await renderAt('/messages/settings');
     expect(
       await screen.findByRole('heading', { name: tr('messages.wording.title') }),
     ).toBeVisible();
@@ -57,7 +53,7 @@ describe('message wording', () => {
   });
 
   it('refuses a part the message does not offer, and shows "was/were" only in English', async () => {
-    const { user } = await renderAt('/messages', { lang: 'en' });
+    const { user } = await renderAt('/messages/settings', { lang: 'en' });
     const card = await openCard('absence');
     const groups = within(card).getAllByRole('group', { name: tr('messages.wording.insert') });
     const wasWere = tr('messages.placeholders.wasWere');
@@ -99,7 +95,7 @@ describe('message wording', () => {
       ),
       http.put(route('message-templates/:trigger'), fail('TEMPLATE_PLACEHOLDER_UNKNOWN', 400)),
     );
-    const { user } = await renderAt('/messages');
+    const { user } = await renderAt('/messages/settings');
     const card = await openCard('fee_overdue');
     expect(within(card).getByText(tr('messages.wording.custom'))).toBeVisible();
     expect(within(card).getByLabelText(tr('messages.wording.language.ar'))).toHaveValue(
@@ -111,20 +107,9 @@ describe('message wording', () => {
     );
   });
 
-  it('is read-only for the assistant', async () => {
-    asRole('assistant');
-    await renderAt('/messages');
-    const card = await openCard('absence');
-    expect(within(card).getByLabelText(tr('messages.wording.language.ar'))).toHaveAttribute(
-      'readonly',
-    );
-    expect(within(card).queryByRole('button', { name: tr('messages.wording.save') })).toBeNull();
-    expect(within(card).queryByRole('group')).toBeNull();
-  });
-
   it('shows a failed list', async () => {
     server.use(http.get(route('message-templates'), fail('FORBIDDEN', 403)));
-    await renderAt('/messages');
+    await renderAt('/messages/settings');
     const alerts = await screen.findAllByRole('alert');
     expect(alerts.some((a) => a.textContent === tr('errors.FORBIDDEN'))).toBe(true);
   });

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { DoorOpen } from 'lucide-react';
+import { DoorOpen, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   type Room,
@@ -9,7 +9,7 @@ import {
   useUpdateRoomMutation,
 } from '@/api/generated';
 import { Field, FormError, Skeleton } from '@/components/Field';
-import { PageHeader } from '@/components/Page';
+import { PageHeader, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { errorKey } from '@/lib/session';
@@ -23,13 +23,28 @@ export default function Rooms() {
   const { t } = useTranslation();
   const isOwner = useGetCurrentWorkspaceQuery().data?.role === 'owner';
   const rooms = useListRoomsQuery();
+  const [adding, setAdding] = useState(false);
   if (rooms.isLoading) return <Skeleton />;
   if (rooms.error) return <FormError message={t(errorKey(rooms.error))} />;
 
   return (
     <div className="grid gap-5">
-      <PageHeader title={t('rooms.title')} subtitle={t('rooms.subtitle')} />
-      {isOwner && <RoomForm />}
+      {/* Adding waits behind a button, so the list opens first (audit 3 R3, R4). */}
+      <PageHeader
+        title={t('rooms.title')}
+        action={
+          isOwner && (
+            <Button onClick={() => setAdding(true)}>
+              <Plus aria-hidden />
+              {t('rooms.add')}
+            </Button>
+          )
+        }
+      />
+      <Sheet open={adding} onClose={() => setAdding(false)} title={t('rooms.add')}>
+        <p className="mb-3 text-sm text-muted-foreground">{t('rooms.subtitle')}</p>
+        <RoomForm bare onDone={() => setAdding(false)} />
+      </Sheet>
       <Card>
         <CardContent className="p-0">
           {rooms.data!.length === 0 ? (
@@ -48,7 +63,16 @@ export default function Rooms() {
 }
 
 /** New room, or (with `room`) rename one and change its capacity. */
-function RoomForm({ room, onDone }: { room?: Room; onDone?: () => void }) {
+function RoomForm({
+  room,
+  onDone,
+  bare,
+}: {
+  room?: Room;
+  onDone?: () => void;
+  /** Inside a sheet: no card of its own. */
+  bare?: boolean;
+}) {
   const { t } = useTranslation();
   const [create, created] = useCreateRoomMutation();
   const [update, updated] = useUpdateRoomMutation();
@@ -71,34 +95,33 @@ function RoomForm({ room, onDone }: { room?: Room; onDone?: () => void }) {
     onDone?.();
   };
 
-  return (
-    <Card>
-      <form onSubmit={submit} noValidate>
-        <CardContent className="grid gap-3">
-          <Field
-            label={t('rooms.name')}
-            value={name}
-            maxLength={40}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Field
-            label={`${t('groups.capacity')} ${t('form.optional')}`}
-            type="number"
-            inputMode="numeric"
-            dir="ltr"
-            value={capacity}
-            onChange={(e) => setCapacity(e.target.value)}
-          />
-          <FormError
-            message={invalid ? t('rooms.invalid') : error ? t(errorKey(error)) : undefined}
-          />
-          <Button type="submit" disabled={created.isLoading || updated.isLoading}>
-            {t(room ? 'rooms.save' : 'rooms.add')}
-          </Button>
-        </CardContent>
-      </form>
-    </Card>
+  const form = (
+    <form onSubmit={submit} noValidate>
+      <div className={bare ? 'grid gap-3' : 'grid gap-3 p-4'}>
+        <Field
+          label={t('rooms.name')}
+          value={name}
+          maxLength={40}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Field
+          label={`${t('groups.capacity')} ${t('form.optional')}`}
+          type="number"
+          inputMode="numeric"
+          dir="ltr"
+          value={capacity}
+          onChange={(e) => setCapacity(e.target.value)}
+        />
+        <FormError
+          message={invalid ? t('rooms.invalid') : error ? t(errorKey(error)) : undefined}
+        />
+        <Button type="submit" disabled={created.isLoading || updated.isLoading}>
+          {t(room ? 'rooms.save' : 'rooms.add')}
+        </Button>
+      </div>
+    </form>
   );
+  return bare ? form : <Card>{form}</Card>;
 }
 
 function RoomRow({ room, canEdit }: { room: Room; canEdit: boolean }) {

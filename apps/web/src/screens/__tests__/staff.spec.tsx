@@ -24,6 +24,8 @@ async function pickIn(user: UserEvent, scope: HTMLElement, option: string) {
 describe('staff', () => {
   it('invites a teacher with a link to share', async () => {
     const { user } = await renderAt('/members');
+    // The invite form opens in a sheet from the header (audit 3 R1).
+    await user.click(await screen.findByRole('button', { name: tr('members.inviteShort') }));
     await screen.findByRole('combobox', { name: tr('members.role') });
     await pick(user, tr('members.role'), tr('roles.teacher'));
     await user.click(screen.getByRole('button', { name: tr('members.createLink') }));
@@ -59,6 +61,7 @@ describe('staff', () => {
 
   it('invites an assistant who will work for the ticked teachers', async () => {
     const { user } = await renderAt('/members');
+    await user.click(await screen.findByRole('button', { name: tr('members.inviteShort') }));
     const invite = (await screen.findByRole('group', { name: tr('members.inviteWorksFor') }))!;
     const box = within(invite).getByRole('checkbox', { name: owner.name });
     // Ticked, unticked, ticked again: the link carries what is ticked when it is made.
@@ -200,7 +203,8 @@ describe('staff', () => {
   it('shows a failed invite', async () => {
     server.use(http.post(route('invites'), fail('FORBIDDEN', 403)));
     const { user } = await renderAt('/members');
-    await user.click(await screen.findByRole('button', { name: tr('members.createLink') }));
+    await user.click(await screen.findByRole('button', { name: tr('members.inviteShort') }));
+    await user.click(screen.getByRole('button', { name: tr('members.createLink') }));
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
   });
 });
@@ -246,6 +250,11 @@ describe('messages', () => {
     expect(within(log).getAllByText('علي')).toHaveLength(2);
     expect(within(log).getByText(tr('messages.attempts', { count: 3 }))).toBeVisible();
     expect(within(log).getAllByText(full.body)).toHaveLength(2);
+    // The log opens first; the switches are one tap away (audit 3 M1).
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    await user.click(screen.getByRole('button', { name: tr('messages.status.sent') }));
+    expect(await screen.findByText(tr('messages.empty'))).toBeVisible();
+    await user.click(screen.getByRole('link', { name: tr('messages.settingsTitle') }));
     const absence = await screen.findByRole('checkbox', { name: tr('messages.toggles.absence') });
     await user.click(absence);
     await expect
@@ -258,8 +267,6 @@ describe('messages', () => {
         primaryOnly: false,
       });
     expect(absence).not.toBeChecked();
-    await user.click(screen.getByRole('button', { name: tr('messages.status.sent') }));
-    expect(await screen.findByText(tr('messages.empty'))).toBeVisible();
   });
 
   it('says why a skipped message never went out, and turns on primary guardian only', async () => {
@@ -277,7 +284,10 @@ describe('messages', () => {
     const log = await screen.findByTestId('message-log');
     expect(within(log).getByText(tr('messages.status.skipped'))).toBeVisible();
     expect(within(log).getByText(tr('messages.skipReason.paid'))).toBeVisible();
-    await user.click(screen.getByRole('checkbox', { name: tr('messages.toggles.primaryOnly') }));
+    await user.click(screen.getByRole('link', { name: tr('messages.settingsTitle') }));
+    await user.click(
+      await screen.findByRole('checkbox', { name: tr('messages.toggles.primaryOnly') }),
+    );
     await expect
       .poll(() => call('PUT /api/v1/message-settings')?.body)
       .toMatchObject({ primaryOnly: true, absence: true });
@@ -285,7 +295,7 @@ describe('messages', () => {
 
   it('puts a switch back when saving fails', async () => {
     server.use(http.put(route('message-settings'), fail('FORBIDDEN', 403)));
-    const { user } = await renderAt('/messages', { lang: 'en' });
+    const { user } = await renderAt('/messages/settings', { lang: 'en' });
     const absence = await screen.findByRole('checkbox', { name: tr('messages.toggles.absence') });
     await user.click(absence);
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
@@ -295,11 +305,13 @@ describe('messages', () => {
   it('shows assistants the log only, and a failed log', async () => {
     asRole('assistant');
     server.use(http.get(route('messages'), fail('FORBIDDEN', 403)));
-    await renderAt('/messages');
-    expect(await screen.findByText(tr('messages.ownerOnly'))).toBeVisible();
+    const { router } = await renderAt('/messages');
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
-    // Waits: the switches render once the settings load, which can land after the log's error.
-    expect((await screen.findAllByRole('checkbox'))[0]).toBeDisabled();
+    expect(screen.queryByRole('link', { name: tr('messages.settingsTitle') })).toBeNull();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    // The settings page sends anyone but the owner back to the log.
+    await router.navigate('/messages/settings');
+    await expect.poll(() => router.state.location.pathname).toBe('/messages');
   });
 });
 

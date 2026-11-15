@@ -70,6 +70,7 @@ test("owner rewrites the cancellation message, and the parent gets the center's 
   await signIn(page, t, STAFF.owner);
   await enterWorkspace(page, t, center);
   await openNav(page, t, t.nav.messages);
+  await page.getByRole('link', { name: t.messages.settingsTitle }).click();
   const card = page.locator('details').filter({ hasText: t.messages.triggers.session_cancelled });
   await card.locator('summary').click();
   const words = { ar: `حصة {subject} اتلغت يا جماعة ${n}`, en: `No {subject} class, sorry ${n}` };

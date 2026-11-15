@@ -1,5 +1,5 @@
 import { type Member, normalizeArabic } from '@dafter/contracts';
-import { KeyRound, UserCog } from 'lucide-react';
+import { KeyRound, UserCog, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -16,7 +16,6 @@ import { FormError, SelectField, Skeleton } from '@/components/Field';
 import { ShareButton } from '@/components/ShareButton';
 import { Avatar, PageHeader, Panel, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { setWorkspaceId } from '@/api/base';
 import { errorDetails, errorKey } from '@/lib/session';
 
@@ -26,6 +25,7 @@ export default function Members() {
   const isOwner = useGetCurrentWorkspaceQuery().data?.role === 'owner';
   const members = useListMembersQuery();
   const [q, setQ] = useState('');
+  const [inviting, setInviting] = useState(false);
   if (members.isLoading) return <Skeleton />;
   const all = members.data ?? [];
   const teachers = all.filter((m) => m.role !== 'assistant');
@@ -36,8 +36,21 @@ export default function Members() {
 
   return (
     <div className="grid gap-5">
-      <PageHeader title={t('members.title')} />
-      {isOwner && <InviteCard teachers={teachers} />}
+      {/* The invite form waits behind a button, so the team list opens first (audit 3 R1). */}
+      <PageHeader
+        title={t('members.title')}
+        action={
+          isOwner && (
+            <Button onClick={() => setInviting(true)}>
+              <UserPlus aria-hidden />
+              {t('members.inviteShort')}
+            </Button>
+          )
+        }
+      />
+      <Sheet open={inviting} onClose={() => setInviting(false)} title={t('members.invite')}>
+        <InviteForm teachers={teachers} />
+      </Sheet>
       <FormError message={members.error && t(errorKey(members.error))} />
       {/* A search once the team outgrows one screen (audit MB1). */}
       {all.length > 10 && (
@@ -64,75 +77,68 @@ export default function Members() {
 }
 
 /** A one-time link; an assistant's link can carry the teachers they will work for. */
-function InviteCard({ teachers }: { teachers: Member[] }) {
+function InviteForm({ teachers }: { teachers: Member[] }) {
   const { t } = useTranslation();
   const [role, setRole] = useState<'teacher' | 'assistant'>('assistant');
   const [ids, setIds] = useState<string[]>([]);
   const [create, created] = useCreateInviteMutation();
   const link = created.data && `${location.origin}/invite/${created.data.token}`;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>{t('members.invite')}</h2>
-        </CardTitle>
-        <CardDescription>{t('members.inviteHint')}</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        <SelectField
-          label={t('members.role')}
-          value={role}
-          onChange={(e) => setRole(e.target.value as typeof role)}
-        >
-          <option value="assistant">{t('roles.assistant')}</option>
-          <option value="teacher">{t('roles.teacher')}</option>
-        </SelectField>
-        {role === 'assistant' && teachers.length > 0 && (
-          <fieldset className="grid gap-1">
-            <legend className="mb-1 text-sm font-medium">{t('members.inviteWorksFor')}</legend>
-            {teachers.map((teacher) => (
-              <label key={teacher.id} className="flex min-h-10 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="size-4"
-                  checked={ids.includes(teacher.id)}
-                  onChange={(e) =>
-                    setIds(
-                      e.target.checked ? [...ids, teacher.id] : ids.filter((x) => x !== teacher.id),
-                    )
-                  }
-                />
-                {teacher.name}
-              </label>
-            ))}
-          </fieldset>
-        )}
-        <Button
-          type="button"
-          disabled={created.isLoading}
-          onClick={() =>
-            void create({
-              createInviteRequest: {
-                role,
-                teacherMembershipIds: role === 'assistant' ? ids : undefined,
-              },
-            })
-          }
-        >
-          {t('members.createLink')}
-        </Button>
-        <FormError message={created.error && t(errorKey(created.error))} />
-        {link && (
-          <div className="grid gap-2 rounded-md border p-3 text-sm">
-            <p>{t('members.linkHint', { role: t(`roles.${created.data!.role}`) })}</p>
-            <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="staff-invite-link">
-              {link}
-            </bdi>
-            <ShareButton text={t('share.staffInvite')} url={link} />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="grid gap-3">
+      <p className="text-sm text-muted-foreground">{t('members.inviteHint')}</p>
+      <SelectField
+        label={t('members.role')}
+        value={role}
+        onChange={(e) => setRole(e.target.value as typeof role)}
+      >
+        <option value="assistant">{t('roles.assistant')}</option>
+        <option value="teacher">{t('roles.teacher')}</option>
+      </SelectField>
+      {role === 'assistant' && teachers.length > 0 && (
+        <fieldset className="grid gap-1">
+          <legend className="mb-1 text-sm font-medium">{t('members.inviteWorksFor')}</legend>
+          {teachers.map((teacher) => (
+            <label key={teacher.id} className="flex min-h-10 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={ids.includes(teacher.id)}
+                onChange={(e) =>
+                  setIds(
+                    e.target.checked ? [...ids, teacher.id] : ids.filter((x) => x !== teacher.id),
+                  )
+                }
+              />
+              {teacher.name}
+            </label>
+          ))}
+        </fieldset>
+      )}
+      <Button
+        type="button"
+        disabled={created.isLoading}
+        onClick={() =>
+          void create({
+            createInviteRequest: {
+              role,
+              teacherMembershipIds: role === 'assistant' ? ids : undefined,
+            },
+          })
+        }
+      >
+        {t('members.createLink')}
+      </Button>
+      <FormError message={created.error && t(errorKey(created.error))} />
+      {link && (
+        <div className="grid gap-2 rounded-md border p-3 text-sm">
+          <p>{t('members.linkHint', { role: t(`roles.${created.data!.role}`) })}</p>
+          <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="staff-invite-link">
+            {link}
+          </bdi>
+          <ShareButton text={t('share.staffInvite')} url={link} />
+        </div>
+      )}
+    </div>
   );
 }
 

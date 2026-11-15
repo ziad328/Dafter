@@ -10,7 +10,9 @@ describe('fees view', () => {
     expect(await screen.findByText(tr('feesView.today'))).toBeVisible();
     expect(screen.getByText(seen(formatEgp(45050, 'ar')))).toBeVisible();
     expect(screen.getByText(seen(formatEgp(185050, 'ar')))).toBeVisible();
-    expect(screen.getAllByText(tr('fees.methods.instapay'))).toHaveLength(2);
+    // Only methods that took money: no InstaPay today, some this month (audit 3 F1).
+    expect(screen.getAllByText(tr('fees.methods.instapay'))).toHaveLength(1);
+    expect(screen.getAllByText(tr('fees.methods.cash'))).toHaveLength(2);
     const owed = await screen.findAllByText(seen(formatEgp(50000, 'ar')));
     expect(owed.at(-1)!.closest('a')).toHaveAttribute(
       'href',

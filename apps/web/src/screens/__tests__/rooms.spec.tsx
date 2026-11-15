@@ -39,7 +39,10 @@ describe('rooms screen', () => {
     expect(within(list).getByText(new RegExp(tr('rooms.archived')))).toBeVisible();
 
     // Add: a name is needed, and the capacity must be a whole number.
-    const add = screen.getByRole('button', { name: tr('rooms.add') });
+    // The form opens in a sheet from the header (audit 3 R3).
+    await user.click(screen.getByRole('button', { name: tr('rooms.add') }));
+    const sheet = screen.getByRole('dialog', { name: tr('rooms.add') });
+    const add = within(sheet).getByRole('button', { name: tr('rooms.add') });
     await user.click(add);
     expect(await screen.findByText(tr('rooms.invalid'))).toBeVisible();
     await user.type(screen.getByLabelText(tr('rooms.name')), ' قاعة 3 ');
@@ -55,10 +58,10 @@ describe('rooms screen', () => {
 
     // Rename the first room, clearing its capacity.
     await user.click(within(list).getAllByRole('button', { name: tr('rooms.edit') })[0]!);
-    const edit = screen.getAllByLabelText(tr('rooms.name'))[1]!;
+    const edit = screen.getByLabelText(tr('rooms.name'));
     await user.clear(edit);
     await user.type(edit, 'قاعة 1 أ');
-    await user.clear(screen.getAllByLabelText(CAPACITY())[1]!);
+    await user.clear(screen.getByLabelText(CAPACITY()));
     await user.click(screen.getByRole('button', { name: tr('rooms.save') }));
     await expect
       .poll(() => body(`PATCH /api/v1/rooms/${ROOMS[0]!.id}`))
@@ -82,8 +85,10 @@ describe('rooms screen', () => {
       http.patch(route('rooms/:id'), fail('FORBIDDEN', 403)),
     );
     const { user } = await renderAt('/rooms', { lang: 'en' });
-    await user.type(await screen.findByLabelText(tr('rooms.name')), 'Room 1');
-    await user.click(screen.getByRole('button', { name: tr('rooms.add') }));
+    await user.click(await screen.findByRole('button', { name: tr('rooms.add') }));
+    const sheet = screen.getByRole('dialog', { name: tr('rooms.add') });
+    await user.type(within(sheet).getByLabelText(tr('rooms.name')), 'Room 1');
+    await user.click(within(sheet).getByRole('button', { name: tr('rooms.add') }));
     expect(await screen.findByText(tr('errors.ROOM_NAME_TAKEN'))).toBeVisible();
     await user.click(screen.getAllByRole('button', { name: tr('rooms.archive') })[0]!);
     expect(await screen.findByText(tr('errors.FORBIDDEN'))).toBeVisible();

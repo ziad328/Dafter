@@ -59,6 +59,7 @@ test('the owner invites an assistant with their teacher, removes the teacher, an
   await signIn(page, t, STAFF.owner);
   await enterWorkspace(page, t, center);
   await openNav(page, t, t.nav.staff);
+  await page.getByRole('button', { name: t.members.inviteShort }).click();
   await choose(page, t.members.role, t.roles.assistant);
   await page
     .getByRole('group', { name: t.members.inviteWorksFor })

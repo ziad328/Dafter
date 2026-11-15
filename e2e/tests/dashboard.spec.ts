@@ -41,6 +41,9 @@ test('the owner opens the dashboard and finds a group with its exam average; a t
   await openNav(page, t, t.nav.dashboard);
   await expect(page.getByRole('heading', { name: t.dashboard.title })).toBeVisible();
   await expect(page.getByTestId('money-trend')).toBeVisible();
+  // Long lists show the lowest attendance first, the rest behind «عرض الكل».
+  const all = page.getByRole('button', { name: t.dashboard.showAll.split(' (')[0]! });
+  if (await all.isVisible()) await all.click();
   const card = page.getByRole('listitem').filter({ hasText: label });
   await expect(card).toContainText(t.dashboard.lastAverage.replace('{pct}', '80'));
   await card.getByRole('link').click();

@@ -30,9 +30,11 @@ test('owner adds a room, books a group in it, and a clashing group is refused', 
 
   await openNav(page, t, t.nav.rooms);
   await expect(page.getByRole('heading', { name: t.rooms.title })).toBeVisible();
-  await page.getByLabel(t.rooms.name).fill(room);
-  await page.getByLabel(`${t.groups.capacity} ${t.form.optional}`).fill('20');
   await page.getByRole('button', { name: t.rooms.add }).click();
+  const sheet = page.getByRole('dialog', { name: t.rooms.add });
+  await sheet.getByLabel(t.rooms.name).fill(room);
+  await sheet.getByLabel(`${t.groups.capacity} ${t.form.optional}`).fill('20');
+  await sheet.getByRole('button', { name: t.rooms.add }).click();
   await expect(page.getByRole('list', { name: t.rooms.title }).getByText(room)).toBeVisible();
 
   // Two groups on the same default slot (Saturday 16:00–17:30) in that room.

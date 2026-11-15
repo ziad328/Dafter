@@ -51,10 +51,11 @@ describe('message log for a teacher', () => {
     expect(screen.queryByRole('link', { name: tr('nav.fees') })).not.toBeInTheDocument();
   });
 
-  it('keeps the settings for the owner', async () => {
-    await renderAt('/messages');
-    expect(await screen.findByRole('heading', { name: tr('messages.settings') })).toBeVisible();
-    expect(screen.queryByText(tr('messages.teacherView'))).not.toBeInTheDocument();
+  it('keeps the settings for the owner, one tap from the log', async () => {
+    const { user } = await renderAt('/messages');
     expect(await screen.findByTestId('message-log')).toBeVisible();
+    expect(screen.queryByText(tr('messages.teacherView'))).not.toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: tr('messages.settingsTitle') }));
+    expect(await screen.findByRole('heading', { name: tr('messages.settings') })).toBeVisible();
   });
 });

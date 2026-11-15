@@ -36,6 +36,7 @@ const SessionLive = lazyPage(() => import('./screens/SessionLive'));
 const Receipt = lazyPage(() => import('./screens/Receipt'));
 const FakePhone = lazyPage(() => import('./screens/FakePhone'));
 const Messages = lazyPage(() => import('./screens/Messages'));
+const MessageSettings = lazyPage(() => import('./screens/MessageSettings'));
 const More = lazyPage(() => import('./screens/More'));
 const Fees = lazyPage(() => import('./screens/Fees'));
 const GroupExams = lazyPage(() => import('./screens/GroupExams'));
@@ -139,6 +140,7 @@ export const routes: RouteObject[] = [
           { path: '/sessions/:id/live', element: <SessionLive /> },
           { path: '/receipts/:id', element: <Receipt /> },
           { path: '/messages', element: <Messages /> },
+          { path: '/messages/settings', element: <MessageSettings /> },
           { path: '/dev/phone', element: <FakePhone /> },
           { path: '/students', element: <Students /> },
           { path: '/students/new', element: <StudentForm /> },

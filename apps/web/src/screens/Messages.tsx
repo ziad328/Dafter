@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Settings2 } from 'lucide-react';
+import { Link } from 'react-router';
 import {
   type ListMessagesApiArg,
-  type MessageSettings,
   useGetCurrentWorkspaceQuery,
-  useGetMessageSettingsQuery,
   useListMessagesQuery,
-  useUpdateMessageSettingsMutation,
 } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
-import { MessageWording } from '@/components/MessageWording';
 import { PageHeader, Panel } from '@/components/Page';
+import { Button } from '@/components/ui/button';
 import { errorKey } from '@/lib/session';
 import { dayLabel, displayTime, localDate } from '@/lib/time';
 import { cn } from '@/lib/utils';
@@ -23,11 +22,10 @@ const PILL: Record<Status, string> = {
   failed: 'bg-rose-soft text-rose',
   skipped: 'bg-muted text-muted-foreground',
 };
-const TOGGLES: (keyof MessageSettings)[] = ['absence', 'sessionChange', 'examResult', 'feeOverdue'];
 
 /**
- * Parent messages: the owner's switches and wording, and the log. A teacher sees only the log of
- * their own groups, with phones masked by the API.
+ * Parent messages: the log. A teacher sees only the log of their own groups, with phones masked by
+ * the API; the owner's settings are on `/messages/settings`.
  */
 export default function Messages() {
   const { t, i18n } = useTranslation();
@@ -36,30 +34,6 @@ export default function Messages() {
   const isOwner = workspace?.role === 'owner';
   const isTeacher = workspace?.role === 'teacher';
   const tz = workspace?.timezone ?? 'Africa/Cairo';
-  const settings = useGetMessageSettingsQuery(undefined, { skip: !workspace || isTeacher });
-  const [update, saving] = useUpdateMessageSettingsMutation();
-  // Shown at once; dropped (back to the server's value) if the save fails.
-  const [draft, setDraft] = useState<MessageSettings>();
-  const shown = draft ?? settings.data;
-  const toggle = (next: MessageSettings) => {
-    setDraft(next);
-    update({ messageSettings: next })
-      .unwrap()
-      .catch(() => setDraft(undefined));
-  };
-  const switchFor = (key: keyof MessageSettings) =>
-    shown && (
-      <label key={key} className="flex min-h-10 items-center gap-3 text-sm">
-        <input
-          type="checkbox"
-          className="size-5 accent-ink"
-          checked={shown[key]}
-          disabled={!isOwner}
-          onChange={(e) => toggle({ ...shown, [key]: e.target.checked })}
-        />
-        {t(`messages.toggles.${key}`)}
-      </label>
-    );
   const log = useListMessagesQuery(status ? { status } : {});
   const names = new Intl.ListFormat(i18n.language, { type: 'conjunction' });
   // The same "السبت 14 نوفمبر · 8:00 ص" as the rest of the app.
@@ -68,29 +42,22 @@ export default function Messages() {
 
   return (
     <div className="grid gap-5">
-      <PageHeader title={t('messages.title')} />
+      {/* The log opens first; the owner's switches and wording sit behind the gear (audit 3 M1). */}
+      <PageHeader
+        title={t('messages.title')}
+        action={
+          isOwner && (
+            <Button asChild variant="outline">
+              <Link to="/messages/settings">
+                <Settings2 aria-hidden />
+                {t('messages.settingsTitle')}
+              </Link>
+            </Button>
+          )
+        }
+      />
 
-      {!workspace ? null : isTeacher ? (
-        <p className="text-sm text-muted-foreground">{t('messages.teacherView')}</p>
-      ) : (
-        <>
-          <Panel className="grid gap-3 p-5">
-            <h2 className="font-semibold">{t('messages.settings')}</h2>
-            {shown && (
-              <>
-                {TOGGLES.map((key) => switchFor(key))}
-                {/* Who gets them, not when: a heading of its own. */}
-                <h3 className="mt-2 text-sm font-semibold">{t('messages.recipients')}</h3>
-                {switchFor('primaryOnly')}
-              </>
-            )}
-            {!isOwner && <p className="text-sm text-muted-foreground">{t('messages.ownerOnly')}</p>}
-            <FormError message={saving.error && t(errorKey(saving.error))} />
-          </Panel>
-
-          <MessageWording canEdit={isOwner} />
-        </>
-      )}
+      {isTeacher && <p className="text-sm text-muted-foreground">{t('messages.teacherView')}</p>}
 
       <div role="group" aria-label={t('messages.filter')} className="flex flex-wrap gap-2">
         {(['', ...STATUSES] as const).map((s) => (

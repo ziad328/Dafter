@@ -509,7 +509,8 @@
       "trigger_off": "Not sent: this kind of message was switched off before it was due.",
       "not_absent": "Not sent: attendance was corrected after the session closed."
     },
-    "recipients": "Who gets them?"
+    "recipients": "Who gets them?",
+    "settingsTitle": "Message settings"
   },
   "members": {
     "title": "Staff",
@@ -533,7 +534,8 @@
     "remove": "Remove from the center",
     "removeHint": "{name} will no longer get in. Their groups and records stay, and need a new teacher.",
     "confirmRemove": "Yes, remove",
-    "teachesGroups": "{count, plural, one {Teaches an active group} other {Teaches # active groups}}. Move them to another teacher first."
+    "teachesGroups": "{count, plural, one {Teaches an active group} other {Teaches # active groups}}. Move them to another teacher first.",
+    "inviteShort": "Invite"
   },
   "nav": {
     "label": "Main",
@@ -640,7 +642,8 @@
     "exams": "{count, plural, =0 {No graded exams} one {# exam} other {# exams}}",
     "lastAverage": "Last average {pct}%",
     "weeks": "{count} weeks",
-    "range": "Range"
+    "range": "Range",
+    "showAll": "Show all ({count})"
   },
   "cashSummary": {
     "title": "Cash summary",

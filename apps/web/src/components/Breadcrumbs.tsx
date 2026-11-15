@@ -44,6 +44,11 @@ export function Breadcrumbs() {
     ];
   else if (matchPath('/sessions/:id/live', pathname))
     crumbs = [{ label: t('nav.today'), to: '/' }, { label: t('nav.live') }];
+  else if (pathname === '/messages/settings')
+    crumbs = [
+      { label: t('nav.messages'), to: '/messages' },
+      { label: t('messages.settingsTitle') },
+    ];
   else if (matchPath('/receipts/:id', pathname))
     crumbs = [{ label: t('nav.students'), to: '/students' }, { label: t('nav.receipt') }];
   else {

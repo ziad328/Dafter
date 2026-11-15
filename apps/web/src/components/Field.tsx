@@ -5,6 +5,7 @@ import {
   type ComponentProps,
   isValidElement,
   type ReactNode,
+  useCallback,
   useId,
   useLayoutEffect,
   useRef,
@@ -101,6 +102,11 @@ export function SelectField({ label, error, className, children, ref, ...select 
     if (typeof ref === 'function') ref(el);
     else if (ref) ref.current = el;
   };
+  const [inDialog, setInDialog] = useState<HTMLElement | null>(null);
+  // Stable, so it runs on mount, not on every render.
+  const findDialog = useCallback((el: HTMLElement | null) => {
+    if (el) setInDialog(el.closest('dialog'));
+  }, []);
   const pick = (v: string) => {
     const el = native.current;
     if (!el) return;
@@ -132,6 +138,7 @@ export function SelectField({ label, error, className, children, ref, ...select 
         disabled={select.disabled}
       >
         <SelectPrimitive.Trigger
+          ref={findDialog}
           id={id}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}
@@ -147,7 +154,9 @@ export function SelectField({ label, error, className, children, ref, ...select 
             />
           </SelectPrimitive.Icon>
         </SelectPrimitive.Trigger>
-        <SelectPrimitive.Portal>
+        {/* Inside a modal sheet the list must render in the dialog: the rest of the page is
+          inert while it is open, so a list portalled to <body> can't be clicked. */}
+        <SelectPrimitive.Portal container={inDialog ?? undefined}>
           <SelectPrimitive.Content
             position="popper"
             sideOffset={6}
