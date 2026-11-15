@@ -462,7 +462,8 @@
     "receipt": "Receipt",
     "breadcrumbs": "You are here",
     "fees": "Fees",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "cashSummary": "Cash summary"
   },
   "today": {
     "next": "Next session",
@@ -548,5 +549,14 @@
     "groupAttendance": "Attendance of {name}",
     "exams": "{count, plural, =0 {No graded exams} one {# exam} other {# exams}}",
     "lastAverage": "Last average {pct}%"
+  },
+  "cashSummary": {
+    "title": "End-of-day cash summary",
+    "day": "Day",
+    "total": "Total",
+    "empty": "No payments on this day",
+    "time": "Time",
+    "receiptNo": "Receipt #",
+    "reversed": "(voided)"
   }
 }

@@ -250,6 +250,15 @@ const injectedRtkApi = api
         query: () => ({ url: `/api/v1/stats/collections` }),
         providesTags: ['money'],
       }),
+      getCashSummary: build.query<GetCashSummaryApiResponse, GetCashSummaryApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/stats/cash-summary`,
+          params: {
+            date: queryArg.date,
+          },
+        }),
+        providesTags: ['money'],
+      }),
       getSessionRoster: build.query<GetSessionRosterApiResponse, GetSessionRosterApiArg>({
         query: (queryArg) => ({ url: `/api/v1/sessions/${queryArg.id}/roster` }),
         providesTags: ['attendance'],
@@ -570,6 +579,10 @@ export type GetOwingStudentsApiResponse = /** status 200 Who owes */ OwingList;
 export type GetOwingStudentsApiArg = void;
 export type GetCollectionStatsApiResponse = /** status 200 Collected */ CollectionStats;
 export type GetCollectionStatsApiArg = void;
+export type GetCashSummaryApiResponse = /** status 200 Cash summary */ CashSummary;
+export type GetCashSummaryApiArg = {
+  date?: string;
+};
 export type GetSessionRosterApiResponse = /** status 200 Roster */ Roster;
 export type GetSessionRosterApiArg = {
   id: string;
@@ -1033,6 +1046,30 @@ export type CollectionStats = {
   today: MethodTotals;
   month: MethodTotals;
 };
+export type CashEntry = {
+  id: string;
+  kind: 'payment' | 'reversal';
+  receiptNo: number;
+  studentName: string;
+  amountPiastres: number;
+  method: 'cash' | 'vodafone_cash' | 'instapay';
+  createdAt: string;
+};
+export type StaffCash = {
+  userId: string;
+  name: string;
+  totals: MethodTotals;
+  entries: CashEntry[];
+};
+export type CashSummary = {
+  date: string;
+  timezone: string;
+  center: {
+    nameAr: string;
+    nameEn: string | null;
+  };
+  staff: StaffCash[];
+};
 export type RosterEntry = {
   studentId: string;
   nameAr: string;
@@ -1250,6 +1287,7 @@ export const {
   useGetTrendStatsQuery,
   useGetOwingStudentsQuery,
   useGetCollectionStatsQuery,
+  useGetCashSummaryQuery,
   useGetSessionRosterQuery,
   useMarkAttendanceMutation,
   useCloseSessionMutation,

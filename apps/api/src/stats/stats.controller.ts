@@ -1,5 +1,13 @@
-import { Controller, Get, Inject, Module, Req, UseGuards } from '@nestjs/common';
-import type { CollectionStats, OwingStudent, TodayStats, TrendStats } from '@dafter/contracts';
+import { Controller, Get, Inject, Module, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  cashSummaryQuery,
+  type CashSummary,
+  type CashSummaryQuery,
+  type CollectionStats,
+  type OwingStudent,
+  type TodayStats,
+  type TrendStats,
+} from '@dafter/contracts';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { Clock } from '../clock.js';
@@ -8,6 +16,7 @@ import { GroupsModule } from '../groups/groups.module.js';
 import { GroupsService } from '../groups/groups.service.js';
 import { TenantGuard, type TenantedRequest } from '../workspaces/tenant.guard.js';
 import { WorkspacesModule } from '../workspaces/workspaces.module.js';
+import { ZodPipe } from '../zod-pipe.js';
 import { StatsRepository } from './stats.repository.js';
 
 @Controller('stats')
@@ -49,6 +58,26 @@ export class StatsController {
       this.clock.now(),
       await this.groups.visibleTeachers(req),
     );
+  }
+
+  /**
+   * Policy: by who recorded the payment, not by group. Assistant and teacher: their own takings
+   * (a teacher sees only what they took, not the center's money). Owner: every staff member.
+   */
+  @Get('cash-summary')
+  async cashSummary(
+    @Req() req: TenantedRequest,
+    @Query(new ZodPipe(cashSummaryQuery)) q: CashSummaryQuery,
+  ): Promise<CashSummary> {
+    const summary = await this.repo.cashSummary(
+      req.workspaceId,
+      this.clock.now(),
+      req.userId,
+      q.date,
+      req.role === 'owner' ? undefined : req.userId,
+    );
+    if (!summary) throw new AppError('VALIDATION_FAILED');
+    return summary;
   }
 }
 

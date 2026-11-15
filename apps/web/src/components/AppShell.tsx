@@ -13,6 +13,7 @@ import {
   UserCog,
   Users,
   Wallet,
+  HandCoins,
 } from 'lucide-react';
 import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +47,7 @@ export function useNavItems() {
           { to: '/messages', label: t('nav.messages'), icon: MessageSquareText },
         ]
       : []),
+    { to: '/cash-summary', label: t('nav.cashSummary'), icon: HandCoins },
     { to: '/members', label: t('nav.staff'), icon: UserCog },
     // shortcut: dev builds only; the demo deploy opens /dev/phone directly (docs/demo-script.md).
     ...(import.meta.env.DEV ? [{ to: '/dev/phone', label: t('nav.phone'), icon: Smartphone }] : []),

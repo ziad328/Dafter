@@ -462,7 +462,8 @@
     "receipt": "الإيصال",
     "breadcrumbs": "أنت هنا",
     "fees": "المصروفات",
-    "dashboard": "لوحة المتابعة"
+    "dashboard": "لوحة المتابعة",
+    "cashSummary": "ملخص اليوم"
   },
   "today": {
     "next": "الحصة التالية",
@@ -548,5 +549,14 @@
     "groupAttendance": "حضور {name}",
     "exams": "{count, plural, =0 {لا امتحانات مرصودة} one {امتحان واحد} two {امتحانان} few {# امتحانات} many {# امتحانًا} other {# امتحان}}",
     "lastAverage": "آخر متوسط {pct}%"
+  },
+  "cashSummary": {
+    "title": "ملخص النقدية اليومي",
+    "day": "اليوم",
+    "total": "الإجمالي",
+    "empty": "لا مدفوعات في هذا اليوم",
+    "time": "الوقت",
+    "receiptNo": "رقم الإيصال",
+    "reversed": "(ملغى)"
   }
 }

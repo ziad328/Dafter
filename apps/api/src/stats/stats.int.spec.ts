@@ -321,3 +321,145 @@ describe('GET /stats/trends', () => {
     expect(other.groups[0].exams).toEqual([]);
   });
 });
+
+describe('GET /stats/cash-summary', () => {
+  it("gives each recorder's payments minus reversals by method for a Cairo day, by role", async () => {
+    const c = await f.center();
+    const studentId = await c.newStudent();
+    const id = async (call: typeof c.owner) => (await call('GET', 'me')).json().id as string;
+    const [ownerId, teacherId, assistantId] = [
+      await id(c.owner),
+      await id(c.teacher),
+      await id(c.assistant),
+    ];
+    const base = { workspaceId: c.workspaceId, studentId, groupId: c.groupId };
+    let receiptNo = 0;
+    const pay = async (
+      by: string,
+      pounds: number,
+      method: 'cash' | 'vodafone_cash' | 'instapay',
+      at: string,
+    ) => {
+      const [row] = await testDb()
+        .db.insert(ledgerEntries)
+        .values({
+          ...base,
+          type: 'payment',
+          amountPiastres: -pounds * 100,
+          method,
+          receiptNo: ++receiptNo,
+          createdBy: by,
+          createdAt: new Date(at),
+        })
+        .returning();
+      return row!;
+    };
+    const reverse = (e: typeof ledgerEntries.$inferSelect, by: string, at: string) =>
+      testDb()
+        .db.insert(ledgerEntries)
+        .values({
+          ...base,
+          type: 'reversal',
+          amountPiastres: -e.amountPiastres,
+          reversesEntryId: e.id,
+          createdBy: by,
+          createdAt: new Date(at),
+        });
+
+    await pay(assistantId, 100, 'cash', '2026-11-21T08:00:00Z');
+    await pay(assistantId, 50, 'vodafone_cash', '2026-11-20T23:30:00Z'); // 01:30 on the 21st
+    const old = await pay(assistantId, 30, 'instapay', '2026-11-20T21:30:00Z'); // 23:30 on the 20th
+    const mistake = await pay(assistantId, 40, 'cash', '2026-11-21T09:00:00Z');
+    await reverse(mistake, ownerId, '2026-11-21T09:05:00Z'); // the owner voids it: off the assistant
+    await reverse(old, assistantId, '2026-11-21T10:00:00Z'); // refunded today
+    await pay(assistantId, 20, 'cash', '2026-11-21T14:00:00Z'); // after "now"
+    await pay(teacherId, 60, 'cash', '2026-11-21T11:00:00Z');
+    const [charge] = await testDb()
+      .db.insert(ledgerEntries)
+      .values({
+        ...base,
+        type: 'charge',
+        amountPiastres: 40000,
+        period: '2026-11',
+        createdBy: ownerId,
+      })
+      .returning();
+    await reverse(charge!, ownerId, '2026-11-21T09:00:00Z'); // not money
+
+    const res = await c.assistant('GET', 'stats/cash-summary');
+    expect(res.statusCode).toBe(200);
+    const mine = res.json();
+    expect(mine).toMatchObject({
+      date: '2026-11-21',
+      timezone: 'Africa/Cairo',
+      center: { nameAr: 'سنتر', nameEn: null },
+    });
+    expect(mine.staff).toHaveLength(1);
+    expect(mine.staff[0]).toMatchObject({
+      userId: assistantId,
+      totals: { cash: 10000, vodafone_cash: 5000, instapay: -3000, total: 12000 },
+    });
+    expect(
+      mine.staff[0].entries.map((e: Record<string, unknown>) => [
+        e.kind,
+        e.receiptNo,
+        e.amountPiastres,
+        e.method,
+      ]),
+    ).toEqual([
+      ['payment', 2, 5000, 'vodafone_cash'],
+      ['payment', 1, 10000, 'cash'],
+      ['payment', 4, 4000, 'cash'],
+      ['reversal', 4, -4000, 'cash'],
+      ['reversal', 3, -3000, 'instapay'],
+    ]);
+    expect(mine.staff[0].entries[0]).toMatchObject({
+      studentName: expect.stringMatching(/^طالب/),
+      createdAt: '2026-11-20T23:30:00.000Z',
+    });
+
+    // The teacher sees only what they took.
+    const teacher = (await c.teacher('GET', 'stats/cash-summary')).json();
+    expect(teacher.staff).toHaveLength(1);
+    expect(teacher.staff[0]).toMatchObject({
+      userId: teacherId,
+      totals: { cash: 6000, total: 6000 },
+    });
+
+    // The owner sees everyone; their own section comes first, even when empty.
+    const owner = (await c.owner('GET', 'stats/cash-summary')).json();
+    expect(owner.staff.map((s: { userId: string }) => s.userId)).toEqual([
+      ownerId,
+      ...[assistantId, teacherId].sort((a, b) =>
+        owner.staff
+          .find((s: { userId: string }) => s.userId === a)
+          .name.localeCompare(
+            owner.staff.find((s: { userId: string }) => s.userId === b).name,
+            'ar',
+          ),
+      ),
+    ]);
+    expect(owner.staff[0]).toMatchObject({ totals: { total: 0 }, entries: [] });
+
+    // A chosen past day.
+    const yesterday = (await c.assistant('GET', 'stats/cash-summary?date=2026-11-20')).json();
+    expect(yesterday.date).toBe('2026-11-20');
+    expect(yesterday.staff[0].totals).toEqual({
+      cash: 0,
+      vodafone_cash: 0,
+      instapay: 3000,
+      total: 3000,
+    });
+
+    // A future or malformed day is rejected.
+    for (const q of ['2026-11-22', 'tomorrow']) {
+      const bad = await c.owner('GET', `stats/cash-summary?date=${q}`);
+      expect([bad.statusCode, bad.json().code]).toEqual([400, 'VALIDATION_FAILED']);
+    }
+
+    // Another center's owner sees none of it.
+    const other = (await (await f.center()).owner('GET', 'stats/cash-summary')).json();
+    expect(other.staff).toHaveLength(1);
+    expect(other.staff[0].entries).toEqual([]);
+  });
+});

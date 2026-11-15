@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import type {
+  CashEntry,
+  CashSummary,
   CollectionStats,
   MethodTotals,
   OwingStudent,
+  StaffCash,
   StatsDay,
   TodayStats,
   TrendStats,
@@ -105,6 +108,103 @@ export class StatsRepository extends TenantRepository {
       return t;
     };
     return { today: totals('today'), month: totals('month') };
+  }
+
+  /**
+   * One local day's payments and reversals of payments, each under the recorder of the payment
+   * (a reversal by the owner still comes off the assistant who took the money), on the day the
+   * entry was made, up to `now`. `onlyUserId` limits it to one recorder. `caller` always gets a
+   * section, even when empty. Null when `date` is after today in the workspace timezone.
+   */
+  async cashSummary(
+    workspaceId: string,
+    now: Date,
+    caller: string,
+    date: string | undefined,
+    onlyUserId?: string,
+  ): Promise<CashSummary | null> {
+    const at = now.toISOString();
+    return this.inTenant(workspaceId, async (tx) => {
+      const head = await tx.execute<{
+        day: string;
+        today: string;
+        tz: string;
+        name_ar: string;
+        name_en: string | null;
+        caller_name: string;
+      }>(sql`
+        select to_char(coalesce(${date ?? null}::date, l.today), 'YYYY-MM-DD') as day,
+          to_char(l.today, 'YYYY-MM-DD') as today, w.timezone as tz, w.name_ar, w.name_en,
+          (select u.name from users u where u.id = ${caller}) as caller_name
+        from workspaces w
+        cross join lateral (select (${at}::timestamptz at time zone w.timezone)::date as today) l
+        where w.id = ${workspaceId}`);
+      const h = head.rows[0]!;
+      if (h.day > h.today) return null;
+
+      const rows = await tx.execute<{
+        id: string;
+        type: 'payment' | 'reversal';
+        receipt_no: number;
+        method: CashEntry['method'];
+        amount: string;
+        created_at: Date;
+        user_id: string;
+        user_name: string;
+        student_name: string;
+      }>(sql`
+        select e.id, e.type, coalesce(p.receipt_no, e.receipt_no) as receipt_no,
+          coalesce(p.method, e.method) as method, -e.amount_piastres as amount, e.created_at,
+          u.id as user_id, u.name as user_name, st.name_ar as student_name
+        from ledger_entries e
+        left join ledger_entries p on p.workspace_id = e.workspace_id and p.id = e.reverses_entry_id
+        join students st on st.workspace_id = e.workspace_id and st.id = e.student_id
+        join users u on u.id = coalesce(p.created_by, e.created_by)
+        where e.workspace_id = ${workspaceId}
+          and (e.type = 'payment' or p.type = 'payment')
+          and e.created_at <= ${at}::timestamptz
+          and (e.created_at at time zone ${h.tz})::date = ${h.day}::date
+          ${onlyUserId ? sql`and u.id = ${onlyUserId}` : sql``}
+        order by e.created_at, e.id`);
+
+      const staff = new Map<string, StaffCash>();
+      const section = (userId: string, name: string) => {
+        let s = staff.get(userId);
+        if (!s) {
+          s = {
+            userId,
+            name,
+            totals: { cash: 0, vodafone_cash: 0, instapay: 0, total: 0 },
+            entries: [],
+          };
+          staff.set(userId, s);
+        }
+        return s;
+      };
+      section(caller, h.caller_name);
+      for (const r of rows.rows) {
+        const s = section(r.user_id, r.user_name);
+        const amount = Number(r.amount);
+        s.totals[r.method] += amount;
+        s.totals.total += amount;
+        s.entries.push({
+          id: r.id,
+          kind: r.type,
+          receiptNo: r.receipt_no,
+          studentName: r.student_name,
+          amountPiastres: amount,
+          method: r.method,
+          createdAt: new Date(r.created_at).toISOString(),
+        });
+      }
+      const [mine, ...others] = [...staff.values()];
+      return {
+        date: h.day,
+        timezone: h.tz,
+        center: { nameAr: h.name_ar, nameEn: h.name_en },
+        staff: [mine!, ...others.sort((a, b) => a.name.localeCompare(b.name, 'ar'))],
+      };
+    });
   }
 
   /**

@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { curriculumItem } from './groups.js';
+import { paymentMethod } from './money.js';
 import { localDate } from './sessions.js';
 
 /** One day of the attendance chart: records of that day's closed or open sessions. */
@@ -92,6 +93,49 @@ export const trendStats = z
   })
   .meta({ id: 'TrendStats' });
 
+/** The day of a cash summary; omitted = today in the workspace timezone. */
+export const cashSummaryQuery = z
+  .object({ date: localDate.optional() })
+  .meta({ id: 'CashSummaryQuery' });
+
+/** One line of a cash summary: a payment (money in, > 0) or a reversal of one (< 0). */
+export const cashEntry = z
+  .object({
+    id: z.uuid(),
+    kind: z.enum(['payment', 'reversal']),
+    // The payment's receipt number (for a reversal: the voided payment's).
+    receiptNo: z.int(),
+    studentName: z.string(),
+    amountPiastres: z.int(),
+    method: paymentMethod,
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: 'CashEntry' });
+
+/** What one staff member took on the day: the payments they recorded minus their reversals. */
+export const staffCash = z
+  .object({
+    userId: z.uuid(),
+    name: z.string(),
+    totals: methodTotals,
+    // Oldest first.
+    entries: z.array(cashEntry),
+  })
+  .meta({ id: 'StaffCash' });
+
+/**
+ * End-of-day cash summary, per recorder of the original payment, in the workspace timezone.
+ * Assistant and teacher: their own (always one item). Owner: everyone with entries, and their own.
+ */
+export const cashSummary = z
+  .object({
+    date: localDate,
+    timezone: z.string(),
+    center: z.object({ nameAr: z.string(), nameEn: z.string().nullable() }),
+    staff: z.array(staffCash),
+  })
+  .meta({ id: 'CashSummary' });
+
 export type StatsDay = z.infer<typeof statsDay>;
 export type OwingStudent = z.infer<typeof owingStudent>;
 export type MethodTotals = z.infer<typeof methodTotals>;
@@ -101,3 +145,7 @@ export type WeekCount = z.infer<typeof weekCount>;
 export type GroupTrend = z.infer<typeof groupTrend>;
 export type MonthTotals = z.infer<typeof monthTotals>;
 export type TrendStats = z.infer<typeof trendStats>;
+export type CashSummaryQuery = z.infer<typeof cashSummaryQuery>;
+export type CashEntry = z.infer<typeof cashEntry>;
+export type StaffCash = z.infer<typeof staffCash>;
+export type CashSummary = z.infer<typeof cashSummary>;

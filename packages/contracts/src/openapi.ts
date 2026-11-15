@@ -60,7 +60,14 @@ import {
   updateStudentRequest,
 } from './students.js';
 import { listSessionsQuery, moveSessionRequest, session, sessionList } from './sessions.js';
-import { collectionStats, owingList, todayStats, trendStats } from './stats.js';
+import {
+  cashSummary,
+  cashSummaryQuery,
+  collectionStats,
+  owingList,
+  todayStats,
+  trendStats,
+} from './stats.js';
 import {
   createInviteRequest,
   createWorkspaceRequest,
@@ -494,6 +501,20 @@ export function buildOpenApi() {
           security: [{ bearer: [] }],
           responses: {
             200: { description: 'Collected', content: json(collectionStats) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/stats/cash-summary': {
+        get: {
+          operationId: 'getCashSummary',
+          tags: ['money'],
+          description:
+            'End-of-day cash summary in the workspace timezone: payments minus their reversals, by method, per staff member who recorded the payment. Assistant and teacher: their own; owner: every staff member.',
+          security: [{ bearer: [] }],
+          requestParams: { query: cashSummaryQuery },
+          responses: {
+            200: { description: 'Cash summary', content: json(cashSummary) },
             ...errors,
           },
         },

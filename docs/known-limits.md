@@ -70,6 +70,9 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | No nightly balance check | Drift would go unnoticed (the ledger is append-only) | later |
 | Students don't see their balance | Parents ask the center | later |
 | Fee model (one monthly fee per group) and who sees money are guesses | May change after center interviews | centers |
+| Cash summary: no "handed over" step; the owner can't mark a day as received or see who hasn't handed over | The handover itself is still on paper | centers |
+| Cash summary: a reversal counts on the day it was made, so voiding an older payment can make a day's total negative | Shown as is (real money out); can surprise at first | — |
+| Cash summary: payments sit under whoever recorded them; one assistant typing in another's takings shows under the wrong person | Rare; fix by reversing and re-entering | — |
 
 ## Messages (Day 15)
 
@@ -96,3 +99,4 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | The `run-dafter` screenshot command doesn't sign in | Only public screens can be shot | later |
 | Message e2e is skipped during Cairo quiet hours (22:00–08:00) | Night runs check less | — |
 | `student-app.spec.ts` timed out once (40 s) with the full suite on 6 workers, then passed alone | Possible flake under load | later (watch in CI) |
+| `groups.spec.ts` [ar] failed once in the full run on 2 workers (Nov 15), then passed alone and in the next full run | Possible flake: the card is found by a random 3-digit capacity in a dev database that keeps growing | later (watch; a unique label would be safer) |

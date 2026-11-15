@@ -102,9 +102,14 @@ export async function enterWorkspace(page: Page, t: typeof ar, name: string) {
 }
 
 /** The owner's API in one workspace, for setting up data the screens under test then use. */
-export async function ownerApi(request: APIRequestContext, workspaceNameAr: string) {
+/** API calls as a seeded staff member (the owner unless `as` names another). */
+export async function ownerApi(
+  request: APIRequestContext,
+  workspaceNameAr: string,
+  as: string = STAFF.owner,
+) {
   const login = await request.post('/api/v1/auth/login', {
-    data: { login: STAFF.owner, password: PASSWORD },
+    data: { login: as, password: PASSWORD },
   });
   const auth = { authorization: `Bearer ${(await login.json()).accessToken}` };
   const workspaces = (await (
@@ -116,8 +121,8 @@ export async function ownerApi(request: APIRequestContext, workspaceNameAr: stri
   };
   return {
     get: async (url: string) => (await request.get(`/api/v1/${url}`, { headers })).json(),
-    post: async (url: string, data?: object) =>
-      (await request.post(`/api/v1/${url}`, { headers, data })).json(),
+    post: async (url: string, data?: object, extra?: Record<string, string>) =>
+      (await request.post(`/api/v1/${url}`, { headers: { ...headers, ...extra }, data })).json(),
     put: async (url: string, data?: object) =>
       (await request.put(`/api/v1/${url}`, { headers, data })).json(),
   };

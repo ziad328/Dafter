@@ -50,6 +50,7 @@ export function Breadcrumbs() {
     const more: Record<string, string> = {
       '/messages': t('nav.messages'),
       '/members': t('nav.staff'),
+      '/cash-summary': t('nav.cashSummary'),
       '/dev/phone': t('nav.phone'),
       '/workspaces': t('workspaces.title'),
     };
