@@ -10,6 +10,7 @@ import {
   groupSlots,
   guardians,
   memberships,
+  rooms,
   studentGuardians,
   students,
   subjects,
@@ -90,6 +91,14 @@ export async function main() {
         ).map((s) => [s.nameAr, s.id]),
       );
 
+      // Two rooms; the groups meet on different days, so they never clash.
+      const roomIds = (
+        await tx
+          .insert(rooms)
+          .values(['قاعة 1', 'قاعة 2'].map((name) => ({ workspaceId: ws, name, capacity: 30 })))
+          .returning({ id: rooms.id })
+      ).map((r) => r.id);
+
       const groupIds: string[] = [];
       for (const [subject, days, start, end, fee] of GROUPS) {
         const [g] = await tx
@@ -101,6 +110,7 @@ export async function main() {
             gradeLevelId: grade!.id,
             capacity: 30,
             monthlyFeePiastres: fee,
+            roomId: roomIds[groupIds.length % 2],
           })
           .returning({ id: groups.id });
         groupIds.push(g!.id);
@@ -175,7 +185,7 @@ export async function main() {
                  else interval '3 minutes' end as after) v
         where se.workspace_id = ${ws} and se.status = 'closed'`);
     });
-    console.log('Seeded the demo center: 3 groups, 12 students, 2 weeks of attendance');
+    console.log('Seeded the demo center: 2 rooms, 3 groups, 12 students, 2 weeks of attendance');
   } finally {
     await pool.end();
   }

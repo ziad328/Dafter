@@ -85,3 +85,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** the daily charges job queues one `fee_overdue` outbox row per guardian from the 7th of the month, keyed by local month and guardian; the switch defaults to off.
 - **Alternatives:** a reminder on every charge (parents texted on the 1st before they could pay); a daily reminder (spam); a separate scheduled job (another cron on a free host that allows one a day).
 - **Why:** reuses the daily run and the outbox's exactly-once key; off by default because money texts must wait until a center trusts its records.
+
+## 2026-11-15 · v1: rooms enforced by an exclusion constraint on sessions
+
+- **Decision:** `rooms` per workspace; the room sits on the group and is copied onto each generated session; `sessions_room_no_overlap` (btree_gist, non-cancelled sessions with a room) is the backstop; the API checks a group's weekly slots against the room's other active groups under a row lock on the room and returns `ROOM_BOOKED` with the clash.
+- **Alternatives:** an API-only check (races, and every future write path must remember it); the constraint only (no friendly error naming the slot, and it fires per session, not per weekly slot); the room on groups only (a moved or past session couldn't keep its own room).
+- **Why:** the database guarantees the rule under concurrency; the API gives the translated message; a session generated over a moved session gets no room instead of failing the whole job.

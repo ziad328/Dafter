@@ -185,6 +185,26 @@ const curriculumTable = (name: string) =>
 export const subjects = curriculumTable('subjects');
 export const gradeLevels = curriculumTable('grade_levels');
 
+/** Rooms of a center. Never deleted: archived rooms stay on past sessions and on their groups. */
+export const rooms = pgTable(
+  'rooms',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    name: text('name').notNull(),
+    capacity: integer('capacity'),
+    status: groupStatus('status').notNull().default('active'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('rooms_workspace_id_key').on(t.workspaceId, t.id),
+    unique('rooms_workspace_name_key').on(t.workspaceId, t.name),
+    check('rooms_capacity_check', sql`${t.capacity} is null or ${t.capacity} > 0`),
+  ],
+);
+
 export const groups = pgTable(
   'groups',
   {
@@ -200,6 +220,7 @@ export const groups = pgTable(
     capacity: integer('capacity'),
     // Integer piastres; null = no monthly charge (fees stretch, Day 14).
     monthlyFeePiastres: integer('monthly_fee_piastres'),
+    roomId: uuid('room_id'),
     status: groupStatus('status').notNull().default('active'),
     createdAt: createdAt(),
   },
@@ -221,6 +242,11 @@ export const groups = pgTable(
       name: 'groups_grade_level_fk',
       columns: [t.workspaceId, t.gradeLevelId],
       foreignColumns: [gradeLevels.workspaceId, gradeLevels.id],
+    }),
+    foreignKey({
+      name: 'groups_room_fk',
+      columns: [t.workspaceId, t.roomId],
+      foreignColumns: [rooms.workspaceId, rooms.id],
     }),
     check('groups_capacity_check', sql`${t.capacity} is null or ${t.capacity} > 0`),
   ],
@@ -268,6 +294,9 @@ export const sessions = pgTable(
     slotStartsAt: tz('slot_starts_at').notNull(),
     startsAt: tz('starts_at').notNull(),
     endsAt: tz('ends_at').notNull(),
+    // Copied from the group. The migration adds an exclusion constraint (btree_gist): two
+    // non-cancelled sessions never overlap in one room.
+    roomId: uuid('room_id'),
     status: sessionStatus('status').notNull().default('scheduled'),
     openedAt: tz('opened_at'),
     closedBy: uuid('closed_by').references(() => users.id),
@@ -281,6 +310,11 @@ export const sessions = pgTable(
       name: 'sessions_group_fk',
       columns: [t.workspaceId, t.groupId],
       foreignColumns: [groups.workspaceId, groups.id],
+    }),
+    foreignKey({
+      name: 'sessions_room_fk',
+      columns: [t.workspaceId, t.roomId],
+      foreignColumns: [rooms.workspaceId, rooms.id],
     }),
     check('sessions_time_check', sql`${t.endsAt} > ${t.startsAt}`),
   ],

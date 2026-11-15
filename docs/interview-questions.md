@@ -141,3 +141,14 @@ A wrong money text is worse than a missing one: it can embarrass a center with a
 
 **3. A parent pays at 23:00 on the 7th. The reminder was queued at 03:00 but held by quiet hours until 08:00. What happens, and how would you fix it?**
 They still get the reminder, because the balance is snapshotted in the payload at queue time. A fix is a check at send time: the sender re-reads the balance for `fee_overdue` rows and marks them skipped when it is zero, keeping the outbox as the single source of what was sent.
+
+## v1 · Rooms and the room conflict check
+
+**1. Two groups must never share a room at the same time. Why an exclusion constraint and not just a check in the API?**
+A read-then-write check races: two saves both read "free" and both write. `EXCLUDE USING gist (workspace_id WITH =, room_id WITH =, tstzrange(starts_at, ends_at) WITH &&)` makes PostgreSQL refuse the second overlapping row however it arrives (an API call, the job, a script). The API check still runs first, because only it can say which slot clashes (`ROOM_BOOKED` with the day and time).
+
+**2. With the constraint in place, why lock the room row (`SELECT … FOR UPDATE`) in the slot check?**
+The constraint works on sessions, and the session generator has a fallback that gives a session no room when a moved session already holds it. Without the lock, two concurrent saves both pass the slot check, the first commits, and the second's generator sees the first's sessions and quietly drops the room instead of failing. The lock makes saves into one room run one after the other, so the second sees the first's slots and gets `ROOM_BOOKED`.
+
+**3. Why `tstzrange(starts_at, ends_at)` with the default `[)` bounds?**
+Half-open ranges let back-to-back classes share a room: 16:00–17:30 and 17:30–19:00 don't overlap. Ranges on `timestamptz` also make the rule independent of the workspace timezone and DST; the weekly slot check compares local times only because slots are stored that way.

@@ -1,5 +1,5 @@
 import { normalizeArabic } from '@dafter/contracts';
-import { BookOpen, ClipboardList, Plus, Users } from 'lucide-react';
+import { BookOpen, ClipboardList, DoorOpen, Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -126,6 +126,12 @@ export default function Groups() {
                     <bdi>{`${clockLabel(s.startTime, lang)} – ${clockLabel(s.endTime, lang)}`}</bdi>
                   </li>
                 ))}
+                {g.room && (
+                  <li className="flex items-center gap-1 rounded-full bg-muted px-3 py-1">
+                    <DoorOpen className="size-4" aria-hidden />
+                    {g.room.name}
+                  </li>
+                )}
               </ul>
               <div className="flex items-center gap-2 border-t pt-3 text-sm">
                 <Avatar name={g.teacherName} className="size-8 text-xs" />

@@ -9,6 +9,7 @@ import {
   useGetGroupQuery,
   useListGradeLevelsQuery,
   useListMembersQuery,
+  useListRoomsQuery,
   useListSubjectsQuery,
   useUpdateGroupMutation,
 } from '@/api/generated';
@@ -19,6 +20,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { itemName, WEEK, weekdayName } from '@/lib/groups';
 import { egpText, toPiastres } from '@/lib/money';
 import { errorKey } from '@/lib/session';
+import { clockLabel } from '@/lib/time';
 
 const toForm = (g: Group): CreateGroupRequest => ({
   teacherMembershipId: g.teacherMembershipId,
@@ -26,6 +28,7 @@ const toForm = (g: Group): CreateGroupRequest => ({
   gradeLevelId: g.gradeLevel.id,
   label: g.label,
   capacity: g.capacity,
+  roomId: g.room?.id ?? null,
   slots: g.slots,
 });
 
@@ -43,6 +46,7 @@ export default function GroupForm() {
     useListSubjectsQuery(),
     useListGradeLevelsQuery(),
     useListMembersQuery(undefined, { skip: !isOwner }),
+    useListRoomsQuery(),
   ];
   if ((id && existing.isLoading) || lists.some((l) => l.isLoading)) return <Skeleton />;
   if (id && existing.error) return <FormError message={t(errorKey(existing.error))} />;
@@ -58,6 +62,10 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
   const subjects = useListSubjectsQuery();
   const grades = useListGradeLevelsQuery();
   const members = useListMembersQuery(undefined, { skip: !isOwner });
+  // Active rooms, and the group's own room even if it was archived since.
+  const rooms = (useListRoomsQuery().data ?? []).filter(
+    (r) => r.status === 'active' || r.id === group?.room?.id,
+  );
   const [create, created] = useCreateGroupMutation();
   const [update, updated] = useUpdateGroupMutation();
   const saving = created.isLoading || updated.isLoading;
@@ -76,6 +84,17 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
       : await create({ createGroupRequest: body });
     if (res.data) void navigate('/groups');
   });
+
+  // ROOM_BOOKED from a group's slots says when the room is taken.
+  const data = (error as { data?: { code?: string; details?: Record<string, string> } })?.data;
+  const clash = data?.code === 'ROOM_BOOKED' ? data.details : undefined;
+  const errorText = clash
+    ? t('groups.roomBookedAt', {
+        day: weekdayName(lang, Number(clash.weekday)),
+        // Isolated, so the times keep their order inside an Arabic sentence (rule 5).
+        time: `\u2068${clockLabel(clash.startTime!, lang)} – ${clockLabel(clash.endTime!, lang)}\u2069`,
+      })
+    : error && t(errorKey(error));
 
   // Zod messages are our own codes (SLOT_OVERLAP, SLOT_ENDS_BEFORE_START), never shown raw.
   const slotError = (e?: FieldError) =>
@@ -132,6 +151,23 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
                       {m.name}
                     </option>
                   ))}
+              </SelectField>
+            )}
+            {rooms.length > 0 && (
+              <SelectField
+                label={`${t('groups.room')} ${t('form.optional')}`}
+                // "none" is a real option, so a room can be taken off (the "" one is the placeholder).
+                {...register('roomId', {
+                  setValueAs: (v: string | null) => (v && v !== 'none' ? v : null),
+                })}
+              >
+                <option value="">{t('groups.noRoom')}</option>
+                <option value="none">{t('groups.noRoom')}</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
               </SelectField>
             )}
             <Field
@@ -219,7 +255,7 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
               </Button>
             </fieldset>
 
-            <FormError message={error && t(errorKey(error))} />
+            <FormError message={errorText} />
             <Button type="submit" disabled={saving}>
               {t(id ? 'groups.save' : 'groups.create')}
             </Button>

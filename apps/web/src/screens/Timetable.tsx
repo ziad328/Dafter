@@ -162,6 +162,7 @@ function SessionRow({
           </h3>
           <p className="truncate text-sm text-muted-foreground">
             {s.teacherName}
+            {s.room && ` · ${s.room.name}`}
             {s.status !== 'scheduled' && ` · ${t(`timetable.status.${s.status}`)}`}
             {s.moved && ` · ${t('timetable.moved')}`}
           </p>

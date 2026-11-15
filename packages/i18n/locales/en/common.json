@@ -124,7 +124,10 @@
     "archived": "Archived",
     "monthlyFee": "Monthly fee (EGP)",
     "label": "Short label",
-    "labelHint": "Tells two groups of the same subject and grade apart, e.g. Group A."
+    "labelHint": "Tells two groups of the same subject and grade apart, e.g. Group A.",
+    "room": "Room",
+    "noRoom": "No room",
+    "roomBookedAt": "The room is taken on {day} {time} by another group"
   },
   "roles": {
     "owner": "Owner",
@@ -185,7 +188,10 @@
     "EXAM_SCORE_ABOVE_MAX": "A score is above the max score.",
     "EXAM_STUDENT_INVALID": "This student is not in the group.",
     "EXAM_HAS_RESULTS": "Clear the scores before deleting the exam.",
-    "EXAM_NOT_GRADED": "Enter the scores first."
+    "EXAM_NOT_GRADED": "Enter the scores first.",
+    "ROOM_NOT_FOUND": "Room not found.",
+    "ROOM_NAME_TAKEN": "A room with this name already exists.",
+    "ROOM_BOOKED": "The room is taken at that time."
   },
   "timetable": {
     "title": "Timetable",
@@ -463,7 +469,8 @@
     "breadcrumbs": "You are here",
     "fees": "Fees",
     "dashboard": "Dashboard",
-    "cashSummary": "Cash summary"
+    "cashSummary": "Cash summary",
+    "rooms": "Rooms"
   },
   "today": {
     "next": "Next session",
@@ -558,5 +565,20 @@
     "time": "Time",
     "receiptNo": "Receipt #",
     "reversed": "(voided)"
+  },
+  "rooms": {
+    "title": "Rooms",
+    "subtitle": "Two groups are never booked in one room at the same time",
+    "empty": "No rooms yet",
+    "name": "Room name",
+    "add": "Add room",
+    "save": "Save",
+    "edit": "Edit",
+    "archive": "Archive",
+    "restore": "Restore",
+    "archived": "Archived",
+    "noCapacity": "No set capacity",
+    "invalid": "Type a room name; capacity is a number from 1 to 1000",
+    "seats": "{count, plural, one {# seat} other {# seats}}"
   }
 }

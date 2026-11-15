@@ -229,6 +229,30 @@ export const handlers = [
   ),
   http.get(api('subjects'), log(fx.subjects)),
   http.get(api('grade-levels'), log(fx.gradeLevels)),
+  // No rooms by default (most centers start without); rooms.spec.tsx adds them.
+  http.get(api('rooms'), log([])),
+  http.post(
+    api('rooms'),
+    log(
+      async (req) => ({
+        id: crypto.randomUUID(),
+        capacity: null,
+        status: 'active',
+        ...((await req.json()) as object),
+      }),
+      201,
+    ),
+  ),
+  http.patch(
+    api('rooms/:id'),
+    log(async (req, params) => ({
+      id: params.id,
+      name: 'قاعة',
+      capacity: null,
+      status: 'active',
+      ...((await req.json()) as object),
+    })),
+  ),
   http.get(api('groups'), log(fx.groups)),
   http.post(api('groups'), log(fx.group, 201)),
   http.get(api('groups/:id'), log(fx.group)),

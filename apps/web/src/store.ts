@@ -6,6 +6,8 @@ api.enhanceEndpoints({
   endpoints: {
     createGroup: { invalidatesTags: ['groups', 'sessions'] },
     updateGroup: { invalidatesTags: ['groups', 'sessions'] },
+    // Groups and sessions show the room's name.
+    updateRoom: { invalidatesTags: ['groups', 'sessions'] },
     // Opening and closing change the session's status in the timetable.
     openSession: { invalidatesTags: ['sessions'] },
     closeSession: { invalidatesTags: ['sessions'] },

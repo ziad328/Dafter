@@ -747,6 +747,138 @@
         }
       }
     },
+    "/api/v1/rooms": {
+      "get": {
+        "operationId": "listRooms",
+        "tags": ["groups"],
+        "description": "Every staff role. Active rooms first, then archived, by name.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createRoom",
+        "tags": ["groups"],
+        "description": "Owner only. Names are unique in the workspace (ROOM_NAME_TAKEN).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoomRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms/{id}": {
+      "patch": {
+        "operationId": "updateRoom",
+        "tags": ["groups"],
+        "description": "Owner only. Rename, change the capacity, or archive.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoomRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/groups": {
       "get": {
         "operationId": "listGroups",
@@ -2980,6 +3112,55 @@
         },
         "required": ["teacherMembershipIds"]
       },
+      "CreateRoomRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["name"]
+      },
+      "UpdateRoomRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "archived"]
+          }
+        }
+      },
       "CreateGroupRequest": {
         "type": "object",
         "properties": {
@@ -3028,6 +3209,18 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 10000000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "roomId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
               },
               {
                 "type": "null"
@@ -3112,6 +3305,18 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 10000000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "roomId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
               },
               {
                 "type": "null"
@@ -3535,6 +3740,9 @@
           "MEMBER_NOT_ASSISTANT",
           "SCOPE_TEACHER_INVALID",
           "GROUP_NOT_FOUND",
+          "ROOM_NOT_FOUND",
+          "ROOM_NAME_TAKEN",
+          "ROOM_BOOKED",
           "GROUP_REFERENCE_INVALID",
           "SESSION_NOT_FOUND",
           "SESSION_NOT_SCHEDULED",
@@ -3930,6 +4138,43 @@
           "$ref": "#/components/schemas/CurriculumItem"
         }
       },
+      "RoomList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Room"
+        }
+      },
+      "Room": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "archived"]
+          }
+        },
+        "required": ["id", "name", "capacity", "status"],
+        "additionalProperties": false
+      },
       "GroupList": {
         "type": "array",
         "items": {
@@ -3985,6 +4230,16 @@
               }
             ]
           },
+          "room": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "type": "string",
             "enum": ["active", "archived"]
@@ -4010,10 +4265,26 @@
           "label",
           "capacity",
           "monthlyFeePiastres",
+          "room",
           "status",
           "slots",
           "studentCount"
         ],
+        "additionalProperties": false
+      },
+      "RoomRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"],
         "additionalProperties": false
       },
       "ExamList": {
@@ -4206,6 +4477,16 @@
           },
           "groupLabel": {
             "type": ["string", "null"]
+          },
+          "room": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -4219,7 +4500,8 @@
           "teacherName",
           "subject",
           "gradeLevel",
-          "groupLabel"
+          "groupLabel",
+          "room"
         ],
         "additionalProperties": false
       },

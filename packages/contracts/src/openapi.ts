@@ -16,6 +16,7 @@ import {
   groupList,
   updateGroupRequest,
 } from './groups.js';
+import { createRoomRequest, room, roomList, updateRoomRequest } from './rooms.js';
 import {
   attendanceList,
   roster,
@@ -292,6 +293,34 @@ export function buildOpenApi() {
         'listGradeLevels',
         'Grade levels of the active workspace',
       ),
+      '/api/v1/rooms': {
+        get: {
+          operationId: 'listRooms',
+          tags: ['groups'],
+          description: 'Every staff role. Active rooms first, then archived, by name.',
+          security: [{ bearer: [] }],
+          responses: { 200: { description: 'Rooms', content: json(roomList) }, ...errors },
+        },
+        post: {
+          operationId: 'createRoom',
+          tags: ['groups'],
+          description: 'Owner only. Names are unique in the workspace (ROOM_NAME_TAKEN).',
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(createRoomRequest) },
+          responses: { 201: { description: 'Created', content: json(room) }, ...errors },
+        },
+      },
+      '/api/v1/rooms/{id}': {
+        patch: {
+          operationId: 'updateRoom',
+          tags: ['groups'],
+          description: 'Owner only. Rename, change the capacity, or archive.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(updateRoomRequest) },
+          responses: { 200: { description: 'Updated', content: json(room) }, ...errors },
+        },
+      },
       '/api/v1/groups': {
         get: {
           operationId: 'listGroups',

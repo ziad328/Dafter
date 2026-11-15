@@ -5,6 +5,7 @@ import {
   gradeLevels,
   groups,
   memberships,
+  rooms,
   sessions,
   subjects,
   type Tx,
@@ -12,6 +13,7 @@ import {
   workspaces,
 } from '@dafter/db';
 import { enqueueSessionChange } from '../messages/outbox.js';
+import { roomBooked } from '../rooms/pg-errors.js';
 import { TenantRepository } from '../tenant.repository.js';
 
 const subject = aliasedTable(subjects, 's');
@@ -97,7 +99,7 @@ export class SessionsRepository extends TenantRepository {
         .returning({ id: sessions.id });
       if (rows.length) await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved');
       return rows.length > 0;
-    });
+    }).catch(roomBooked);
   }
 
   private scheduled(workspaceId: string, id: string) {
@@ -122,6 +124,7 @@ export class SessionsRepository extends TenantRepository {
         subject: item(subject),
         gradeLevel: item(grade),
         groupLabel: groups.label,
+        room: { id: rooms.id, name: rooms.name },
       })
       .from(sessions)
       .innerJoin(workspaces, eq(workspaces.id, sessions.workspaceId))
@@ -130,6 +133,7 @@ export class SessionsRepository extends TenantRepository {
       .innerJoin(grade, eq(grade.id, groups.gradeLevelId))
       .innerJoin(memberships, eq(memberships.id, groups.teacherMembershipId))
       .innerJoin(users, eq(users.id, memberships.userId))
+      .leftJoin(rooms, eq(rooms.id, sessions.roomId))
       .where(and(eq(sessions.workspaceId, workspaceId), filter))
       .orderBy(asc(sessions.startsAt));
     return rows.map((r) => ({

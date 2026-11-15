@@ -18,13 +18,15 @@ type Lang = 'ar' | 'en';
 /**
  * `lang` and `t` follow the project (ar or en). Every test fails on an uncaught page error, a
  * console error or a failed request; signed out, POST /auth/refresh returns 401 by design.
+ * A test that triggers an error on purpose lists it in `expectedErrors` (substrings).
  */
-export const test = base.extend<{ lang: Lang; t: typeof ar }>({
+export const test = base.extend<{ lang: Lang; t: typeof ar; expectedErrors: string[] }>({
+  expectedErrors: [[], { option: true }],
   // Playwright requires an object pattern as the first fixture argument.
   // eslint-disable-next-line no-empty-pattern
   lang: async ({}, use, testInfo) => use(testInfo.project.metadata.locale as Lang),
   t: async ({ lang }, use) => use({ ar, en }[lang]),
-  page: async ({ page, lang }, use) => {
+  page: async ({ page, lang, expectedErrors }, use) => {
     const problems: string[] = [];
     page.on('pageerror', (e) => problems.push(e.message));
     page.on('console', (m) => {
@@ -40,7 +42,7 @@ export const test = base.extend<{ lang: Lang; t: typeof ar }>({
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
     expect(overflow, 'horizontal scroll at 375 px').toBe(false);
-    expect(problems).toEqual([]);
+    expect(problems.filter((p) => !expectedErrors.some((e) => p.includes(e)))).toEqual([]);
   },
 });
 

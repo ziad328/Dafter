@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { clockTime, curriculumItem } from './groups.js';
+import { roomRef } from './rooms.js';
 
 /** A local calendar date in the workspace timezone, "YYYY-MM-DD". */
 export const localDate = z.iso.date();
@@ -37,6 +38,8 @@ export const session = z
     gradeLevel: curriculumItem,
     // The group's optional short label.
     groupLabel: z.string().nullable(),
+    // Copied from the group when generated; null when the group has none, or the room was taken.
+    room: roomRef.nullable(),
   })
   .meta({ id: 'Session' });
 

@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { roomRef } from './rooms.js';
 
 export const curriculumItem = z
   .object({ id: z.uuid(), nameAr: z.string(), nameEn: z.string() })
@@ -49,6 +50,8 @@ export const createGroupRequest = z
     label: label.optional(),
     capacity: capacity.optional(),
     monthlyFeePiastres: monthlyFee.optional(),
+    // An active room of the workspace; its other groups' slots must not overlap (ROOM_BOOKED).
+    roomId: z.uuid().nullable().optional(),
     slots: slotList,
   })
   .meta({ id: 'CreateGroupRequest' });
@@ -61,6 +64,8 @@ export const updateGroupRequest = z
     label,
     capacity,
     monthlyFeePiastres: monthlyFee,
+    // Also moves the group's future scheduled sessions to the new room.
+    roomId: z.uuid().nullable(),
     status: z.enum(['active', 'archived']),
     // Replaces every slot of the group.
     slots: slotList,
@@ -78,6 +83,7 @@ export const group = z
     label: z.string().nullable(),
     capacity: z.int().nullable(),
     monthlyFeePiastres: z.int().nullable(),
+    room: roomRef.nullable(),
     status: z.enum(['active', 'archived']),
     slots: z.array(groupSlot),
     // Active enrollments, so a card can say «12/20 طالب».

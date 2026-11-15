@@ -12,8 +12,18 @@ export const HORIZON_DAYS = 28;
 export async function generateSessions(tx: Tx, workspaceId: string, now: Date, groupId?: string) {
   const at = now.toISOString();
   const { rowCount } = await tx.execute(sql`
-    insert into sessions (workspace_id, group_id, slot_starts_at, starts_at, ends_at)
-    select g.workspace_id, g.id, x.starts_at, x.starts_at, x.ends_at
+    insert into sessions (workspace_id, group_id, slot_starts_at, starts_at, ends_at, room_id)
+    select g.workspace_id, g.id, x.starts_at, x.starts_at, x.ends_at,
+      -- The group's room, unless a moved session already holds it then: the class is still
+      -- generated, without a room, instead of failing the whole run on the exclusion constraint.
+      -- Only moved sessions: a clash between two groups' slots is refused on save, so any other
+      -- clash is a bug and should fail loudly on the constraint.
+      case when not exists (
+        select 1 from sessions o
+        where o.workspace_id = g.workspace_id and o.room_id = g.room_id and o.status <> 'cancelled'
+          and o.starts_at <> o.slot_starts_at
+          and tstzrange(o.starts_at, o.ends_at) && tstzrange(x.starts_at, x.ends_at)
+      ) then g.room_id end
     from groups g
     join workspaces w on w.id = g.workspace_id
     join group_slots s on s.workspace_id = g.workspace_id and s.group_id = g.id

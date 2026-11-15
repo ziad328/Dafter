@@ -70,7 +70,7 @@ Sign up with phone or email and a password, create a center or independent works
 
 A group has a subject, a grade level (for example ٣ ثانوي), a teacher, weekly time slots, an optional room, a capacity, and a fee plan. Sessions are generated from the weekly slots 4 weeks ahead. A single session can be cancelled or moved without touching the rest.
 
-- [ ] Two groups cannot be booked in the same room at overlapping times.
+- [x] Two groups cannot be booked in the same room at overlapping times.
 - [x] Cancelling a session notifies the parents of every enrolled student.
 
 ### 3. Students and enrollment

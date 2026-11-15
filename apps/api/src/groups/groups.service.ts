@@ -51,6 +51,7 @@ export class GroupsService {
       label: body.label ?? null,
       capacity: body.capacity ?? null,
       monthlyFeePiastres: body.monthlyFeePiastres ?? null,
+      roomId: body.roomId ?? null,
     };
     await this.checkReferences(ctx, values);
     const id = await this.repo.create(ctx.workspaceId, values, body.slots, this.clock.now());
@@ -69,7 +70,11 @@ export class GroupsService {
       ctx.role !== 'owner'
     )
       throw new AppError('FORBIDDEN');
-    await this.checkReferences(ctx, patch);
+    // An archived room may stay on its group; only a newly picked room must be active.
+    await this.checkReferences(ctx, {
+      ...patch,
+      roomId: patch.roomId === group.room?.id ? undefined : patch.roomId,
+    });
     await this.repo.update(ctx.workspaceId, id, patch, slots, this.clock.now());
     return this.get(ctx, id);
   }
@@ -89,5 +94,6 @@ export class GroupsService {
       throw invalid('teacherMembershipId');
     if (values.subjectId && !found.subject) throw invalid('subjectId');
     if (values.gradeLevelId && !found.gradeLevel) throw invalid('gradeLevelId');
+    if (values.roomId && !found.room) throw invalid('roomId');
   }
 }

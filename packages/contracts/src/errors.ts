@@ -29,6 +29,11 @@ export const ERROR_STATUS = {
   SCOPE_TEACHER_INVALID: 400,
   // Unknown id, another workspace's group, or outside the caller's scope: never 403.
   GROUP_NOT_FOUND: 404,
+  ROOM_NOT_FOUND: 404,
+  ROOM_NAME_TAKEN: 409,
+  // The room is taken at that time. From a group's slots: details give the clashing weekday,
+  // startTime and endTime (local). From a move or a race: no details.
+  ROOM_BOOKED: 409,
   // A subject, grade level or teacher that is not in this workspace (details.field names it).
   GROUP_REFERENCE_INVALID: 400,
   // Unknown id, another workspace's session, or outside the caller's scope: never 403.

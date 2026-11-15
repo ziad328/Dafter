@@ -140,6 +140,26 @@ const injectedRtkApi = api
         query: () => ({ url: `/api/v1/grade-levels` }),
         providesTags: ['curriculum'],
       }),
+      listRooms: build.query<ListRoomsApiResponse, ListRoomsApiArg>({
+        query: () => ({ url: `/api/v1/rooms` }),
+        providesTags: ['groups'],
+      }),
+      createRoom: build.mutation<CreateRoomApiResponse, CreateRoomApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/rooms`,
+          method: 'POST',
+          body: queryArg.createRoomRequest,
+        }),
+        invalidatesTags: ['groups'],
+      }),
+      updateRoom: build.mutation<UpdateRoomApiResponse, UpdateRoomApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/rooms/${queryArg.id}`,
+          method: 'PATCH',
+          body: queryArg.updateRoomRequest,
+        }),
+        invalidatesTags: ['groups'],
+      }),
       listGroups: build.query<ListGroupsApiResponse, ListGroupsApiArg>({
         query: () => ({ url: `/api/v1/groups` }),
         providesTags: ['groups'],
@@ -503,6 +523,17 @@ export type ListSubjectsApiArg = void;
 export type ListGradeLevelsApiResponse =
   /** status 200 Grade levels of the active workspace */ CurriculumList;
 export type ListGradeLevelsApiArg = void;
+export type ListRoomsApiResponse = /** status 200 Rooms */ RoomList;
+export type ListRoomsApiArg = void;
+export type CreateRoomApiResponse = /** status 201 Created */ Room;
+export type CreateRoomApiArg = {
+  createRoomRequest: CreateRoomRequest;
+};
+export type UpdateRoomApiResponse = /** status 200 Updated */ Room;
+export type UpdateRoomApiArg = {
+  id: string;
+  updateRoomRequest: UpdateRoomRequest;
+};
 export type ListGroupsApiResponse = /** status 200 Groups the caller can see */ GroupList;
 export type ListGroupsApiArg = void;
 export type CreateGroupApiResponse = /** status 201 Created */ Group;
@@ -712,6 +743,9 @@ export type ErrorCode =
   | 'MEMBER_NOT_ASSISTANT'
   | 'SCOPE_TEACHER_INVALID'
   | 'GROUP_NOT_FOUND'
+  | 'ROOM_NOT_FOUND'
+  | 'ROOM_NAME_TAKEN'
+  | 'ROOM_BOOKED'
   | 'GROUP_REFERENCE_INVALID'
   | 'SESSION_NOT_FOUND'
   | 'SESSION_NOT_SCHEDULED'
@@ -862,6 +896,26 @@ export type SetScopesRequest = {
   teacherMembershipIds: string[];
 };
 export type CurriculumList = CurriculumItem[];
+export type Room = {
+  id: string;
+  name: string;
+  capacity: number | null;
+  status: 'active' | 'archived';
+};
+export type RoomList = Room[];
+export type CreateRoomRequest = {
+  name: string;
+  capacity?: number | null;
+};
+export type UpdateRoomRequest = {
+  name?: string;
+  capacity?: number | null;
+  status?: 'active' | 'archived';
+};
+export type RoomRef = {
+  id: string;
+  name: string;
+};
 export type GroupSlotOutput = {
   weekday: number;
   startTime: string;
@@ -876,6 +930,7 @@ export type Group = {
   label: string | null;
   capacity: number | null;
   monthlyFeePiastres: number | null;
+  room: RoomRef | null;
   status: 'active' | 'archived';
   slots: GroupSlotOutput[];
   studentCount: number;
@@ -893,6 +948,7 @@ export type CreateGroupRequest = {
   label?: string | null;
   capacity?: number | null;
   monthlyFeePiastres?: number | null;
+  roomId?: string | null;
   slots: GroupSlot[];
 };
 export type UpdateGroupRequest = {
@@ -902,6 +958,7 @@ export type UpdateGroupRequest = {
   label?: string | null;
   capacity?: number | null;
   monthlyFeePiastres?: number | null;
+  roomId?: string | null;
   status?: 'active' | 'archived';
   slots?: GroupSlot[];
 };
@@ -962,6 +1019,7 @@ export type Session = {
   subject: CurriculumItem;
   gradeLevel: CurriculumItem;
   groupLabel: string | null;
+  room: RoomRef | null;
 };
 export type SessionList = Session[];
 export type MoveSessionRequest = {
@@ -1267,6 +1325,9 @@ export const {
   useSetAssistantScopesMutation,
   useListSubjectsQuery,
   useListGradeLevelsQuery,
+  useListRoomsQuery,
+  useCreateRoomMutation,
+  useUpdateRoomMutation,
   useListGroupsQuery,
   useCreateGroupMutation,
   useGetGroupQuery,

@@ -22,6 +22,7 @@ import {
   subjects,
   exams,
   examResults,
+  rooms,
 } from './schema.js';
 import { type Tx, withTenant } from './tenant.js';
 import { makeMembership, makeUser, makeWorkspace, useTestDb } from './testing/index.js';
@@ -68,6 +69,7 @@ beforeAll(async () => {
   await db.transaction((tx) => insertCurriculum(tx, a));
   const [subject] = await db.select().from(subjects).limit(1);
   const [grade] = await db.select().from(gradeLevels).limit(1);
+  const [room] = await db.insert(rooms).values({ workspaceId: a, name: 'Room 1' }).returning();
   const [group] = await db
     .insert(groups)
     .values({
@@ -75,6 +77,7 @@ beforeAll(async () => {
       teacherMembershipId: owner.id,
       subjectId: subject!.id,
       gradeLevelId: grade!.id,
+      roomId: room!.id,
     })
     .returning();
   await db.insert(groupSlots).values({
@@ -92,6 +95,7 @@ beforeAll(async () => {
       slotStartsAt: new Date('2026-11-21T14:00:00Z'),
       startsAt: new Date('2026-11-21T14:00:00Z'),
       endsAt: new Date('2026-11-21T15:30:00Z'),
+      roomId: room!.id,
     })
     .returning();
   const [student] = await db
@@ -189,6 +193,7 @@ describe('RLS on every tenant table', () => {
         'outbox_messages',
         'exams',
         'exam_results',
+        'rooms',
       ]),
     );
   });

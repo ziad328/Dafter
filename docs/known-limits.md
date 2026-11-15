@@ -38,7 +38,10 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| No rooms: a group has no room, so two groups can be booked in one room at the same time (product module 2) | The owner checks clashes by eye | centers (next feature, `docs/v1-next.md`) |
+| Rooms: a session generated at a time a moved session already holds in the room gets no room (shown without one) instead of failing | The owner fixes that one session by hand | — |
+| Rooms: a session can't be moved to another room on its own; only the group's room changes (for its future sessions) | A one-off room swap means moving the group | later |
+| Rooms: no check against the room's capacity (a 40-student group fits a 20-seat room) | Overfull rooms aren't flagged | later |
+| Rooms work in independent workspaces too (the data model said centers only) | Harmless; the screen sits under More for everyone | — |
 | No archive button for groups in the UI (the API supports `status`) | Owners can't archive from the screen | v0 if time |
 | Curriculum (subjects, grades) can't be edited | Centers with other subjects are stuck | centers |
 | No group capacity check on enroll | A group can be over-filled | centers |

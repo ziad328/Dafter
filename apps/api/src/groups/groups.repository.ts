@@ -8,17 +8,27 @@ import {
   groupSlots,
   groups,
   memberships,
+  rooms,
+  sessions,
   subjects,
   type Tx,
   users,
 } from '@dafter/db';
+import { AppError } from '../errors.js';
+import { roomBooked } from '../rooms/pg-errors.js';
 import { dropGeneratedSessions, generateSessions } from '../sessions/generate.js';
 import { TenantRepository } from '../tenant.repository.js';
 
 type Role = Workspace['role'];
 export type GroupValues = Pick<
   typeof groups.$inferInsert,
-  'teacherMembershipId' | 'subjectId' | 'gradeLevelId' | 'label' | 'capacity' | 'monthlyFeePiastres'
+  | 'teacherMembershipId'
+  | 'subjectId'
+  | 'gradeLevelId'
+  | 'label'
+  | 'capacity'
+  | 'monthlyFeePiastres'
+  | 'roomId'
 >;
 
 const subject = aliasedTable(subjects, 's');
@@ -75,7 +85,7 @@ export class GroupsRepository extends TenantRepository {
 
   /** Which of the references exist in this workspace; the teacher's role is returned to check. */
   references(workspaceId: string, values: Partial<GroupValues>) {
-    const { teacherMembershipId: t, subjectId: s, gradeLevelId: g } = values;
+    const { teacherMembershipId: t, subjectId: s, gradeLevelId: g, roomId: r } = values;
     return this.inTenant(workspaceId, async (tx) => {
       const [teacher] = t
         ? await tx
@@ -95,8 +105,16 @@ export class GroupsRepository extends TenantRepository {
             .from(gradeLevels)
             .where(and(eq(gradeLevels.workspaceId, workspaceId), eq(gradeLevels.id, g)))
         : [];
+      const [roomRow] = r
+        ? await tx
+            .select({ status: rooms.status })
+            .from(rooms)
+            .where(and(eq(rooms.workspaceId, workspaceId), eq(rooms.id, r)))
+        : [];
       return {
         teacherRole: teacher?.role as Role | undefined,
+        // Only an active room can be picked.
+        room: roomRow?.status === 'active',
         subject: !!subjectRow,
         gradeLevel: !!gradeRow,
       };
@@ -105,6 +123,7 @@ export class GroupsRepository extends TenantRepository {
 
   create(workspaceId: string, values: GroupValues, slots: GroupSlot[], now: Date) {
     return this.inTenant(workspaceId, async (tx) => {
+      if (values.roomId) await this.checkRoom(tx, workspaceId, values.roomId, slots);
       const [row] = await tx
         .insert(groups)
         .values({ workspaceId, ...values })
@@ -112,12 +131,13 @@ export class GroupsRepository extends TenantRepository {
       await this.insertSlots(tx, workspaceId, row!.id, slots);
       await generateSessions(tx, workspaceId, now, row!.id);
       return row!.id;
-    });
+    }).catch(roomBooked);
   }
 
   /**
    * Updates the group; `slots`, when given, replace all of its slots in the same transaction.
-   * New slots or a status change regenerate the group's untouched future sessions.
+   * New slots or a status change regenerate the group's untouched future sessions. A new room
+   * moves the future scheduled sessions there; an active group's slots must fit its room.
    */
   update(
     workspaceId: string,
@@ -127,22 +147,86 @@ export class GroupsRepository extends TenantRepository {
     now: Date,
   ) {
     return this.inTenant(workspaceId, async (tx) => {
-      if (Object.keys(patch).length)
-        await tx
-          .update(groups)
-          .set(patch)
-          .where(and(eq(groups.workspaceId, workspaceId), eq(groups.id, id)));
+      const where = and(eq(groups.workspaceId, workspaceId), eq(groups.id, id));
+      const [cur] = await tx
+        .select({ roomId: groups.roomId, status: groups.status })
+        .from(groups)
+        .where(where);
+      const roomId = patch.roomId === undefined ? cur!.roomId : patch.roomId;
+      const newRoom = patch.roomId !== undefined && patch.roomId !== cur!.roomId;
+      const active = (patch.status ?? cur!.status) === 'active';
+      if (roomId && active && (newRoom || slots || patch.status)) {
+        const all = slots ?? (await this.slotsOf(tx, workspaceId, id));
+        await this.checkRoom(tx, workspaceId, roomId, all, id);
+      }
+      if (Object.keys(patch).length) await tx.update(groups).set(patch).where(where);
       if (slots) {
         await tx
           .delete(groupSlots)
           .where(and(eq(groupSlots.workspaceId, workspaceId), eq(groupSlots.groupId, id)));
         await this.insertSlots(tx, workspaceId, id, slots);
       }
+      if (newRoom)
+        await tx
+          .update(sessions)
+          .set({ roomId })
+          .where(
+            and(
+              eq(sessions.workspaceId, workspaceId),
+              eq(sessions.groupId, id),
+              eq(sessions.status, 'scheduled'),
+              sql`${sessions.startsAt} > ${now.toISOString()}::timestamptz`,
+            ),
+          );
       if (slots || patch.status) {
         await dropGeneratedSessions(tx, workspaceId, id, now);
         await generateSessions(tx, workspaceId, now, id);
       }
-    });
+    }).catch(roomBooked);
+  }
+
+  /**
+   * ROOM_BOOKED with the first clash when another active group in the room meets on the same
+   * weekday at an overlapping local time. Touching slots (17:30 end, 17:30 start) are fine.
+   * The room row is locked first, so two saves into one room run one after the other: the
+   * second sees the first's committed slots instead of both passing the check.
+   */
+  private async checkRoom(
+    tx: Tx,
+    workspaceId: string,
+    roomId: string,
+    slots: GroupSlot[],
+    exceptGroupId?: string,
+  ) {
+    await tx.execute(
+      sql`select 1 from rooms where workspace_id = ${workspaceId} and id = ${roomId} for update`,
+    );
+    const { rows } = await tx.execute<GroupSlot>(sql`
+      select s.weekday, to_char(s.start_time, 'HH24:MI') as "startTime",
+        to_char(s.end_time, 'HH24:MI') as "endTime"
+      from group_slots s
+      join groups g on g.workspace_id = s.workspace_id and g.id = s.group_id
+      cross join jsonb_to_recordset(${JSON.stringify(slots)}::jsonb)
+        as n(weekday int, "startTime" text, "endTime" text)
+      where s.workspace_id = ${workspaceId} and g.room_id = ${roomId} and g.status = 'active'
+        ${exceptGroupId ? sql`and g.id <> ${exceptGroupId}` : sql``}
+        and s.weekday = n.weekday
+        and s.start_time < n."endTime"::time and n."startTime"::time < s.end_time
+      order by s.weekday, s.start_time
+      limit 1`);
+    if (rows[0]) throw new AppError('ROOM_BOOKED', { ...rows[0] });
+  }
+
+  private async slotsOf(tx: Tx, workspaceId: string, groupId: string): Promise<GroupSlot[]> {
+    const rows = await tx
+      .select()
+      .from(groupSlots)
+      .where(and(eq(groupSlots.workspaceId, workspaceId), eq(groupSlots.groupId, groupId)));
+    return rows.map((r) => ({
+      weekday: r.weekday,
+      startTime: r.startTime.slice(0, 5),
+      endTime: r.endTime.slice(0, 5),
+    }));
   }
 
   private insertSlots(tx: Tx, workspaceId: string, groupId: string, slots: GroupSlot[]) {
@@ -161,6 +245,7 @@ export class GroupsRepository extends TenantRepository {
         label: groups.label,
         capacity: groups.capacity,
         monthlyFeePiastres: groups.monthlyFeePiastres,
+        room: { id: rooms.id, name: rooms.name },
         status: groups.status,
         studentCount: sql<number>`(
           select count(*)::int from ${enrollments}
@@ -172,6 +257,7 @@ export class GroupsRepository extends TenantRepository {
       .innerJoin(grade, eq(grade.id, groups.gradeLevelId))
       .innerJoin(memberships, eq(memberships.id, groups.teacherMembershipId))
       .innerJoin(users, eq(users.id, memberships.userId))
+      .leftJoin(rooms, eq(rooms.id, groups.roomId))
       .where(and(eq(groups.workspaceId, workspaceId), filter))
       .orderBy(asc(grade.sortOrder), asc(subject.sortOrder), asc(groups.createdAt));
     if (!rows.length) return [];
