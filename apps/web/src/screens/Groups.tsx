@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useGetCurrentWorkspaceQuery, useListGroupsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
-import { FilterChips, uniqueOptions } from '@/components/FilterChips';
+import { FilterPicker, uniqueOptions } from '@/components/FilterChips';
 import { Avatar, PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { itemName, sortedSlots, weekdayName } from '@/lib/groups';
@@ -67,22 +67,24 @@ export default function Groups() {
             onChange={(e) => setQ(e.target.value)}
             className="h-11 w-full rounded-2xl border bg-card px-4 text-base shadow-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
-          <FilterChips
-            label={t('groups.teacher')}
-            value={teacher}
-            onChange={setTeacher}
-            options={uniqueOptions(
-              all.map((g) => ({ value: g.teacherMembershipId, label: g.teacherName })),
-            )}
-          />
-          <FilterChips
-            label={t('groups.gradeLevel')}
-            value={grade}
-            onChange={setGrade}
-            options={uniqueOptions(
-              all.map((g) => ({ value: g.gradeLevel.id, label: itemName(g.gradeLevel, lang) })),
-            )}
-          />
+          <div className="flex flex-wrap gap-2">
+            <FilterPicker
+              label={t('groups.teacher')}
+              value={teacher}
+              onChange={setTeacher}
+              options={uniqueOptions(
+                all.map((g) => ({ value: g.teacherMembershipId, label: g.teacherName })),
+              )}
+            />
+            <FilterPicker
+              label={t('groups.gradeLevel')}
+              value={grade}
+              onChange={setGrade}
+              options={uniqueOptions(
+                all.map((g) => ({ value: g.gradeLevel.id, label: itemName(g.gradeLevel, lang) })),
+              )}
+            />
+          </div>
         </div>
       )}
       {(all.length === 0 || shown.length === 0) && (

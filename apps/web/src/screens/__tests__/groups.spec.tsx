@@ -4,7 +4,7 @@ import { weekdayName } from '@/lib/groups';
 import { formatEgp } from '@/lib/money';
 import { addDays, localDate, weekStart } from '@/lib/time';
 import { fail, fx, http, route, sent, server } from '@/test/server';
-import { pick, renderAt, tr } from '@/test/render';
+import { filterBy, pick, renderAt, tr } from '@/test/render';
 
 const call = (c: string) => sent.find((s) => s.call === c);
 const asRole = (role: string) =>
@@ -69,14 +69,12 @@ describe('groups', () => {
     const { user } = await renderAt('/groups');
     const cards = async () => (await screen.findAllByRole('heading', { level: 2 })).length;
     expect(await cards()).toBe(2);
-    const teachers = screen.getByRole('group', { name: tr('groups.teacher') });
-    await user.click(within(teachers).getByRole('button', { name: fx.members[1]!.name }));
+    await filterBy(user, tr('groups.teacher'), fx.members[1]!.name);
     expect(await cards()).toBe(1);
-    await user.click(within(teachers).getByRole('button', { name: tr('filters.all') }));
-    const grades = screen.getByRole('group', { name: tr('groups.gradeLevel') });
-    await user.click(within(grades).getByRole('button', { name: fx.gradeLevels[0]!.nameAr }));
+    await filterBy(user, tr('groups.teacher'), tr('filters.all'));
+    await filterBy(user, tr('groups.gradeLevel'), fx.gradeLevels[0]!.nameAr);
     expect(await cards()).toBe(1);
-    await user.click(within(grades).getByRole('button', { name: tr('filters.all') }));
+    await filterBy(user, tr('groups.gradeLevel'), tr('filters.all'));
     const search = screen.getByRole('searchbox', { name: tr('groups.search') });
     await user.type(search, 'رياضيات');
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(fx.subjects[2]!.nameAr);
@@ -240,12 +238,10 @@ describe('timetable', () => {
     const { user } = await renderAt('/timetable');
     const cards = async () => (await screen.findAllByRole('heading', { level: 3 })).length;
     expect(await cards()).toBe(2);
-    const teachers = screen.getByRole('group', { name: tr('groups.teacher') });
-    await user.click(within(teachers).getByRole('button', { name: fx.members[0]!.name }));
+    await filterBy(user, tr('groups.teacher'), fx.members[0]!.name);
     expect(await cards()).toBe(1);
-    await user.click(within(teachers).getByRole('button', { name: tr('filters.all') }));
-    const grades = screen.getByRole('group', { name: tr('groups.gradeLevel') });
-    await user.click(within(grades).getByRole('button', { name: fx.gradeLevels[1]!.nameAr }));
+    await filterBy(user, tr('groups.teacher'), tr('filters.all'));
+    await filterBy(user, tr('groups.gradeLevel'), fx.gradeLevels[1]!.nameAr);
     expect(await cards()).toBe(1);
   });
 

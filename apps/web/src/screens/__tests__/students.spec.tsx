@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { fail, fx, http, route, sent, server } from '@/test/server';
 import { formatEgp } from '@/lib/money';
-import { pick, renderAt, seen, tr } from '@/test/render';
+import { filterBy, pick, renderAt, seen, tr } from '@/test/render';
 
 const student = fx.student;
 const page = `/students/${student.id}`;
@@ -66,12 +66,10 @@ describe('students list', () => {
     await user.click(screen.getByRole('button', { name: tr('students.owes') }));
     await expect.poll(() => asked.at(-1)).toBe('?owes=true');
     await user.click(screen.getByRole('button', { name: tr('students.owes') }));
-    const groups = screen.getByRole('group', { name: tr('enrollments.group') });
-    await user.click(within(groups).getByRole('button', { name: /منى حسن/ }));
+    await filterBy(user, tr('enrollments.group'), /منى حسن/);
     await expect.poll(() => asked.at(-1)).toBe(`?groupId=${fx.groups[1]!.id}`);
-    await user.click(within(groups).getByRole('button', { name: tr('filters.all') }));
-    const grades = screen.getByRole('group', { name: tr('students.gradeLevel') });
-    await user.click(within(grades).getByRole('button', { name: fx.gradeLevels[1]!.nameAr }));
+    await filterBy(user, tr('enrollments.group'), tr('filters.all'));
+    await filterBy(user, tr('students.gradeLevel'), fx.gradeLevels[1]!.nameAr);
     await expect.poll(() => asked.at(-1)).toBe(`?gradeLevelId=${fx.gradeLevels[1]!.id}`);
   });
 

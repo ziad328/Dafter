@@ -12,7 +12,7 @@ import {
   useMoveSessionMutation,
 } from '@/api/generated';
 import { Field, FormError, Skeleton } from '@/components/Field';
-import { FilterChips, uniqueOptions } from '@/components/FilterChips';
+import { FilterPicker, uniqueOptions } from '@/components/FilterChips';
 import { PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
@@ -91,22 +91,25 @@ export default function Timetable() {
           <ChevronLeft aria-hidden className="ltr:-scale-x-100" />
         </Button>
       </nav>
-      <FilterChips
-        label={t('groups.teacher')}
-        value={teacher}
-        onChange={setTeacher}
-        options={uniqueOptions(
-          all.map((s) => ({ value: s.teacherMembershipId, label: s.teacherName })),
-        )}
-      />
-      <FilterChips
-        label={t('groups.gradeLevel')}
-        value={grade}
-        onChange={setGrade}
-        options={uniqueOptions(
-          all.map((s) => ({ value: s.gradeLevel.id, label: itemName(s.gradeLevel, lang) })),
-        )}
-      />
+      {/* Pickers in one row, like Students (audit 3 TT2). */}
+      <div className="flex flex-wrap gap-2">
+        <FilterPicker
+          label={t('groups.teacher')}
+          value={teacher}
+          onChange={setTeacher}
+          options={uniqueOptions(
+            all.map((s) => ({ value: s.teacherMembershipId, label: s.teacherName })),
+          )}
+        />
+        <FilterPicker
+          label={t('groups.gradeLevel')}
+          value={grade}
+          onChange={setGrade}
+          options={uniqueOptions(
+            all.map((s) => ({ value: s.gradeLevel.id, label: itemName(s.gradeLevel, lang) })),
+          )}
+        />
+      </div>
       <FormError message={list.error && t(errorKey(list.error))} />
       {list.isLoading || !workspace.data ? (
         <Skeleton />

@@ -97,7 +97,8 @@
     }
   },
   "filters": {
-    "all": "All"
+    "all": "All",
+    "search": "Search"
   },
   "groups": {
     "title": "Groups",

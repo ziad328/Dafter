@@ -4,11 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import { useListGroupsQuery, useListStudentsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
-import { FilterChips, uniqueOptions } from '@/components/FilterChips';
+import { FilterPicker, uniqueOptions } from '@/components/FilterChips';
 import { Avatar, PageHeader, Panel } from '@/components/Page';
 import { PaymentSheet } from '@/components/PaymentSheet';
 import { Button } from '@/components/ui/button';
-import { itemName } from '@/lib/groups';
+import { groupName, itemName } from '@/lib/groups';
 import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
 import { cn } from '@/lib/utils';
@@ -72,28 +72,27 @@ export default function Students() {
           className="h-12 w-full rounded-2xl border bg-card ps-10 pe-4 text-base shadow-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
-      <div className="grid gap-2">
+      {/* One row of filters; a picker per long list keeps the results right under the search
+        (audit 3 S1, S2). */}
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           aria-pressed={owes}
           onClick={() => setOwes(!owes)}
           className={cn(
-            'h-9 justify-self-start rounded-full border px-4 text-sm font-medium transition-colors',
+            'h-9 rounded-full border px-4 text-sm font-medium transition-colors',
             owes ? 'border-rose bg-rose text-white' : 'bg-card hover:bg-rose-soft',
           )}
         >
           {t('students.owes')}
         </button>
-        <FilterChips
+        <FilterPicker
           label={t('enrollments.group')}
           value={groupId}
           onChange={setGroupId}
-          options={groups.map((g) => ({
-            value: g.id,
-            label: `${itemName(g.subject, i18n.language)} · ${g.teacherName}`,
-          }))}
+          options={groups.map((g) => ({ value: g.id, label: groupName(g, i18n.language) }))}
         />
-        <FilterChips
+        <FilterPicker
           label={t('students.gradeLevel')}
           value={gradeLevelId}
           onChange={setGradeLevelId}

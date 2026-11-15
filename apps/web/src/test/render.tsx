@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { createMemoryRouter, RouterProvider } from 'react-router';
@@ -44,6 +44,18 @@ export async function pick(
 ) {
   await user.click(screen.getByRole('combobox', { name: label }));
   await user.click((await screen.findAllByRole('option', { name: option }))[0]!);
+}
+
+/** Opens the filter pill named `label` and chooses `option` (a name or a pattern) in its sheet. */
+export async function filterBy(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  option: string | RegExp,
+) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await user.click(screen.getByRole('button', { name: new RegExp(`^${escaped}`) }));
+  const list = await screen.findByRole('group', { name: label });
+  await user.click(within(list).getByRole('button', { name: option }));
 }
 
 /** Text the way Testing Library compares it: currency's no-break spaces become plain spaces. */
