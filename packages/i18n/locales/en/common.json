@@ -427,7 +427,8 @@
       "absence": "When a student is absent (on session close)",
       "sessionChange": "When a session is cancelled or moved",
       "examResult": "When exam results are sent",
-      "feeOverdue": "Reminder of unpaid fees (from the 7th of the month)"
+      "feeOverdue": "Reminder of unpaid fees (from the 7th of the month)",
+      "primaryOnly": "Only the main guardian of each student (not every guardian)"
     },
     "ownerOnly": "Only the workspace owner can change these settings.",
     "filter": "Status",
@@ -436,7 +437,8 @@
     "status": {
       "queued": "Waiting",
       "sent": "Sent",
-      "failed": "Failed"
+      "failed": "Failed",
+      "skipped": "Not sent"
     },
     "triggers": {
       "absence": "Absence",
@@ -472,7 +474,8 @@
       "date": "Exam date",
       "scores": "Scores",
       "month": "Month",
-      "due": "Still due per student"
+      "due": "Still due per student",
+      "from": "Old time"
     },
     "sample": {
       "center": "Al-Nour Center",
@@ -485,8 +488,15 @@
       "date": "21 November",
       "scores": "Ahmed 18/20 and Mariam 17/20",
       "month": "November",
-      "due": "Ahmed EGP 300"
-    }
+      "due": "Ahmed EGP 300",
+      "from": "Friday 20 November at 5:00 pm"
+    },
+    "skipReason": {
+      "paid": "Not sent: the fees were paid before it was due.",
+      "trigger_off": "Not sent: this kind of message was switched off before it was due.",
+      "not_absent": "Not sent: attendance was corrected after the session closed."
+    },
+    "recipients": "Who gets them?"
   },
   "members": {
     "title": "Staff",

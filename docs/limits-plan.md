@@ -20,10 +20,10 @@ Nothing here needs the center interviews. Good filler between bigger features.
 
 Do this **after editable templates** (same files: `messages/templates.ts`, the outbox insert and the sender).
 
-- [ ] **Re-check at send time.** The sender re-reads the balance for `fee_overdue` rows and marks them `skipped` when it is zero; a row whose trigger was switched off since it was queued is `skipped` too. New status `skipped` in the log, with the reason.
-- [ ] **Late corrections reach parents.** A manual "absent" after close queues the absence message (same dedupe key, so a second change does nothing); a change from absent to present after the message went out sends nothing (documented).
-- [ ] **Primary guardian only.** A `settings.messages.primaryOnly` switch (default off: today's behaviour).
-- [ ] **Moved session says from when.** The `session_moved` template gets the old time («حصة السبت 4:00 م أصبحت الأحد 5:00 م»).
+- [x] **Re-check at send time.** Done Nov 15 (absences too: a child marked present before the send is dropped). The sender re-reads the balance for `fee_overdue` rows and marks them `skipped` when it is zero; a row whose trigger was switched off since it was queued is `skipped` too. New status `skipped` in the log, with the reason.
+- [x] **Late corrections reach parents.** Done Nov 15. A manual "absent" after close queues the absence message (same dedupe key, so a second change does nothing); a change from absent to present after the message went out sends nothing (documented).
+- [x] **Primary guardian only.** Done Nov 15. A `settings.messages.primaryOnly` switch (default off: today's behaviour).
+- [x] **Moved session says from when.** Done Nov 15. The `session_moved` template gets the old time («حصة السبت 4:00 م أصبحت الأحد 5:00 م»).
 
 ## Batch 3 · Staff management (M, *hard part: auth and tenancy*)
 

@@ -1,9 +1,25 @@
-import { and, eq, lte, sql } from 'drizzle-orm';
-import type { CustomTemplates } from '@dafter/contracts';
-import { type Db, guardians, outboxMessages, type Tx, withTenant, workspaces } from '@dafter/db';
+import { and, eq, inArray, lte, sql } from 'drizzle-orm';
+import type { CustomTemplates, MessageSettings } from '@dafter/contracts';
+import {
+  attendanceRecords,
+  type Db,
+  guardians,
+  ledgerEntries,
+  outboxMessages,
+  students,
+  type Tx,
+  withTenant,
+  workspaces,
+} from '@dafter/db';
 import type { Clock } from '../clock.js';
+import { TOGGLE } from '../messages/outbox.js';
 import type { MessageProvider } from '../messages/provider.js';
-import { render } from '../messages/templates.js';
+import {
+  type FeePayload,
+  type MessagePayload,
+  render,
+  type Trigger,
+} from '../messages/templates.js';
 
 export const SEND_OUTBOX = 'send-outbox';
 export const MAX_ATTEMPTS = 5;
@@ -12,7 +28,7 @@ const BATCH = 50;
 /**
  * Delivers due outbox rows in every workspace (or only `workspaceId`). Rows are locked with SKIP
  * LOCKED, so two senders never send the same row. A failure waits 2^attempts minutes; after 5
- * attempts it is failed.
+ * attempts it is failed. Each row is re-checked first (`recheck`), under the same lock.
  */
 export async function sendDueMessages(
   db: Db,
@@ -54,18 +70,30 @@ export async function sendDueMessages(
     if (!due.length) return 0;
     // The center's own wording, read once per pass; rows queued before an edit use the new text.
     const [settings] = await tx
-      .select({ templates: sql<CustomTemplates | null>`${workspaces.settings}->'templates'` })
+      .select({
+        templates: sql<CustomTemplates | null>`${workspaces.settings}->'templates'`,
+        messages: sql<Partial<MessageSettings> | null>`${workspaces.settings}->'messages'`,
+      })
       .from(workspaces)
       .where(eq(workspaces.id, ws));
     const custom = settings?.templates ?? undefined;
     let n = 0;
     for (const m of due) {
-      const body = render(m.trigger, m.payload as Parameters<typeof render>[1], m.locale, custom);
+      const checked = await recheck(tx, ws, m.trigger as Trigger, m.payload, settings?.messages);
+      if ('skip' in checked) {
+        await tx
+          .update(outboxMessages)
+          .set({ status: 'skipped', skipReason: checked.skip })
+          .where(eq(outboxMessages.id, m.id));
+        continue;
+      }
+      const { payload } = checked;
+      const body = render(m.trigger, payload as Parameters<typeof render>[1], m.locale, custom);
       try {
         const providerMessageId = await provider.send(m.phone, body);
         await tx
           .update(outboxMessages)
-          .set({ status: 'sent', body, locale: m.locale, providerMessageId, sentAt: now })
+          .set({ status: 'sent', body, payload, locale: m.locale, providerMessageId, sentAt: now })
           .where(eq(outboxMessages.id, m.id));
         n++;
       } catch (err) {
@@ -83,4 +111,78 @@ export async function sendDueMessages(
     }
     return n;
   }
+}
+
+type Checked = { payload: unknown } | { skip: 'paid' | 'trigger_off' | 'not_absent' };
+
+/**
+ * Is the message still true? Run just before sending, on the locked row. A trigger switched off
+ * since it was queued is skipped. A fee reminder keeps only the active children who still owe,
+ * with today's balance; an absence keeps only the children still marked absent. With none left the
+ * row is skipped, never deleted, so its dedupe key stays taken and a rerun queues nothing.
+ * Rows queued before students carried an `id` are sent as they are.
+ */
+// shortcut: one or two queries per row (a batch is at most 50); group by session or student set if
+// batches grow.
+async function recheck(
+  tx: Tx,
+  ws: string,
+  trigger: Trigger,
+  payload: unknown,
+  messages: Partial<MessageSettings> | null | undefined,
+): Promise<Checked> {
+  const key = TOGGLE[trigger];
+  if (!(messages?.[key] ?? key !== 'feeOverdue')) return { skip: 'trigger_off' };
+
+  if (trigger === 'fee_overdue') {
+    const p = payload as FeePayload;
+    const ids = p.students.flatMap((s) => (s.id ? [s.id] : []));
+    if (!ids.length) return { payload };
+    const rows = await tx
+      .select({
+        id: ledgerEntries.studentId,
+        balance: sql<number>`sum(${ledgerEntries.amountPiastres})`.mapWith(Number),
+      })
+      .from(ledgerEntries)
+      .innerJoin(
+        students,
+        and(
+          eq(students.workspaceId, ledgerEntries.workspaceId),
+          eq(students.id, ledgerEntries.studentId),
+        ),
+      )
+      .where(
+        and(
+          eq(ledgerEntries.workspaceId, ws),
+          inArray(ledgerEntries.studentId, ids),
+          eq(students.status, 'active'),
+        ),
+      )
+      .groupBy(ledgerEntries.studentId);
+    const balance = new Map(rows.map((r) => [r.id, r.balance]));
+    const owing = p.students
+      .map((s) => (s.id ? { ...s, balancePiastres: balance.get(s.id) ?? 0 } : s))
+      .filter((s) => s.balancePiastres > 0);
+    return owing.length ? { payload: { ...p, students: owing } } : { skip: 'paid' };
+  }
+
+  if (trigger === 'absence') {
+    const p = payload as MessagePayload & { sessionId: string };
+    if (!p.students.some((s) => s.id)) return { payload };
+    const rows = await tx
+      .select({ id: attendanceRecords.studentId })
+      .from(attendanceRecords)
+      .where(
+        and(
+          eq(attendanceRecords.workspaceId, ws),
+          eq(attendanceRecords.sessionId, p.sessionId),
+          eq(attendanceRecords.status, 'absent'),
+        ),
+      );
+    const absent = new Set(rows.map((r) => r.id));
+    const still = p.students.filter((s) => !s.id || absent.has(s.id));
+    return still.length ? { payload: { ...p, students: still } } : { skip: 'not_absent' };
+  }
+
+  return { payload };
 }

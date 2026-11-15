@@ -26,11 +26,26 @@ describe('message templates', () => {
     );
   });
 
-  it('has cancel and move wording in both languages', () => {
+  it('has cancel and move wording in both languages; a move names the old time', () => {
     expect(render('session_cancelled', p, 'ar')).toContain('تم إلغاء حصة الفيزياء');
-    expect(render('session_moved', { ...p, centerEn: 'Al-Nour' }, 'en')).toBe(
+    const moved = { ...p, centerEn: 'Al-Nour', fromStartsAt: '2026-11-20T15:00:00Z' };
+    expect(render('session_moved', moved, 'en')).toBe(
+      'Al-Nour: the Physics session on Friday 20 November at 5:00 pm has moved to Saturday 21 November at 4:00 pm.',
+    );
+    expect(render('session_moved', moved, 'ar')).toMatch(/حصة الفيزياء الجمعة.+5:00 م أصبحت السبت/);
+  });
+
+  it('a move queued without its old time keeps the old wording, or a custom text without {from}', () => {
+    const old = { ...p, centerEn: 'Al-Nour' };
+    expect(render('session_moved', old, 'en')).toBe(
       'Al-Nour: the Physics session has moved to Saturday 21 November at 4:00 pm.',
     );
+    const own = { session_moved: { ar: null, en: 'Moved: {subject}, now {time}' } };
+    expect(render('session_moved', old, 'en', own)).toBe(
+      'Moved: Physics, now Saturday 21 November at 4:00 pm',
+    );
+    const withFrom = { session_moved: { ar: null, en: '{subject} {from} -> {time}' } };
+    expect(render('session_moved', old, 'en', withFrom)).toMatch(/^Al-Nour: the Physics session/);
   });
 });
 

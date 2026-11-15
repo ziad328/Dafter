@@ -193,6 +193,14 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await expect(list.getByRole('listitem').filter({ hasText: absent })).not.toContainText(
     t.live.status.absent,
   );
+  // ...and back again: they really were absent. Had the sender run while they were marked
+  // present, the message would be skipped (re-checked at send time); now it goes out once.
+  const absentRow = list.getByRole('listitem').filter({ hasText: absent });
+  await absentRow.getByRole('button', { name: t.live.change.replace('{name}', absent) }).click();
+  await absentRow.getByRole('button', { name: t.live.status.absent, exact: true }).click();
+  // Absent again: the row is back to its one-tap "present" button.
+  await expect(mark(absent)).toBeVisible();
+  await expect(absentRow).toContainText(t.live.status.absent);
 
   // The absent student's parent gets one message on the fake phone (worker polls every minute).
   const hour = Number(cairo({ hour: '2-digit', hourCycle: 'h23' }));

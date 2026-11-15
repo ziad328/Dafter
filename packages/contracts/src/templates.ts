@@ -12,12 +12,13 @@ type Locale = 'ar' | 'en';
 export const TEMPLATE_PLACEHOLDERS: Record<Trigger, readonly string[]> = {
   absence: ['center', 'students', 'subject', 'time', 'wasWere'],
   session_cancelled: ['center', 'subject', 'time'],
-  session_moved: ['center', 'subject', 'time'],
+  // from: the session's time before the move.
+  session_moved: ['center', 'subject', 'from', 'time'],
   exam_result: ['center', 'correction', 'subject', 'title', 'date', 'scores'],
   fee_overdue: ['center', 'month', 'due'],
 };
 
-/** The wording a center gets until it writes its own (the v0 wording, word for word). */
+/** The wording a center gets until it writes its own (the v0 wording, except a move now names the old time). */
 export const DEFAULT_TEMPLATES: Record<Trigger, Record<Locale, string>> = {
   absence: {
     ar: '{center}: نود إبلاغكم بغياب {students} عن حصة {subject} ({time}).',
@@ -28,8 +29,8 @@ export const DEFAULT_TEMPLATES: Record<Trigger, Record<Locale, string>> = {
     en: '{center}: the {subject} session ({time}) is cancelled.',
   },
   session_moved: {
-    ar: '{center}: تم تغيير موعد حصة {subject} إلى {time}.',
-    en: '{center}: the {subject} session has moved to {time}.',
+    ar: '{center}: حصة {subject} {from} أصبحت {time}.',
+    en: '{center}: the {subject} session on {from} has moved to {time}.',
   },
   exam_result: {
     ar: '{center}: {correction}نتيجة امتحان {subject} «{title}» ({date}): {scores}.',

@@ -659,7 +659,8 @@ export const receiptCounters = pgTable('receipt_counters', {
 // Messaging (Day 15). Transactional outbox: rows are written in the same transaction as the
 // event; the send-outbox job delivers due rows. dedupe_key makes a repeated event a no-op.
 
-export const outboxStatus = pgEnum('outbox_status', ['queued', 'sent', 'failed']);
+// skipped: the sender re-checked the row at send time and it no longer applied (skip_reason).
+export const outboxStatus = pgEnum('outbox_status', ['queued', 'sent', 'failed', 'skipped']);
 
 export const outboxMessages = pgTable(
   'outbox_messages',
@@ -681,6 +682,8 @@ export const outboxMessages = pgTable(
     body: text('body'),
     providerMessageId: text('provider_message_id'),
     lastError: text('last_error'),
+    // Why a skipped row was not sent: paid, trigger_off or not_absent.
+    skipReason: text('skip_reason'),
     sentAt: tz('sent_at'),
     createdAt: createdAt(),
   },

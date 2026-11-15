@@ -88,7 +88,8 @@ describe('session cancelled and moved messages', () => {
 
     const phone = new Recorder();
     await sendDueMessages(testDb().db, clock, phone);
-    expect(phone.to('01291000002').at(-1)).toMatch(/تم تغيير موعد حصة .+ إلى .+6:00/);
+    // The last move: «حصة … الأحد 6 ديسمبر 5:00 م أصبحت الأحد 6 ديسمبر 6:00 م» (old, then new).
+    expect(phone.to('01291000002').at(-1)).toMatch(/حصة .+ الأحد.+5:00 م أصبحت الأحد.+6:00 م.$/);
   });
 });
 
@@ -99,8 +100,15 @@ describe('message settings', () => {
       sessionChange: true,
       examResult: true,
       feeOverdue: false,
+      primaryOnly: false,
     });
-    const off = { absence: false, sessionChange: false, examResult: false, feeOverdue: false };
+    const off = {
+      absence: false,
+      sessionChange: false,
+      examResult: false,
+      feeOverdue: false,
+      primaryOnly: false,
+    };
     expect((await c.assistant('PUT', 'message-settings', off)).json().code).toBe('FORBIDDEN');
     expect((await c.owner('PUT', 'message-settings', off)).json()).toEqual(off);
     expect((await c.assistant('GET', 'message-settings')).json()).toEqual(off);

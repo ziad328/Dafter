@@ -12,6 +12,17 @@ export const TOGGLE: Record<Trigger, 'absence' | 'sessionChange' | 'examResult' 
 };
 
 /**
+ * `settings.messages.primaryOnly`: only each student's primary guardian (alias `sg`) is messaged;
+ * a student with no primary keeps all their guardians, so no family goes silent. Off by default.
+ */
+const guardianFilter = (workspaceId: string) => sql`
+  and (sg.is_primary
+    or not coalesce((select (pw.settings->'messages'->>'primaryOnly')::boolean
+      from workspaces pw where pw.id = ${workspaceId}), false)
+    or not exists (select 1 from student_guardians p
+      where p.workspace_id = sg.workspace_id and p.student_id = sg.student_id and p.is_primary))`;
+
+/**
  * Inside the business transaction: one message per guardian of the affected students, unless the
  * workspace switched the trigger off. Grouping by guardian merges siblings; the unique dedupe_key
  * makes a repeat a no-op. Quiet hours (workspace timezone) push send_after to 08:00.
@@ -24,11 +35,12 @@ async function enqueue(
   trigger: Trigger,
   students: SQL,
   dedupeSuffix: SQL = sql``,
+  extra: SQL = sql`'{}'::jsonb`,
 ) {
   await tx.execute(sql`
     insert into outbox_messages (workspace_id, guardian_id, trigger, payload, dedupe_key, send_after)
     select ${workspaceId}, sg.guardian_id, ${trigger},
-      jsonb_build_object(
+      ${extra} || jsonb_build_object(
         'sessionId', s.id,
         'startsAt', s.starts_at,
         'timezone', w.timezone,
@@ -36,8 +48,8 @@ async function enqueue(
         'centerEn', w.name_en,
         'subjectAr', sub.name_ar,
         'subjectEn', sub.name_en,
-        'students', jsonb_agg(jsonb_build_object('nameAr', st.name_ar, 'nameEn', st.name_en)
-                              order by st.name_ar)),
+        'students', jsonb_agg(jsonb_build_object('id', st.id, 'nameAr', st.name_ar,
+                              'nameEn', st.name_en) order by st.name_ar)),
       ${trigger} || ':' || s.id || ':' || sg.guardian_id ${dedupeSuffix},
       quiet_hours_send_after(${now.toISOString()}::timestamptz, w.timezone)
     from sessions s
@@ -48,12 +60,23 @@ async function enqueue(
     join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
     where s.workspace_id = ${workspaceId} and s.id = ${sessionId}
       and coalesce((w.settings->'messages'->>${TOGGLE[trigger]})::boolean, true)
+      ${guardianFilter(workspaceId)}
     group by sg.guardian_id, s.id, s.starts_at, w.timezone, w.name_ar, w.name_en, sub.name_ar, sub.name_en
     on conflict (workspace_id, dedupe_key) do nothing`);
 }
 
-/** Session close: the guardians of every absent student. */
-export const enqueueAbsences = (tx: Tx, workspaceId: string, sessionId: string, now: Date) =>
+/**
+ * Session close: the guardians of every absent student. With `studentId` (a manual "absent" after
+ * the close), only that student: same dedupe key, so a guardian already told about this session
+ * gets nothing new, and marking absent twice queues once.
+ */
+export const enqueueAbsences = (
+  tx: Tx,
+  workspaceId: string,
+  sessionId: string,
+  now: Date,
+  studentId?: string,
+) =>
   enqueue(
     tx,
     workspaceId,
@@ -61,7 +84,8 @@ export const enqueueAbsences = (tx: Tx, workspaceId: string, sessionId: string, 
     now,
     'absence',
     sql`select student_id from attendance_records
-        where workspace_id = ${workspaceId} and session_id = ${sessionId} and status = 'absent'`,
+        where workspace_id = ${workspaceId} and session_id = ${sessionId} and status = 'absent'
+          ${studentId ? sql`and student_id = ${studentId}` : sql``}`,
   );
 
 /**
@@ -74,6 +98,8 @@ export const enqueueSessionChange = (
   sessionId: string,
   now: Date,
   trigger: 'session_cancelled' | 'session_moved',
+  // A move: the start before it, so the text can say «حصة السبت 4:00 م أصبحت الأحد 5:00 م».
+  fromStartsAt?: Date,
 ) =>
   enqueue(
     tx,
@@ -87,6 +113,9 @@ export const enqueueSessionChange = (
         where e.workspace_id = ${workspaceId} and s2.id = ${sessionId}
           and e.status = 'active' and st2.status = 'active'`,
     trigger === 'session_moved' ? sql`|| ':' || extract(epoch from s.starts_at)::bigint` : sql``,
+    fromStartsAt
+      ? sql`jsonb_build_object('fromStartsAt', ${fromStartsAt.toISOString()}::timestamptz)`
+      : undefined,
   );
 
 /**
@@ -127,6 +156,7 @@ export async function enqueueExamResults(tx: Tx, workspaceId: string, examId: st
     join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
     where ex.workspace_id = ${workspaceId} and ex.id = ${examId}
       and coalesce((w.settings->'messages'->>${TOGGLE.exam_result})::boolean, true)
+      ${guardianFilter(workspaceId)}
     group by sg.guardian_id, ex.id, w.id, sub.id
     on conflict (workspace_id, dedupe_key) do nothing`);
   return res.rowCount ?? 0;
@@ -163,8 +193,9 @@ export async function enqueueFeeOverdue(tx: Tx, workspaceId: string, now: Date) 
         'period', to_char(ctx.local, 'YYYY-MM'),
         'centerAr', ctx.name_ar,
         'centerEn', ctx.name_en,
-        'students', jsonb_agg(jsonb_build_object('nameAr', st.name_ar, 'nameEn', st.name_en,
-                              'balancePiastres', o.balance) order by st.name_ar)),
+        'students', jsonb_agg(jsonb_build_object('id', st.id, 'nameAr', st.name_ar,
+                              'nameEn', st.name_en, 'balancePiastres', o.balance)
+                              order by st.name_ar)),
       'fee_overdue:' || to_char(ctx.local, 'YYYY-MM') || ':' || sg.guardian_id,
       quiet_hours_send_after(${now.toISOString()}::timestamptz, ctx.timezone)
     from ctx
@@ -173,6 +204,7 @@ export async function enqueueFeeOverdue(tx: Tx, workspaceId: string, now: Date) 
       and st.status = 'active'
     join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
     where extract(day from ctx.local) >= ${OVERDUE_FROM_DAY}
+      ${guardianFilter(workspaceId)}
     group by sg.guardian_id, ctx.local, ctx.name_ar, ctx.name_en, ctx.timezone
     on conflict (workspace_id, dedupe_key) do nothing`);
   return res.rowCount ?? 0;

@@ -93,17 +93,18 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Limit | Impact | Fix by |
 |:--|:--|:--|
 | `whatsapp_opt_in` is not checked | Fine with the console adapter; must be checked before WhatsApp | later (with WhatsApp) |
-| Every linked guardian is texted, not only the primary | Possibly more messages than a center wants | centers |
-| A manual "absent" after close sends nothing | Late corrections don't reach parents | centers |
+| "Primary guardian only" is one switch for the whole center, not per student | A family that wants both parents texted can't have it while the switch is on | later |
+| A late "absent" for a sibling whose guardian was already told about that session sends nothing (one message per guardian per session) | The second child's absence isn't texted | later |
+| "Absent" corrected to "present" after the message went out sends nothing (no apology text) | The parent keeps the wrong message | — |
+| A late "absent" on a session that ended more than 2 days ago texts nobody | Old fixes are record-keeping only | — |
+| The send-time re-check runs one or two queries per row (batches of 50) | Slower sends with big batches | later (group by session) |
 | At-least-once delivery: a crash between the provider call and the commit resends | Duplicate text in a rare crash | later (outbox id as the provider's idempotency key) |
 | Custom wording is free text for the console and SMS stage; WhatsApp only sends pre-approved templates | With WhatsApp, centers will pick from approved texts instead of writing their own | later (with WhatsApp) |
 | An edit to the wording also changes messages already queued (they are filled at send time) | Usually what a center wants (a typo fix); the log shows the text actually sent | — |
 | No length check against SMS segments (500 characters allowed; one SMS is 70 Arabic characters) | Long Arabic texts cost several SMS once a paid provider is used | later (a counter on the screen) |
-| Switching a trigger off doesn't cancel messages already queued (e.g. held by quiet hours) | One last message may still go out | later |
 | Teachers can't see the message log (it shows every parent's phone) | They ask the owner or assistant | centers |
 | The message log shows the newest 100, no pagination or search | Older messages are hidden | later |
-| A moved session's message gives the new time only, not the old one | Parents may not know which session moved if there are several | centers |
-| A fee reminder held by quiet hours still goes out if the parent paid in between | A rare wrong reminder | later (re-check the balance at send time) |
+| Messages queued before Nov 15 (part 2 of the limits plan) skip the send-time re-check and a move among them keeps the old wording | Only rows already waiting at the deploy | — |
 | Fee reminders start on the 7th, fixed in code; the amount is the center-wide balance | No per-center day; a teacher-collected fee shows the total | centers |
 
 ## Tooling

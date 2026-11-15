@@ -2256,7 +2256,7 @@
             "name": "status",
             "schema": {
               "type": "string",
-              "enum": ["queued", "sent", "failed"]
+              "enum": ["queued", "sent", "failed", "skipped"]
             }
           }
         ],
@@ -3707,6 +3707,10 @@
             "type": "boolean"
           },
           "feeOverdue": {
+            "type": "boolean"
+          },
+          "primaryOnly": {
+            "default": false,
             "type": "boolean"
           }
         },
@@ -5368,7 +5372,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["queued", "sent", "failed"]
+            "enum": ["queued", "sent", "failed", "skipped"]
           },
           "phone": {
             "type": "string"
@@ -5421,6 +5425,17 @@
           "lastError": {
             "type": ["string", "null"]
           },
+          "skipReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["paid", "trigger_off", "not_absent"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -5440,6 +5455,7 @@
           "sentAt",
           "body",
           "lastError",
+          "skipReason",
           "createdAt"
         ],
         "additionalProperties": false
@@ -5807,9 +5823,13 @@
           },
           "feeOverdue": {
             "type": "boolean"
+          },
+          "primaryOnly": {
+            "default": false,
+            "type": "boolean"
           }
         },
-        "required": ["absence", "sessionChange", "examResult", "feeOverdue"],
+        "required": ["absence", "sessionChange", "examResult", "feeOverdue", "primaryOnly"],
         "additionalProperties": false
       }
     },

@@ -16,11 +16,12 @@ import { dayLabel, displayTime, localDate } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
 type Status = NonNullable<ListMessagesApiArg['status']>;
-const STATUSES: Status[] = ['queued', 'sent', 'failed'];
+const STATUSES: Status[] = ['queued', 'sent', 'failed', 'skipped'];
 const PILL: Record<Status, string> = {
   queued: 'bg-amber-soft text-amber',
   sent: 'bg-present-soft text-present',
   failed: 'bg-rose-soft text-rose',
+  skipped: 'bg-muted text-muted-foreground',
 };
 const TOGGLES: (keyof MessageSettings)[] = ['absence', 'sessionChange', 'examResult', 'feeOverdue'];
 
@@ -42,6 +43,19 @@ export default function Messages() {
       .unwrap()
       .catch(() => setDraft(undefined));
   };
+  const switchFor = (key: keyof MessageSettings) =>
+    shown && (
+      <label key={key} className="flex min-h-10 items-center gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="size-5 accent-ink"
+          checked={shown[key]}
+          disabled={!isOwner}
+          onChange={(e) => toggle({ ...shown, [key]: e.target.checked })}
+        />
+        {t(`messages.toggles.${key}`)}
+      </label>
+    );
   const log = useListMessagesQuery(status ? { status } : {});
   const names = new Intl.ListFormat(i18n.language, { type: 'conjunction' });
   // The same "السبت 14 نوفمبر · 8:00 ص" as the rest of the app.
@@ -54,19 +68,14 @@ export default function Messages() {
 
       <Panel className="grid gap-3 p-5">
         <h2 className="font-semibold">{t('messages.settings')}</h2>
-        {shown &&
-          TOGGLES.map((key) => (
-            <label key={key} className="flex min-h-10 items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                className="size-5 accent-ink"
-                checked={shown[key]}
-                disabled={!isOwner}
-                onChange={(e) => toggle({ ...shown, [key]: e.target.checked })}
-              />
-              {t(`messages.toggles.${key}`)}
-            </label>
-          ))}
+        {shown && (
+          <>
+            {TOGGLES.map((key) => switchFor(key))}
+            {/* Who gets them, not when: a heading of its own. */}
+            <h3 className="mt-2 text-sm font-semibold">{t('messages.recipients')}</h3>
+            {switchFor('primaryOnly')}
+          </>
+        )}
         {!isOwner && <p className="text-sm text-muted-foreground">{t('messages.ownerOnly')}</p>}
         <FormError message={saving.error && t(errorKey(saving.error))} />
       </Panel>
@@ -131,6 +140,12 @@ export default function Messages() {
                       })}
                     </p>
                   )}
+                {/* Re-checked when it was due, and no longer true: says why it never went out. */}
+                {m.skipReason && (
+                  <p className="text-xs text-muted-foreground">
+                    {t(`messages.skipReason.${m.skipReason}`)}
+                  </p>
+                )}
                 {m.body && (
                   <p dir={m.locale === 'en' ? 'ltr' : 'rtl'} className="text-start">
                     {m.body}

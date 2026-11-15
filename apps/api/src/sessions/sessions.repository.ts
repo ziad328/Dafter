@@ -84,6 +84,11 @@ export class SessionsRepository extends TenantRepository {
         );
       if (same) return true;
       await this.lockTeacher(tx, workspaceId, id);
+      // The old start, for «حصة السبت 4:00 م أصبحت الأحد 5:00 م».
+      const [old] = await tx
+        .select({ startsAt: sessions.startsAt })
+        .from(sessions)
+        .where(this.scheduled(workspaceId, id));
       const rows = await tx
         .update(sessions)
         .set({
@@ -101,7 +106,7 @@ export class SessionsRepository extends TenantRepository {
         .returning({ id: sessions.id });
       if (!rows.length) return false;
       await this.checkTeacher(tx, workspaceId, id);
-      await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved');
+      await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved', old!.startsAt);
       return true;
     }).catch(roomBooked);
   }

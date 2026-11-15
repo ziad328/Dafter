@@ -695,7 +695,7 @@ export type GetReceiptApiArg = {
 };
 export type ListMessagesApiResponse = /** status 200 Messages */ OutboxMessageList;
 export type ListMessagesApiArg = {
-  status?: 'queued' | 'sent' | 'failed';
+  status?: 'queued' | 'sent' | 'failed' | 'skipped';
 };
 export type GetAttendanceSettingsApiResponse = /** status 200 Settings */ AttendanceSettingsOutput;
 export type GetAttendanceSettingsApiArg = void;
@@ -1234,7 +1234,7 @@ export type Receipt = {
 export type OutboxMessage = {
   id: string;
   trigger: 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result' | 'fee_overdue';
-  status: 'queued' | 'sent' | 'failed';
+  status: 'queued' | 'sent' | 'failed' | 'skipped';
   phone: string;
   guardianName: string | null;
   students: string[];
@@ -1244,6 +1244,7 @@ export type OutboxMessage = {
   sentAt: string | null;
   body: string | null;
   lastError: string | null;
+  skipReason: ('paid' | 'trigger_off' | 'not_absent') | null;
   createdAt: string;
 };
 export type OutboxMessageList = OutboxMessage[];
@@ -1275,12 +1276,14 @@ export type MessageSettingsOutput = {
   sessionChange: boolean;
   examResult: boolean;
   feeOverdue: boolean;
+  primaryOnly: boolean;
 };
 export type MessageSettings = {
   absence: boolean;
   sessionChange: boolean;
   examResult: boolean;
   feeOverdue: boolean;
+  primaryOnly?: boolean;
 };
 export type SentMessage = {
   id: string;

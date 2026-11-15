@@ -56,6 +56,7 @@ export class MessagesRepository extends TenantRepository {
           sentAt: outboxMessages.sentAt,
           body: outboxMessages.body,
           lastError: outboxMessages.lastError,
+          skipReason: outboxMessages.skipReason,
           createdAt: outboxMessages.createdAt,
         })
         .from(outboxMessages)
@@ -72,6 +73,7 @@ export class MessagesRepository extends TenantRepository {
     return rows.map((r) => ({
       ...r,
       trigger: r.trigger as OutboxMessage['trigger'],
+      skipReason: r.skipReason as OutboxMessage['skipReason'],
       sendAfter: r.sendAfter.toISOString(),
       sentAt: iso(r.sentAt),
       createdAt: r.createdAt.toISOString(),
@@ -104,6 +106,7 @@ export class MessagesRepository extends TenantRepository {
       sessionChange: true,
       examResult: true,
       feeOverdue: false,
+      primaryOnly: false,
       ...row?.messages,
     };
   }

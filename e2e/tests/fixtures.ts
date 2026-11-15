@@ -127,5 +127,7 @@ export async function ownerApi(
       (await request.post(`/api/v1/${url}`, { headers: { ...headers, ...extra }, data })).json(),
     put: async (url: string, data?: object) =>
       (await request.put(`/api/v1/${url}`, { headers, data })).json(),
+    // The raw response, for a caller that checks the status.
+    patch: (url: string, data?: object) => request.patch(`/api/v1/${url}`, { headers, data }),
   };
 }

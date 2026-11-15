@@ -84,6 +84,7 @@ export class AttendanceService {
       actorId,
       this.clock.now(),
     );
+    await this.outbox.afterCommit(ctx.workspaceId);
     return record;
   }
 

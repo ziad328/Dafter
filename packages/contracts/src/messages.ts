@@ -23,7 +23,11 @@ export const messageTrigger = z.enum([
   'exam_result',
   'fee_overdue',
 ]);
-export const messageStatus = z.enum(['queued', 'sent', 'failed']);
+// skipped: re-checked at send time and no longer true (see skipReason); never sent.
+export const messageStatus = z.enum(['queued', 'sent', 'failed', 'skipped']);
+// paid: every child's balance was zero; trigger_off: the center switched the message off since;
+// not_absent: every child was marked present (or excused) after the session closed.
+export const skipReason = z.enum(['paid', 'trigger_off', 'not_absent']);
 
 /**
  * Per-workspace switches: which events message parents. All default to on, except the monthly
@@ -35,6 +39,9 @@ export const messageSettings = z
     sessionChange: z.boolean(),
     examResult: z.boolean(),
     feeOverdue: z.boolean(),
+    // Only the primary guardian of each student gets messages (default off: every guardian).
+    // A default, so a save from a page loaded before this switch existed still validates.
+    primaryOnly: z.boolean().default(false),
   })
   .meta({ id: 'MessageSettings' });
 
@@ -58,6 +65,7 @@ export const outboxMessage = z
     sentAt: z.iso.datetime().nullable(),
     body: z.string().nullable(),
     lastError: z.string().nullable(),
+    skipReason: skipReason.nullable(),
     createdAt: z.iso.datetime(),
   })
   .meta({ id: 'OutboxMessage' });

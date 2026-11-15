@@ -155,7 +155,12 @@ export class AttendanceRepository extends TenantRepository {
     return rows.length > 0;
   }
 
-  /** A manual mark replaces whatever is there (a scan, auto-close or an earlier mark). */
+  /**
+   * A manual mark replaces whatever is there (a scan, auto-close or an earlier mark). "Absent"
+   * on a closed session that ended in the last 2 days (a late correction) tells that student's
+   * guardians, in the same transaction; the close already told the others. Older fixes are
+   * record-keeping and text nobody.
+   */
   mark(
     workspaceId: string,
     sessionId: string,
@@ -184,6 +189,20 @@ export class AttendanceRepository extends TenantRepository {
           ],
           set: values,
         });
+      if (status === 'absent') {
+        const [closed] = await tx
+          .select({ id: sessions.id })
+          .from(sessions)
+          .where(
+            and(
+              eq(sessions.workspaceId, workspaceId),
+              eq(sessions.id, sessionId),
+              eq(sessions.status, 'closed'),
+              sql`${sessions.endsAt} > ${now.toISOString()}::timestamptz - interval '2 days'`,
+            ),
+          );
+        if (closed) await enqueueAbsences(tx, workspaceId, sessionId, now, studentId);
+      }
       return (await this.list(tx, workspaceId, sessionId, studentId))[0]!;
     });
   }

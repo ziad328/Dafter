@@ -97,3 +97,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** a center's wording per trigger and language lives in `workspaces.settings.templates` (null = default); the defaults, the placeholder lists and `fillTemplate` are in `packages/contracts`; the sender fills the text at send time; unknown placeholders are refused on save (`TEMPLATE_PLACEHOLDER_UNKNOWN`).
 - **Alternatives:** a `message_templates` table (a migration, RLS and a join for ten strings per center); rendering when the message is queued (an edit would never reach messages already waiting); free text without placeholders (the center would type each name).
 - **Why:** no migration, one read per send pass, a preview that matches the sent text, and stored bodies keep the log honest.
+
+## 2026-11-15 · v1: re-check outbox rows at send time, keep them as `skipped`
+
+- **Decision:** the sender re-reads the facts a message states (trigger switch, balances, absences) on the locked row just before the provider call, rewrites the payload or marks the row `skipped` with a reason.
+- **Alternatives:** delete or update queued rows from every write that could make them stale (payments, reversals, attendance edits, settings); delete the row instead of `skipped` (the dedupe key would free up and a rerun could queue it again).
+- **Why:** one place knows the rules, quiet-hour rows are covered, and the log shows why a message never went out.

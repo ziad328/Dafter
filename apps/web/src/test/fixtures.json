@@ -570,7 +570,8 @@
       "sentAt": null,
       "body": null,
       "lastError": null,
-      "createdAt": "2026-11-14T03:50:35.842Z"
+      "createdAt": "2026-11-14T03:50:35.842Z",
+      "skipReason": null
     },
     {
       "id": "d98a3e47-ce0a-4339-990f-21c51a8028d3",
@@ -585,7 +586,8 @@
       "sentAt": null,
       "body": null,
       "lastError": null,
-      "createdAt": "2026-11-14T03:50:35.749Z"
+      "createdAt": "2026-11-14T03:50:35.749Z",
+      "skipReason": null
     },
     {
       "id": "9329608d-8720-4a59-95f8-31d5916b0e35",
@@ -600,7 +602,8 @@
       "sentAt": null,
       "body": null,
       "lastError": null,
-      "createdAt": "2026-11-14T03:41:32.312Z"
+      "createdAt": "2026-11-14T03:41:32.312Z",
+      "skipReason": null
     },
     {
       "id": "65f07634-5744-438b-9647-6725f24f18b8",
@@ -615,14 +618,16 @@
       "sentAt": null,
       "body": null,
       "lastError": null,
-      "createdAt": "2026-11-14T03:41:30.148Z"
+      "createdAt": "2026-11-14T03:41:30.148Z",
+      "skipReason": null
     }
   ],
   "messageSettings": {
     "absence": true,
     "sessionChange": true,
     "examResult": true,
-    "feeOverdue": false
+    "feeOverdue": false,
+    "primaryOnly": false
   },
   "phone": []
 }

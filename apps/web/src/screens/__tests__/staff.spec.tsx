@@ -164,10 +164,32 @@ describe('messages', () => {
         sessionChange: true,
         examResult: true,
         feeOverdue: false,
+        primaryOnly: false,
       });
     expect(absence).not.toBeChecked();
     await user.click(screen.getByRole('button', { name: tr('messages.status.sent') }));
     expect(await screen.findByText(tr('messages.empty'))).toBeVisible();
+  });
+
+  it('says why a skipped message never went out, and turns on primary guardian only', async () => {
+    server.use(
+      http.get(route('messages'), ({ request }) =>
+        Response.json(
+          new URL(request.url).searchParams.get('status') === 'skipped'
+            ? [{ ...full, status: 'skipped', skipReason: 'paid', body: null, attempts: 0 }]
+            : [],
+        ),
+      ),
+    );
+    const { user } = await renderAt('/messages', { lang: 'en' });
+    await user.click(await screen.findByRole('button', { name: tr('messages.status.skipped') }));
+    const log = await screen.findByTestId('message-log');
+    expect(within(log).getByText(tr('messages.status.skipped'))).toBeVisible();
+    expect(within(log).getByText(tr('messages.skipReason.paid'))).toBeVisible();
+    await user.click(screen.getByRole('checkbox', { name: tr('messages.toggles.primaryOnly') }));
+    await expect
+      .poll(() => call('PUT /api/v1/message-settings')?.body)
+      .toMatchObject({ primaryOnly: true, absence: true });
   });
 
   it('puts a switch back when saving fails', async () => {

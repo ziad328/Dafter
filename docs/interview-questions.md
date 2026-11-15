@@ -174,3 +174,15 @@ Two moves of different groups by one teacher touch different session rows, so no
 
 **3. Why check the teacher clash after the `UPDATE` instead of before?**
 After the update the session row already holds the new times, so the overlap query compares stored rows only (no time maths repeated in two places), skips the session itself with `o.id <> s.id`, and a clash just throws: the transaction rolls the move back and no "session moved" message is queued.
+
+## v1 · Messages that are always right (outbox)
+
+**1. A fee reminder is queued at 23:00 and held by quiet hours; the parent pays at 07:30. What stops the 08:00 text?**
+The sender re-checks each row after locking it (`FOR UPDATE SKIP LOCKED`): it sums the children's ledger entries again, drops the ones at zero, and marks the row `skipped/paid` when none are left. The check and the send happen in one transaction, under the same lock that stops two senders taking the row.
+
+**2. Why mark the row `skipped` instead of deleting it?**
+The unique `dedupe_key` is what makes the job safe to rerun. Deleting the row frees the key, so the next daily run would queue the same reminder again. Keeping it also lets the log say why nothing went out.
+
+**3. A teacher marks a student absent after the session closed. How does the parent get exactly one message?**
+The mark runs `enqueueAbsences` for that one student in the same transaction as the attendance write, with the usual `absence:<session>:<guardian>` key and `ON CONFLICT DO NOTHING`. Marking absent twice, or a guardian already told at close, hits the same key and queues nothing.
+
