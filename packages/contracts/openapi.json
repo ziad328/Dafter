@@ -2273,6 +2273,82 @@
         }
       }
     },
+    "/api/v1/attendance-settings": {
+      "get": {
+        "operationId": "getAttendanceSettings",
+        "tags": ["attendance"],
+        "description": "Every staff role. The late threshold (default 15 minutes).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceSettingsOutput"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateAttendanceSettings",
+        "tags": ["attendance"],
+        "description": "Owner only. Applies to check-ins from now on.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttendanceSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceSettingsOutput"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/message-templates": {
       "get": {
         "operationId": "listMessageTemplates",
@@ -3567,6 +3643,17 @@
           }
         },
         "required": ["studentId", "groupId", "amountPiastres", "method"]
+      },
+      "AttendanceSettings": {
+        "type": "object",
+        "properties": {
+          "lateAfterMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          }
+        },
+        "required": ["lateAfterMinutes"]
       },
       "UpdateMessageTemplateRequest": {
         "type": "object",
@@ -5676,6 +5763,18 @@
           }
         },
         "required": ["weekday", "startTime", "endTime"],
+        "additionalProperties": false
+      },
+      "AttendanceSettingsOutput": {
+        "type": "object",
+        "properties": {
+          "lateAfterMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          }
+        },
+        "required": ["lateAfterMinutes"],
         "additionalProperties": false
       },
       "MessageSettingsOutput": {

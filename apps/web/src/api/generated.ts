@@ -337,6 +337,24 @@ const injectedRtkApi = api
         }),
         providesTags: ['messages'],
       }),
+      getAttendanceSettings: build.query<
+        GetAttendanceSettingsApiResponse,
+        GetAttendanceSettingsApiArg
+      >({
+        query: () => ({ url: `/api/v1/attendance-settings` }),
+        providesTags: ['attendance'],
+      }),
+      updateAttendanceSettings: build.mutation<
+        UpdateAttendanceSettingsApiResponse,
+        UpdateAttendanceSettingsApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/v1/attendance-settings`,
+          method: 'PUT',
+          body: queryArg.attendanceSettings,
+        }),
+        invalidatesTags: ['attendance'],
+      }),
       listMessageTemplates: build.query<
         ListMessageTemplatesApiResponse,
         ListMessageTemplatesApiArg
@@ -671,6 +689,12 @@ export type GetReceiptApiArg = {
 export type ListMessagesApiResponse = /** status 200 Messages */ OutboxMessageList;
 export type ListMessagesApiArg = {
   status?: 'queued' | 'sent' | 'failed';
+};
+export type GetAttendanceSettingsApiResponse = /** status 200 Settings */ AttendanceSettingsOutput;
+export type GetAttendanceSettingsApiArg = void;
+export type UpdateAttendanceSettingsApiResponse = /** status 200 Saved */ AttendanceSettingsOutput;
+export type UpdateAttendanceSettingsApiArg = {
+  attendanceSettings: AttendanceSettings;
 };
 export type ListMessageTemplatesApiResponse = /** status 200 Templates */ MessageTemplateList;
 export type ListMessageTemplatesApiArg = void;
@@ -1214,6 +1238,12 @@ export type OutboxMessage = {
   createdAt: string;
 };
 export type OutboxMessageList = OutboxMessage[];
+export type AttendanceSettingsOutput = {
+  lateAfterMinutes: number;
+};
+export type AttendanceSettings = {
+  lateAfterMinutes: number;
+};
 export type MessageTemplate = {
   trigger: 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result' | 'fee_overdue';
   placeholders: string[];
@@ -1401,6 +1431,8 @@ export const {
   useReverseEntryMutation,
   useGetReceiptQuery,
   useListMessagesQuery,
+  useGetAttendanceSettingsQuery,
+  useUpdateAttendanceSettingsMutation,
   useListMessageTemplatesQuery,
   useUpdateMessageTemplateMutation,
   useGetMessageSettingsQuery,

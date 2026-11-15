@@ -66,3 +66,10 @@ export type CheckIn = z.infer<typeof checkIn>;
 export type MarkAttendanceRequest = z.infer<typeof markAttendanceRequest>;
 export type RosterEntry = z.infer<typeof rosterEntry>;
 export type AttendanceRecord = z.infer<typeof attendanceRecord>;
+
+/** Per-workspace attendance rules. A check-in this many minutes after the start is "late". */
+export const attendanceSettings = z
+  .object({ lateAfterMinutes: z.int().min(0).max(120) })
+  .meta({ id: 'AttendanceSettings' });
+
+export type AttendanceSettings = z.infer<typeof attendanceSettings>;

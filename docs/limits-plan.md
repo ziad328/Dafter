@@ -8,12 +8,12 @@ Written Nov 15 from `docs/known-limits.md`. That file stays the full list; this 
 
 Nothing here needs the center interviews. Good filler between bigger features.
 
-- [ ] **Archive a group from the UI.** An "Archive" / "Restore" action on the group page (the API already takes `status`). Archived groups drop out of Today and the timetable.
-- [ ] **Late threshold setting.** A number field on the workspace settings («يُعتبر متأخرًا بعد … دقيقة»), saved to `settings.lateAfterMinutes` (default 15, 0–120).
-- [ ] **Keep the QR screen awake.** `navigator.wakeLock.request('screen')` while the live session is open, released on close or tab hide; no-op where unsupported.
+- [x] **Archive a group from the UI.** Done Nov 15. An "Archive" / "Restore" action on the group page (the API already takes `status`). Archived groups drop out of Today and the timetable.
+- [x] **Late threshold setting.** Done Nov 15 (on a new `/settings` screen). A number field on the workspace settings («يُعتبر متأخرًا بعد … دقيقة»), saved to `settings.lateAfterMinutes` (default 15, 0–120).
+- [x] **Keep the QR screen awake.** Done Nov 15. `navigator.wakeLock.request('screen')` while the live session is open, released on close or tab hide; no-op where unsupported.
 - [ ] **Group capacity on enroll.** `GROUP_FULL` when active enrollments reach `capacity`; the owner can still override with a confirm (`force: true`).
-- [ ] **Teacher double-booking on move.** Same shape as the room check: moving a session to a time when the teacher has another non-cancelled session returns `TEACHER_BOOKED`. Group slots get the same check against the teacher's other groups.
-- [ ] **Room capacity hint.** A warning (not an error) on the group form when the group's capacity is above the room's.
+- [ ] **Teacher double-booking on move.** Moving a session to a time when the teacher has another non-cancelled session returns `TEACHER_BOOKED`. The same check on group slots waits: the e2e tests create many groups for one seeded teacher at Saturday 16:00, so it needs those fixtures moved to distinct times first.
+- [x] **Room capacity hint.** Done Nov 15. A warning (not an error) on the group form when the group's capacity is above the room's.
 - [ ] **Dashboard range.** A `weeks` query param (8 default, max 26) and a 8 / 13 / 26 switch on the screen.
 
 ## Batch 2 · Messages that are always right (M, *hard part: outbox*)

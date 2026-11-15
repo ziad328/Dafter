@@ -1,5 +1,6 @@
 import { createGroupRequest, type CreateGroupRequest, type Group } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useFieldArray, useForm, type FieldError } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -69,13 +70,28 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
   const [create, created] = useCreateGroupMutation();
   const [update, updated] = useUpdateGroupMutation();
   const saving = created.isLoading || updated.isLoading;
+  // Archiving takes a second tap; restoring doesn't.
+  const [confirming, setConfirming] = useState(false);
+  const archived = group?.status === 'archived';
+  const toggleArchive = async () => {
+    if (!archived && !confirming) return setConfirming(true);
+    const res = await update({
+      id: id!,
+      updateGroupRequest: { status: archived ? 'active' : 'archived' },
+    });
+    if (res.data) void navigate('/groups');
+  };
   const error = created.error ?? updated.error;
 
-  const { register, control, handleSubmit, formState } = useForm<CreateGroupRequest>({
+  const { register, control, handleSubmit, formState, watch } = useForm<CreateGroupRequest>({
     resolver: zodResolver(createGroupRequest),
     defaultValues: group ? toForm(group) : { slots: [blankSlot] },
   });
   const slots = useFieldArray({ control, name: 'slots' });
+  // A warning, not an error: a center may seat more students than the room's listed seats.
+  const room = rooms.find((r) => r.id === watch('roomId'));
+  const capacity = watch('capacity');
+  const overRoom = !!room?.capacity && !!capacity && capacity > room.capacity;
   const { errors } = formState;
 
   const onSubmit = handleSubmit(async (body) => {
@@ -188,6 +204,11 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
                 setValueAs: (v: string | null) => (v === '' || v === null ? null : Number(v)),
               })}
             />
+            {overRoom && (
+              <p role="note" className="text-sm text-amber">
+                {t('groups.overRoom', { capacity: room.capacity!, room: room.name })}
+              </p>
+            )}
             <Field
               label={`${t('groups.monthlyFee')} ${t('form.optional')}`}
               inputMode="decimal"
@@ -259,6 +280,25 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
             <Button type="submit" disabled={saving}>
               {t(id ? 'groups.save' : 'groups.create')}
             </Button>
+            {group && (
+              <Button
+                type="button"
+                variant={confirming ? 'destructive' : 'outline'}
+                disabled={saving}
+                onClick={() => void toggleArchive()}
+              >
+                {t(
+                  archived
+                    ? 'groups.restore'
+                    : confirming
+                      ? 'groups.confirmArchive'
+                      : 'groups.archive',
+                )}
+              </Button>
+            )}
+            {confirming && (
+              <p className="text-sm text-muted-foreground">{t('groups.archiveHint')}</p>
+            )}
           </CardContent>
         </form>
       </Card>

@@ -127,7 +127,12 @@
     "labelHint": "Tells two groups of the same subject and grade apart, e.g. Group A.",
     "room": "Room",
     "noRoom": "No room",
-    "roomBookedAt": "The room is taken on {day} {time} by another group"
+    "roomBookedAt": "The room is taken on {day} {time} by another group",
+    "archive": "Archive group",
+    "confirmArchive": "Tap again to archive",
+    "restore": "Restore group",
+    "archiveHint": "The group leaves Today and the timetable, and its upcoming sessions are removed. Its records stay.",
+    "overRoom": "The capacity is more than the seats in {room} ({capacity})"
   },
   "roles": {
     "owner": "Owner",
@@ -511,7 +516,8 @@
     "fees": "Fees",
     "dashboard": "Dashboard",
     "cashSummary": "Cash summary",
-    "rooms": "Rooms"
+    "rooms": "Rooms",
+    "settings": "Settings"
   },
   "today": {
     "next": "Next session",
@@ -621,5 +627,14 @@
     "noCapacity": "No set capacity",
     "invalid": "Type a room name; capacity is a number from 1 to 1000",
     "seats": "{count, plural, one {# seat} other {# seats}}"
+  },
+  "settings": {
+    "title": "Settings",
+    "attendance": "Attendance",
+    "late": "A student is late after (minutes)",
+    "lateHint": "From the start of the session. 0 means any delay counts.",
+    "invalid": "Type a number from 0 to 120",
+    "save": "Save",
+    "saved": "Saved"
   }
 }

@@ -3,6 +3,7 @@ import { List, Maximize, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useWakeLock } from '@/lib/wake-lock';
 import { useDispatch } from 'react-redux';
 import { Link, useParams } from 'react-router';
 import {
@@ -46,6 +47,8 @@ export default function SessionLive() {
   const [session, setSession] = useState<{ open: OpenSession; offset: number }>();
   // Phones: the QR alone over the whole screen (no header or tab bar), for students to scan.
   const [full, setFull] = useState(false);
+  // The QR must stay on screen for the whole check-in, so the phone or laptop never dims.
+  useWakeLock(!!session && !closed);
 
   useEffect(() => {
     const sent = Date.now();

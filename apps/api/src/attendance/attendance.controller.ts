@@ -18,6 +18,8 @@ import { interval, map, merge, type Observable } from 'rxjs';
 import * as z from 'zod';
 import {
   type AttendanceRecord,
+  type AttendanceSettings,
+  attendanceSettings,
   type CheckIn,
   type CheckInRequest,
   checkInRequest,
@@ -31,6 +33,8 @@ import { TenantGuard, type TenantedRequest } from '../workspaces/tenant.guard.js
 import { SessionsService } from '../sessions/sessions.service.js';
 import { ZodPipe } from '../zod-pipe.js';
 import { AppError } from '../errors.js';
+import type { AuditedRequest } from '../audit.interceptor.js';
+import { AttendanceRepository } from './attendance.repository.js';
 import { AttendanceService } from './attendance.service.js';
 
 /**
@@ -124,5 +128,27 @@ export class CheckInsController {
     @Body(new ZodPipe(checkInRequest)) body: CheckInRequest,
   ): Promise<CheckIn> {
     return this.attendance.checkIn(req.userId, body);
+  }
+}
+
+/** Policy: every staff role reads the late threshold (the live screen shows it); the owner sets it. */
+@Controller('attendance-settings')
+@UseGuards(AuthGuard, TenantGuard)
+export class AttendanceSettingsController {
+  constructor(@Inject(AttendanceRepository) private readonly repo: AttendanceRepository) {}
+
+  @Get()
+  get(@Req() req: TenantedRequest): Promise<AttendanceSettings> {
+    return this.repo.settings(req.workspaceId);
+  }
+
+  @Put()
+  set(
+    @Req() req: TenantedRequest & AuditedRequest,
+    @Body(new ZodPipe(attendanceSettings)) body: AttendanceSettings,
+  ): Promise<AttendanceSettings> {
+    if (req.role !== 'owner') throw new AppError('FORBIDDEN');
+    req.audit = { entityId: req.workspaceId };
+    return this.repo.setSettings(req.workspaceId, body);
   }
 }

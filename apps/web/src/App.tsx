@@ -43,6 +43,7 @@ const ExamSheet = lazyPage(() => import('./screens/ExamSheet'));
 const Dashboard = lazyPage(() => import('./screens/Dashboard'));
 const CashSummary = lazyPage(() => import('./screens/CashSummary'));
 const Rooms = lazyPage(() => import('./screens/Rooms'));
+const Settings = lazyPage(() => import('./screens/Settings'));
 
 /** Signed-out screens and the student app: the wordmark, the notebook's red line, one column. */
 function Layout() {
@@ -147,6 +148,7 @@ export const routes: RouteObject[] = [
           { path: '/dashboard', element: <Dashboard /> },
           { path: '/cash-summary', element: <CashSummary /> },
           { path: '/rooms', element: <Rooms /> },
+          { path: '/settings', element: <Settings /> },
         ],
       },
     ],

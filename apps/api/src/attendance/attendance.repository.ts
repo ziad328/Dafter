@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
-import type { AttendanceRecord, MarkAttendanceRequest, RosterEntry } from '@dafter/contracts';
+import type {
+  AttendanceRecord,
+  AttendanceSettings,
+  MarkAttendanceRequest,
+  RosterEntry,
+} from '@dafter/contracts';
 import {
   attendanceRecords,
   enrollments,
@@ -18,6 +23,30 @@ const DEFAULT_LATE_MINUTES = 15;
 
 @Injectable()
 export class AttendanceRepository extends TenantRepository {
+  async settings(workspaceId: string): Promise<AttendanceSettings> {
+    const [row] = await this.inTenant(workspaceId, (tx) =>
+      tx
+        .select({
+          lateAfterMinutes: sql<number>`coalesce((${workspaces.settings}->>'lateAfterMinutes')::int, ${DEFAULT_LATE_MINUTES})`,
+        })
+        .from(workspaces)
+        .where(eq(workspaces.id, workspaceId)),
+    );
+    return row!;
+  }
+
+  async setSettings(workspaceId: string, value: AttendanceSettings) {
+    await this.inTenant(workspaceId, (tx) =>
+      tx
+        .update(workspaces)
+        .set({
+          settings: sql`${workspaces.settings} || jsonb_build_object('lateAfterMinutes', ${value.lateAfterMinutes}::int)`,
+        })
+        .where(eq(workspaces.id, workspaceId)),
+    );
+    return value;
+  }
+
   /** scheduled -> open; an already open session stays as it is. False when neither. */
   async open(workspaceId: string, id: string, now: Date) {
     return this.inTenant(workspaceId, async (tx) => {

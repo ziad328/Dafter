@@ -25,6 +25,7 @@ import {
   checkInRequest,
   markAttendanceRequest,
   openSession,
+  attendanceSettings,
 } from './attendance.js';
 import { createEnrollmentRequest, enrollment, enrollmentList } from './enrollments.js';
 import {
@@ -662,6 +663,29 @@ export function buildOpenApi() {
           requestParams: { query: listMessagesQuery },
           responses: {
             200: { description: 'Messages', content: json(outboxMessageList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/attendance-settings': {
+        get: {
+          operationId: 'getAttendanceSettings',
+          tags: ['attendance'],
+          description: 'Every staff role. The late threshold (default 15 minutes).',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'Settings', content: json(attendanceSettings) },
+            ...errors,
+          },
+        },
+        put: {
+          operationId: 'updateAttendanceSettings',
+          tags: ['attendance'],
+          description: 'Owner only. Applies to check-ins from now on.',
+          security: [{ bearer: [] }],
+          requestBody: { required: true, content: json(attendanceSettings) },
+          responses: {
+            200: { description: 'Saved', content: json(attendanceSettings) },
             ...errors,
           },
         },

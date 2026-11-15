@@ -40,9 +40,8 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 |:--|:--|:--|
 | Rooms: a session generated at a time a moved session already holds in the room gets no room (shown without one) instead of failing | The owner fixes that one session by hand | — |
 | Rooms: a session can't be moved to another room on its own; only the group's room changes (for its future sessions) | A one-off room swap means moving the group | later |
-| Rooms: no check against the room's capacity (a 40-student group fits a 20-seat room) | Overfull rooms aren't flagged | later |
+| Rooms: a group above the room's seats gets a warning on the form, not an error | The owner decides | — |
 | Rooms work in independent workspaces too (the data model said centers only) | Harmless; the screen sits under More for everyone | — |
-| No archive button for groups in the UI (the API supports `status`) | Owners can't archive from the screen | v0 if time |
 | Curriculum (subjects, grades) can't be edited | Centers with other subjects are stuck | centers |
 | No group capacity check on enroll | A group can be over-filled | centers |
 | Moving a session doesn't check the teacher's other sessions | Double-booked teacher | centers |
@@ -58,8 +57,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Real camera, PWA install, invite paste and binding never checked on a real iPhone and Android phone | The core student flow is only tested with hooks | v0 (one manual try each) |
 | No "too early to open" check on opening a session | A session can be opened days ahead | centers |
 | `POST /check-ins` has no rate limit | Abuse by a bound device | centers |
-| No UI for the late threshold (`settings.lateAfterMinutes`, default 15) | Fixed 15 minutes | centers |
-| No wake-lock or brightness handling on the QR screen | The screen may dim during class | v0 if time |
+| The QR screen's wake lock needs the Screen Wake Lock API (iOS 16.4+, Chrome 84+); older phones may still dim | Rare on current phones | — |
 | A student on a video call can relay the QR | Known weakness of rotating QR (architecture.md) | — (documented) |
 | No offline screen when the API is unreachable | The PWA shows errors | later |
 

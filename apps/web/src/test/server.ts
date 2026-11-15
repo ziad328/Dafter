@@ -255,6 +255,11 @@ export const handlers = [
       };
     }),
   ),
+  http.get(api('attendance-settings'), log({ lateAfterMinutes: 15 })),
+  http.put(
+    api('attendance-settings'),
+    log(async (req) => (await req.json()) as object),
+  ),
   // No rooms by default (most centers start without); rooms.spec.tsx adds them.
   http.get(api('rooms'), log([])),
   http.post(
