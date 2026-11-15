@@ -38,6 +38,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
+| No rooms: a group has no room, so two groups can be booked in one room at the same time (product module 2) | The owner checks clashes by eye | centers (next feature, `docs/v1-next.md`) |
 | No archive button for groups in the UI (the API supports `status`) | Owners can't archive from the screen | v0 if time |
 | Curriculum (subjects, grades) can't be edited | Centers with other subjects are stuck | centers |
 | No group capacity check on enroll | A group can be over-filled | centers |
@@ -65,6 +66,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
+| Only monthly fees: no per-session or package-of-N plans (product module 5) | Centers that charge per session can't use the ledger yet | centers (after the interviews) |
 | No proration for mid-month joins | A student who joins on the 25th pays the full month | centers |
 | No nightly balance check | Drift would go unnoticed (the ledger is append-only) | later |
 | Students don't see their balance | Parents ask the center | later |

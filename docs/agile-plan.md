@@ -53,15 +53,15 @@ A solo version of Scrum: fixed two-week sprints with a Kanban board inside each 
 
 | Sprint | Dates | Goal | Main stories | Demo | Status |
 | --- | --- | --- | --- | --- | --- |
-| 0 | Nov 14 – Nov 27 | A deployed "hello" app with the full pipeline | Monorepo, Docker Compose, Drizzle setup, CI with all 7 checks, VPS with staging and production, design tokens, AR/EN shell with RTL | Merging a PR deploys to staging automatically | Not started |
-| 1 | Nov 28 – Dec 11 | Secure multi-tenant accounts | Register, login, refresh rotation, workspaces, invites, workspace switch, tenant guard, RLS, isolation test suite | Two users, two workspaces, no leaks | Not started |
-| 2 | Dec 12 – Dec 25 | A real weekly timetable | Subjects and levels seed, rooms, groups, slots, session generation, room conflict check, timetable screen | A center's full week on screen | Not started |
-| 3 | Dec 26 – Jan 8 | Students in under 20 seconds | Students, guardians, Arabic search, enrollment, student invites and email login codes; interview 3 to 5 centers (open questions) | Register and enroll at "the door" | Not started |
-| 4 | Jan 9 – Jan 22 | Door-speed attendance | Rotating session QR, student check-in with device keys, live list, manual marking, close session, make-ups | 30 phones check in from one rotating QR | Not started |
-| 5 | Jan 23 – Feb 5 | Parents hear about it | Outbox, relay, worker, console adapter, templates AR/EN, quiet hours, message log, WhatsApp adapter in test mode | Close a session, the parent's "fake phone" buzzes | Not started |
-| 6 | Feb 6 – Feb 19 | Money that is never wrong | Fee plans, charge job, ledger, payments with idempotency, reversals, receipt PDF, cash summary, unpaid report | Pay, reverse, pay again; totals match | Not started |
-| 7 | Feb 20 – Mar 5 | Grades and the owner's day | Exams, score grid, results to parents, today dashboard | Owner sees today in one screen | Not started |
-| 8 | Mar 6 – Mar 19 | Release v1.0 | k6 at target load, security review (OWASP top 10), restore drill, onboarding flow, demo seed, README, landing page, pilot center onboarding | Live link and a 3-minute product video | Not started |
+| 0 | Nov 14 – Nov 27 | A deployed "hello" app with the full pipeline | Monorepo, Docker Compose, Drizzle setup, CI with all 7 checks, VPS with staging and production, design tokens, AR/EN shell with RTL | Merging a PR deploys to staging automatically | Done (Nov 13) on Vercel Hobby + Neon, not a VPS; no staging environment |
+| 1 | Nov 28 – Dec 11 | Secure multi-tenant accounts | Register, login, refresh rotation, workspaces, invites, workspace switch, tenant guard, RLS, isolation test suite | Two users, two workspaces, no leaks | Done (Nov 13) |
+| 2 | Dec 12 – Dec 25 | A real weekly timetable | Subjects and levels seed, rooms, groups, slots, session generation, room conflict check, timetable screen | A center's full week on screen | Done except rooms and the room conflict check |
+| 3 | Dec 26 – Jan 8 | Students in under 20 seconds | Students, guardians, Arabic search, enrollment, student invites and email login codes; interview 3 to 5 centers (open questions) | Register and enroll at "the door" | Done (Nov 13); center interviews not held yet |
+| 4 | Jan 9 – Jan 22 | Door-speed attendance | Rotating session QR, student check-in with device keys, live list, manual marking, close session, make-ups | 30 phones check in from one rotating QR | Done (Nov 13) |
+| 5 | Jan 23 – Feb 5 | Parents hear about it | Outbox, relay, worker, console adapter, templates AR/EN, quiet hours, message log, WhatsApp adapter in test mode | Close a session, the parent's "fake phone" buzzes | Done except editable templates and the WhatsApp test-mode adapter |
+| 6 | Feb 6 – Feb 19 | Money that is never wrong | Fee plans, charge job, ledger, payments with idempotency, reversals, receipt PDF, cash summary, unpaid report | Pay, reverse, pay again; totals match | Done for monthly fees (cash summary Nov 15); per-session and package plans wait on the interviews; receipts are print-ready HTML (rule 12), not PDF |
+| 7 | Feb 20 – Mar 5 | Grades and the owner's day | Exams, score grid, results to parents, today dashboard | Owner sees today in one screen | Done (Nov 15) |
+| 8 | Mar 6 – Mar 19 | Release v1.0 | k6 at target load, security review (OWASP top 10), restore drill, onboarding flow, demo seed, README, landing page, pilot center onboarding | Live link and a 3-minute product video | Partly: demo seed, README and live link done (v0.1.0); k6, security review, restore drill, onboarding, landing page, pilot not started |
 
 ## After the MVP
 

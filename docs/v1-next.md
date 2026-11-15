@@ -21,9 +21,26 @@ Written on Nov 15 after exams, the dashboard and fee reminders (`93662a4`, `cc3c
 - ~~**No Playwright for background jobs:**~~ fixed Nov 15: `.env.example` (so CI too) sets a dev-only `CRON_SECRET=dev-cron-secret`, Playwright loads the root `.env`, and `fee-reminders.spec.ts` runs `/internal/tick?daily=1` and finds the reminder in the message log.
 - **Not checked by eye on a real phone:** the exam grid, "My grades", the dashboard and the new switch were only checked by the 375 px tests.
 
+## Done since
+
+- **End-of-day cash summary (Nov 15, `91e7790`):** `GET /stats/cash-summary` and the print-ready `/cash-summary` page. Limits are in `docs/known-limits.md` (Money).
+- **Fee reminders in Playwright (Nov 15, `fb0f79f`):** the dev `CRON_SECRET` and `fee-reminders.spec.ts`.
+- **Neon owner password reset (Nov 15):** done by Ziad; the live smoke test passes after it.
+
+## What's left of the MVP (`docs/product.md`)
+
+| Module | Gap | Waits on |
+|:--|:--|:--|
+| 2. Groups and schedules | Rooms, and "two groups cannot be booked in the same room at overlapping times" | Nothing: **next feature** |
+| 1. Accounts | An invite carries the assistant's teachers (today the owner ticks them after the assistant joins) | Nothing (small) |
+| 7. Messaging | Each workspace edits its Arabic and English templates | Nothing, but WhatsApp needs pre-approved templates, so maybe keep fixed wording |
+| 5. Fees | Per-session and package-of-N fee plans | The center interviews (open questions in `product.md`) |
+
+Outside the code: the manual iPhone and Android try (`docs/deploy.md` step 6), deleting the local `.env.vercel-secrets`, the demo video, and the center interviews.
+
 ## Next feature
 
-The remaining MVP gap in `docs/product.md` (module 5): **an end-of-day cash summary for each assistant**, the money they took today by method, to hand over to the owner. It builds on `GET /stats/collections` (the same "payments minus their reversals" rule), with `created_by` on `ledger_entries` naming who took each payment.
+**Rooms and the room conflict check** (module 2, Sprint 2's leftover). `docs/data-model-api.md` already plans `rooms (id, name, capacity)`, centers only, with `room_id` on groups and sessions. The hard rule is in the database: an exclusion constraint (`btree_gist`) on sessions, room and time range, so two non-cancelled sessions can't overlap in one room even under concurrent writes; the API checks slots on save to give a translated error (`ROOM_BOOKED`) before the constraint fires.
 
 ## Start prompt for a new session
 
@@ -32,14 +49,15 @@ Copy everything in the block into a new Claude Code session opened in `D:\Fronte
 ```text
 Read CLAUDE.md and follow the start-of-session protocol, then read docs/v1-next.md.
 
-Task: build the next v1 feature of Dafter, the end-of-day cash summary per assistant (docs/product.md, module 5: "Each assistant gets an end-of-day cash summary to hand over"). Work on branch main, as the rest of the project does.
+Task: build the next v1 feature of Dafter, rooms and the room conflict check (docs/product.md, module 2: "Two groups cannot be booked in the same room at overlapping times"). Work on branch main, as the rest of the project does.
 
 Before coding, give me a short plan and wait for my OK. Cover:
-- What it shows: today's payments minus their reversals, by method (cash, Vodafone Cash, InstaPay), for the staff member who recorded them (`ledger_entries.created_by`), in the workspace timezone; each payment with student, amount, receipt number and time.
-- Who sees what: an assistant and a teacher see their own summary; the owner sees every staff member's summary for a chosen day. Money policy stays as in `apps/api/src/stats` (teachers don't see the center's money, only what they took themselves).
-- The contract, the endpoint (likely in `apps/api/src/stats`), any migration (probably none), the screen (a print-ready page like `/receipts/:id`, rule 12) and the ar/en keys.
+- The data: a `rooms` table (name, capacity, centers only) as in docs/data-model-api.md, an optional `room_id` on groups, and the room on each generated session (a moved session keeps its room).
+- The rule: treat it as a hard part. An exclusion constraint with btree_gist on sessions (room, time range, non-cancelled only) as the backstop, plus an API check on group save and on session move that returns `ROOM_BOOKED` with the clashing group, before the constraint fires. Explain why the constraint beats an app-only check.
+- Who may do what: the owner manages rooms; who may pick a room for a group follows the group rules.
+- The contract, the migration (RLS and composite FKs like the other tenant tables), the endpoints, the screens (a rooms list under More, a room picker on the group form, the room on timetable rows) and the ar/en keys.
 
-Then build it in the project's order: contract (`pnpm contracts:gen`), migration if any, API, web. Tests at every layer: integration tests plus isolation tests for the new endpoint, web specs, and a Playwright test of the user flow in ar and en at 375 px. Done means `pnpm test` passes with 100% line coverage in every package, the full Playwright suite passes with 2 workers (`cd e2e && npx playwright test --workers=2`), `docs/progress.md` has a ticked entry, and `docs/known-limits.md` is updated. Commit with a Conventional Commit message and push; if there was a migration, apply it to Neon as the db-migration skill says and check the live site.
+Then build it in the project's order: contract (`pnpm contracts:gen`), migration, API, web. Tests at every layer: integration tests plus isolation tests for the new endpoints, a test that two concurrent overlapping writes leave one, web specs, and a Playwright test of the user flow in ar and en at 375 px. Done means `pnpm test` passes with 100% line coverage in every package, the full Playwright suite passes with 2 workers (`cd e2e && npx playwright test --workers=2`), `docs/progress.md` has a ticked entry, `docs/known-limits.md` is updated, and docs/interview-questions.md has 2 to 3 questions for the hard part. Commit with a Conventional Commit message and push, then apply the migration to Neon as the db-migration skill says and check the live site (`pnpm e2e:live`).
 
-If time is left after that, fix the first issue in docs/v1-next.md ("Issues found while testing"): add a dev-only CRON_SECRET so Playwright can run /internal/tick and check that a fee reminder shows in the message log.
+If time is left after that, do the small module 1 gap: an invite that carries the assistant's teachers, so they join already scoped.
 ```

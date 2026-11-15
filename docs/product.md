@@ -64,50 +64,50 @@ The full MVP (v1.0) has seven modules; the v0 due November 30 is a lean subset o
 Sign up with phone or email and a password, create a center or independent workspace, invite teachers and assistants by link, switch workspaces from the header.
 
 - [ ] An invited assistant who opens the link joins with the role and teachers chosen in the invite.
-- [ ] A user in two workspaces only ever sees data from the one currently selected.
+- [x] A user in two workspaces only ever sees data from the one currently selected.
 
 ### 2. Groups and schedules
 
 A group has a subject, a grade level (for example ٣ ثانوي), a teacher, weekly time slots, an optional room, a capacity, and a fee plan. Sessions are generated from the weekly slots 4 weeks ahead. A single session can be cancelled or moved without touching the rest.
 
 - [ ] Two groups cannot be booked in the same room at overlapping times.
-- [ ] Cancelling a session notifies the parents of every enrolled student.
+- [x] Cancelling a session notifies the parents of every enrolled student.
 
 ### 3. Students and enrollment
 
 Add a student in under 20 seconds at the door: name, phone, parent phone, grade level. Enroll them in one or more groups with an optional discount. Send the student an invite to activate the Dafter app.
 
-- [ ] Searching "احمد" finds "أحمد", and "فاطمه" finds "فاطمة".
-- [ ] A duplicate warning appears when the phone number already exists in the workspace.
+- [x] Searching "احمد" finds "أحمد", and "فاطمه" finds "فاطمة".
+- [x] A duplicate warning appears when the phone number already exists in the workspace.
 
 ### 4. QR attendance
 
 The teacher opens today's session on a laptop, tablet, or phone and shows a QR code that changes every 10 seconds. Each student scans it in the Dafter app on their own phone and sees an instant confirmation, while the teacher watches a live list fill up. The assistant ticks students without a phone as present from that list. Closing the session marks everyone else absent.
 
-- [ ] A student who scans twice gets one attendance, not two.
-- [ ] A student from another group of the same teacher is recorded as a make-up (حصة تعويضية), not an error.
-- [ ] A photo of the QR older than about 20 seconds is rejected, and one phone can check in only one student account.
+- [x] A student who scans twice gets one attendance, not two.
+- [x] A student from another group of the same teacher is recorded as a make-up (حصة تعويضية), not an error.
+- [x] A photo of the QR older than about 20 seconds is rejected, and one phone can check in only one student account.
 
 ### 5. Fees and payments
 
 Fee plans: monthly, per session, or a package of N sessions. Record payments in cash, Vodafone Cash, or InstaPay with a receipt number. Partial payments are allowed. Each assistant gets an end-of-day cash summary to hand over.
 
-- [ ] A student's balance always equals charges minus payments, computed from records, never stored as a free-typed number.
-- [ ] A payment is never deleted; a mistake is fixed with a reversal entry that keeps the history.
+- [x] A student's balance always equals charges minus payments, computed from records, never stored as a free-typed number.
+- [x] A payment is never deleted; a mistake is fixed with a reversal entry that keeps the history.
 
 ### 6. Exams and grades
 
 Create an exam for a group with a maximum score, enter scores in a fast grid, mark students absent from the exam, and send results to parents in one action.
 
-- [ ] A score above the maximum is rejected with a translated error.
+- [x] A score above the maximum is rejected with a translated error.
 
 ### 7. Parent messaging
 
 Automatic messages for: absence, session cancelled, fee overdue, and exam result. Each workspace switches every trigger on or off and edits its Arabic and English templates. A message log shows each message's delivery status.
 
-- [ ] Closing a session sends exactly one absence message per absent student's parent, even if the close button is pressed twice.
-- [ ] Siblings absent from the same session produce one combined message to their shared parent.
-- [ ] No automatic messages are sent between 10 PM and 8 AM; they wait until morning.
+- [x] Closing a session sends exactly one absence message per absent student's parent, even if the close button is pressed twice.
+- [x] Siblings absent from the same session produce one combined message to their shared parent.
+- [x] No automatic messages are sent between 10 PM and 8 AM; they wait until morning.
 
 **Out of scope for the MVP:** a parent portal, student grades and balance, online payments, a native mobile app, full offline mode, and room-rent settlement between centers and teachers.
 
