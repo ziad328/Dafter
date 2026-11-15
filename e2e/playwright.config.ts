@@ -1,4 +1,8 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
+
+// The same repo-root .env as the API, so tests can call dev-only endpoints (CRON_SECRET).
+if (existsSync('../.env')) process.loadEnvFile('../.env');
 
 const CI = !!process.env.CI;
 // Set to the live demo (pnpm e2e:live) to run the read-only smoke test there instead of locally.

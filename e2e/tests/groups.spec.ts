@@ -23,7 +23,8 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   await page.getByRole('button', { name: t.groups.create }).click();
 
   await expect(page).toHaveURL(/\/groups$/);
-  const card = page.getByRole('link').filter({ hasText: capacity });
+  // "0/485": the bare digits can also sit inside another group's label.
+  const card = page.getByRole('link').filter({ hasText: `/${capacity}` });
   await expect(card.getByRole('heading', { name: PHYSICS[lang] })).toBeVisible();
   await expect(card.getByText('منى حسن')).toBeVisible();
   await expect(card.getByText(SEC3[lang])).toBeVisible();

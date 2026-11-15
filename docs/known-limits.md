@@ -98,5 +98,5 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | `@dafter/i18n` index can't load in Node ESM (JSON imports lack `with { type: 'json' }`), so e2e imports the locale JSON directly | Small workaround | later |
 | The `run-dafter` screenshot command doesn't sign in | Only public screens can be shot | later |
 | Message e2e is skipped during Cairo quiet hours (22:00–08:00) | Night runs check less | — |
+| `fee-reminders.spec.ts` is skipped from the 1st to the 6th of the month (Cairo), and makes a new workspace for the seeded owner on every run | Early-month runs check less; the dev owner's workspace list grows (until `pnpm db:reset`) | — |
 | `student-app.spec.ts` timed out once (40 s) with the full suite on 6 workers, then passed alone | Possible flake under load | later (watch in CI) |
-| `groups.spec.ts` [ar] failed once in the full run on 2 workers (Nov 15), then passed alone and in the next full run | Possible flake: the card is found by a random 3-digit capacity in a dev database that keeps growing | later (watch; a unique label would be safer) |

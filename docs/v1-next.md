@@ -18,7 +18,7 @@ Written on Nov 15 after exams, the dashboard and fee reminders (`93662a4`, `cc3c
 ## Issues found while testing
 
 - **`students.spec.ts` [ar] flake:** "assistant adds a student…" failed once in the full Playwright run (2 workers, `toHaveCount`), then passed on its own. CI retries once. Watch it; if it repeats, look at what the count waits on.
-- **No Playwright for background jobs:** dev has no `CRON_SECRET`, so e2e can't call `/internal/tick` and fee reminders are covered by integration tests only. Fix: a dev-only `CRON_SECRET` in `.env.example`, the CI env and the Playwright web server, then an e2e that runs the tick and checks the message log.
+- ~~**No Playwright for background jobs:**~~ fixed Nov 15: `.env.example` (so CI too) sets a dev-only `CRON_SECRET=dev-cron-secret`, Playwright loads the root `.env`, and `fee-reminders.spec.ts` runs `/internal/tick?daily=1` and finds the reminder in the message log.
 - **Not checked by eye on a real phone:** the exam grid, "My grades", the dashboard and the new switch were only checked by the 375 px tests.
 
 ## Next feature
