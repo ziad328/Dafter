@@ -4,6 +4,7 @@ import type {
   ExamSheet,
   MyAttendanceRecord,
   MyGrade,
+  TrendStats,
   MySession,
   OpenSession,
 } from '@dafter/contracts';
@@ -85,8 +86,41 @@ const myGrades: MyGrade[] = [
   ...g,
 }));
 
+const weeks = Array.from(
+  { length: 8 },
+  (_, i) =>
+    `2026-${i < 4 ? '10' : '11'}-${String(i < 4 ? 3 + i * 7 : (i - 4) * 7 + 1 + 6).padStart(2, '0')}`,
+);
+const trends: TrendStats = {
+  weeks,
+  groups: [
+    {
+      id: captured.group.id,
+      subject: captured.group.subject,
+      gradeLevel: captured.group.gradeLevel,
+      label: 'مجموعة أ',
+      teacherName: 'منى حسن',
+      attendance: weeks.map((_, i) =>
+        i < 6 ? { present: 0, total: 0 } : { present: 9, total: 10 },
+      ),
+      exams: [
+        { id: crypto.randomUUID(), title: 'امتحان', heldOn: '2026-11-07', averagePct: null },
+        { id: crypto.randomUUID(), title: 'شهر', heldOn: '2026-11-14', averagePct: 82.5 },
+      ],
+    },
+  ],
+  money: ['06', '07', '08', '09', '10', '11'].map((m, i) => ({
+    month: `2026-${m}`,
+    cash: i * 10000,
+    vodafone_cash: 0,
+    instapay: 0,
+    total: i * 10000,
+  })),
+};
+
 export const fx = {
   ...captured,
+  trends,
   exam,
   examSheet,
   myGrades,
@@ -220,6 +254,7 @@ export const handlers = [
     return new HttpResponse(null);
   }),
   http.get(api('stats/today'), log(fx.stats)),
+  http.get(api('stats/trends'), log(fx.trends)),
   http.get(
     api('stats/owing'),
     log(

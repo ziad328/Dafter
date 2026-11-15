@@ -459,7 +459,8 @@
     "live": "Live session",
     "receipt": "Receipt",
     "breadcrumbs": "You are here",
-    "fees": "Fees"
+    "fees": "Fees",
+    "dashboard": "Dashboard"
   },
   "today": {
     "next": "Next session",
@@ -533,5 +534,17 @@
     "alreadySent": "Results were sent before.",
     "delete": "Delete exam",
     "confirmDelete": "Confirm delete"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "The last 8 weeks",
+    "attendance": "Attendance per week",
+    "money": "Collected per month",
+    "groups": "Groups",
+    "empty": "No groups yet.",
+    "noRecords": "No attendance recorded",
+    "groupAttendance": "Attendance of {name}",
+    "exams": "{count, plural, =0 {No graded exams} one {# exam} other {# exams}}",
+    "lastAverage": "Last average {pct}%"
   }
 }

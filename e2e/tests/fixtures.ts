@@ -118,5 +118,7 @@ export async function ownerApi(request: APIRequestContext, workspaceNameAr: stri
     get: async (url: string) => (await request.get(`/api/v1/${url}`, { headers })).json(),
     post: async (url: string, data?: object) =>
       (await request.post(`/api/v1/${url}`, { headers, data })).json(),
+    put: async (url: string, data?: object) =>
+      (await request.put(`/api/v1/${url}`, { headers, data })).json(),
   };
 }

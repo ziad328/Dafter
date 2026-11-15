@@ -6,10 +6,20 @@ import type {
   OwingStudent,
   StatsDay,
   TodayStats,
+  TrendStats,
 } from '@dafter/contracts';
+import type { Tx } from '@dafter/db';
 import { TenantRepository } from '../tenant.repository.js';
 
 const CHECKED_IN = sql`('present', 'late', 'makeup')`;
+const WEEKS = 8;
+const MONTHS = 6;
+
+/** "YYYY-MM" of `back` months before `ym`. */
+const monthBack = (ym: string, back: number) => {
+  const [y, m] = ym.split('-').map(Number) as [number, number];
+  return new Date(Date.UTC(y, m - 1 - back, 1)).toISOString().slice(0, 7);
+};
 
 /** Groups of `teacherIds` (undefined = every group), as a SQL condition on alias `g`. */
 const visibleGroups = (teacherIds?: string[]) =>
@@ -168,6 +178,153 @@ export class StatsRepository extends TenantRepository {
         activeStudents: c.active_students,
         week: week.rows,
       };
+    });
+  }
+
+  /**
+   * The dashboard over the visible active groups: 8 Saturday-start weeks up to this week in the
+   * workspace timezone (attendance records of non-cancelled sessions, exams held in them), and,
+   * when `withMoney`, payments minus their reversals per local month for 6 months.
+   */
+  trends(
+    workspaceId: string,
+    now: Date,
+    teacherIds: string[] | undefined,
+    withMoney: boolean,
+  ): Promise<TrendStats> {
+    const at = now.toISOString();
+    const ctx = sql`
+      ctx as (
+        select l.today, l.tz,
+          (l.today - ((extract(dow from l.today)::int + 1) % 7))::date as this_week
+        from (select (${at}::timestamptz at time zone w.timezone)::date as today, w.timezone as tz
+              from workspaces w where w.id = ${workspaceId}) l
+      ),
+      weeks as (select (ctx.this_week - 7 * k)::date as wk from ctx, generate_series(0, ${WEEKS - 1}::int) k)`;
+    const vis = sql`g.workspace_id = ${workspaceId} and g.status = 'active' ${visibleGroups(teacherIds)}`;
+
+    return this.inTenant(workspaceId, async (tx) => {
+      const weeks = await tx.execute<{ wk: string; month: string }>(sql`
+        with ${ctx}
+        select to_char(wk, 'YYYY-MM-DD') as wk, to_char(ctx.today, 'YYYY-MM') as month
+        from weeks, ctx order by wk`);
+
+      const groups = await tx.execute<{
+        id: string;
+        subject_id: string;
+        subject_ar: string;
+        subject_en: string;
+        grade_id: string;
+        grade_ar: string;
+        grade_en: string;
+        label: string | null;
+        teacher: string;
+      }>(sql`
+        select g.id, sub.id as subject_id, sub.name_ar as subject_ar, sub.name_en as subject_en,
+          gl.id as grade_id, gl.name_ar as grade_ar, gl.name_en as grade_en, g.label,
+          u.name as teacher
+        from groups g
+        join subjects sub on sub.workspace_id = g.workspace_id and sub.id = g.subject_id
+        join grade_levels gl on gl.workspace_id = g.workspace_id and gl.id = g.grade_level_id
+        join memberships m on m.workspace_id = g.workspace_id and m.id = g.teacher_membership_id
+        join users u on u.id = m.user_id
+        where ${vis}
+        order by sub.name_ar, gl.name_ar, g.label nulls first, g.id`);
+
+      const attendance = await tx.execute<{
+        group_id: string;
+        wk: string;
+        present: number;
+        total: number;
+      }>(sql`
+        with ${ctx}
+        select g.id as group_id, to_char(wk.wk, 'YYYY-MM-DD') as wk,
+          (count(a.id) filter (where a.status in ${CHECKED_IN}))::int as present,
+          count(a.id)::int as total
+        from groups g cross join weeks wk cross join ctx
+        left join sessions se on se.workspace_id = g.workspace_id and se.group_id = g.id
+          and se.status <> 'cancelled'
+          and (se.starts_at at time zone ctx.tz)::date between wk.wk and wk.wk + 6
+        left join attendance_records a on a.workspace_id = se.workspace_id and a.session_id = se.id
+        where ${vis}
+        group by g.id, wk.wk`);
+
+      const exams = await tx.execute<{
+        id: string;
+        group_id: string;
+        title: string;
+        held_on: string;
+        pct: number | null;
+      }>(sql`
+        with ${ctx}
+        select ex.id, ex.group_id, ex.title, to_char(ex.held_on, 'YYYY-MM-DD') as held_on,
+          round((avg(r.score) * 100 / ex.max_score)::numeric, 1)::float8 as pct
+        from exams ex
+        cross join ctx
+        join groups g on g.workspace_id = ex.workspace_id and g.id = ex.group_id
+        left join exam_results r on r.workspace_id = ex.workspace_id and r.exam_id = ex.id
+        where ex.workspace_id = ${workspaceId} and ${vis}
+          and ex.held_on between ctx.this_week - ${7 * (WEEKS - 1)}::int and ctx.today
+        group by ex.id
+        order by ex.held_on, ex.created_at`);
+
+      const counts = new Map(attendance.rows.map((r) => [`${r.group_id}:${r.wk}`, r]));
+      return {
+        weeks: weeks.rows.map((r) => r.wk),
+        groups: groups.rows.map((g) => ({
+          id: g.id,
+          subject: { id: g.subject_id, nameAr: g.subject_ar, nameEn: g.subject_en },
+          gradeLevel: { id: g.grade_id, nameAr: g.grade_ar, nameEn: g.grade_en },
+          label: g.label,
+          teacherName: g.teacher,
+          attendance: weeks.rows.map((w) => {
+            const c = counts.get(`${g.id}:${w.wk}`)!;
+            return { present: c.present, total: c.total };
+          }),
+          exams: exams.rows
+            .filter((e) => e.group_id === g.id)
+            .map((e) => ({ id: e.id, title: e.title, heldOn: e.held_on, averagePct: e.pct })),
+        })),
+        money: withMoney
+          ? await this.months(tx, workspaceId, at, weeks.rows[0]!.month, teacherIds)
+          : null,
+      };
+    });
+  }
+
+  /** Same rules as `collections`, per local month, oldest first, empty months as zero. */
+  private async months(
+    tx: Tx,
+    workspaceId: string,
+    at: string,
+    current: string,
+    teacherIds?: string[],
+  ) {
+    const from = monthBack(current, MONTHS - 1);
+    const rows = await tx.execute<{
+      month: string;
+      method: keyof Omit<MethodTotals, 'total'>;
+      amount: string;
+    }>(sql`
+      select to_char(e.created_at at time zone w.timezone, 'YYYY-MM') as month,
+        coalesce(p.method, e.method) as method, sum(-e.amount_piastres) as amount
+      from ledger_entries e
+      left join ledger_entries p on p.workspace_id = e.workspace_id and p.id = e.reverses_entry_id
+      join groups g on g.workspace_id = e.workspace_id and g.id = e.group_id
+      join workspaces w on w.id = e.workspace_id
+      where e.workspace_id = ${workspaceId} ${visibleGroups(teacherIds)}
+        and (e.type = 'payment' or p.type = 'payment')
+        and e.created_at <= ${at}::timestamptz
+        and to_char(e.created_at at time zone w.timezone, 'YYYY-MM') >= ${from}
+      group by 1, 2`);
+    return Array.from({ length: MONTHS }, (_, i) => {
+      const month = monthBack(current, MONTHS - 1 - i);
+      const t = { month, cash: 0, vodafone_cash: 0, instapay: 0, total: 0 };
+      for (const r of rows.rows.filter((r) => r.month === month)) {
+        t[r.method] = Number(r.amount);
+        t.total += Number(r.amount);
+      }
+      return t;
     });
   }
 }

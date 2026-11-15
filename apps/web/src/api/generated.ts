@@ -10,6 +10,7 @@ export const addTagTypes = [
   'exams',
   'sessions',
   'attendance',
+  'stats',
   'money',
   'messages',
   'students',
@@ -236,6 +237,10 @@ const injectedRtkApi = api
       getTodayStats: build.query<GetTodayStatsApiResponse, GetTodayStatsApiArg>({
         query: () => ({ url: `/api/v1/stats/today` }),
         providesTags: ['attendance'],
+      }),
+      getTrendStats: build.query<GetTrendStatsApiResponse, GetTrendStatsApiArg>({
+        query: () => ({ url: `/api/v1/stats/trends` }),
+        providesTags: ['stats'],
       }),
       getOwingStudents: build.query<GetOwingStudentsApiResponse, GetOwingStudentsApiArg>({
         query: () => ({ url: `/api/v1/stats/owing` }),
@@ -559,6 +564,8 @@ export type ListAttendanceApiArg = {
 };
 export type GetTodayStatsApiResponse = /** status 200 Stats */ TodayStats;
 export type GetTodayStatsApiArg = void;
+export type GetTrendStatsApiResponse = /** status 200 Trends */ TrendStats;
+export type GetTrendStatsApiArg = void;
 export type GetOwingStudentsApiResponse = /** status 200 Who owes */ OwingList;
 export type GetOwingStudentsApiArg = void;
 export type GetCollectionStatsApiResponse = /** status 200 Collected */ CollectionStats;
@@ -977,6 +984,37 @@ export type TodayStats = {
   activeStudents: number;
   week: StatsDay[];
 };
+export type WeekCount = {
+  present: number;
+  total: number;
+};
+export type ExamPoint = {
+  id: string;
+  title: string;
+  heldOn: string;
+  averagePct: number | null;
+};
+export type GroupTrend = {
+  id: string;
+  subject: CurriculumItem;
+  gradeLevel: CurriculumItem;
+  label: string | null;
+  teacherName: string;
+  attendance: WeekCount[];
+  exams: ExamPoint[];
+};
+export type MonthTotals = {
+  cash: number;
+  vodafone_cash: number;
+  instapay: number;
+  total: number;
+  month: string;
+};
+export type TrendStats = {
+  weeks: string[];
+  groups: GroupTrend[];
+  money: MonthTotals[] | null;
+};
 export type OwingStudent = {
   id: string;
   nameAr: string;
@@ -1207,6 +1245,7 @@ export const {
   useOpenSessionMutation,
   useListAttendanceQuery,
   useGetTodayStatsQuery,
+  useGetTrendStatsQuery,
   useGetOwingStudentsQuery,
   useGetCollectionStatsQuery,
   useGetSessionRosterQuery,

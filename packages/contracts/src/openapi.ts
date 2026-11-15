@@ -60,7 +60,7 @@ import {
   updateStudentRequest,
 } from './students.js';
 import { listSessionsQuery, moveSessionRequest, session, sessionList } from './sessions.js';
-import { collectionStats, owingList, todayStats } from './stats.js';
+import { collectionStats, owingList, todayStats, trendStats } from './stats.js';
 import {
   createInviteRequest,
   createWorkspaceRequest,
@@ -463,6 +463,16 @@ export function buildOpenApi() {
           description: 'Numbers for the Today dashboard, for the groups the caller can see.',
           security: [{ bearer: [] }],
           responses: { 200: { description: 'Stats', content: json(todayStats) }, ...errors },
+        },
+      },
+      '/api/v1/stats/trends': {
+        get: {
+          operationId: 'getTrendStats',
+          tags: ['stats'],
+          description:
+            'The dashboard: attendance per visible group per week and exam averages over the last 8 weeks, and money in per month for the last 6 months (owner and assistant; null for a teacher).',
+          security: [{ bearer: [] }],
+          responses: { 200: { description: 'Trends', content: json(trendStats) }, ...errors },
         },
       },
       '/api/v1/stats/owing': {

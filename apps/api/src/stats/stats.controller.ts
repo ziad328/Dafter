@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Module, Req, UseGuards } from '@nestjs/common';
-import type { CollectionStats, OwingStudent, TodayStats } from '@dafter/contracts';
+import type { CollectionStats, OwingStudent, TodayStats, TrendStats } from '@dafter/contracts';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { Clock } from '../clock.js';
@@ -24,6 +24,13 @@ export class StatsController {
   async today(@Req() req: TenantedRequest): Promise<TodayStats> {
     const teachers = await this.groups.visibleTeachers(req);
     return this.repo.today(req.workspaceId, this.clock.now(), teachers);
+  }
+
+  /** Visible groups like `today`; the money part follows the money policy (null for teachers). */
+  @Get('trends')
+  async trends(@Req() req: TenantedRequest): Promise<TrendStats> {
+    const teachers = await this.groups.visibleTeachers(req);
+    return this.repo.trends(req.workspaceId, this.clock.now(), teachers, req.role !== 'teacher');
   }
 
   /** Policy: the center's money is for the owner and assistants (who take payments), not teachers. */

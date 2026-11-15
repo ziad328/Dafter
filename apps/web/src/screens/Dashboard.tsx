@@ -1,0 +1,184 @@
+import type { GroupTrend, WeekCount } from '@dafter/contracts';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
+import { useGetTrendStatsQuery } from '@/api/generated';
+import { FormError, Skeleton } from '@/components/Field';
+import { PageHeader, Panel } from '@/components/Page';
+import { itemName } from '@/lib/groups';
+import { formatEgp } from '@/lib/money';
+import { errorKey } from '@/lib/session';
+import { intlLocale, monthLabel } from '@/lib/time';
+import { cn } from '@/lib/utils';
+
+const rate = (c: WeekCount) => (c.total ? Math.round((c.present / c.total) * 100) : null);
+const sum = (cs: WeekCount[]) =>
+  cs.reduce((a, c) => ({ present: a.present + c.present, total: a.total + c.total }), {
+    present: 0,
+    total: 0,
+  });
+
+/**
+ * Trends for the groups the caller can see: attendance per week, exam averages per group, and
+ * (owner and assistant) money in per month.
+ */
+export default function Dashboard() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const { data, isLoading, error } = useGetTrendStatsQuery();
+  if (isLoading) return <Skeleton />;
+  if (error) return <FormError message={t(errorKey(error))} />;
+  const { weeks, groups, money } = data!;
+  const week = (date: string) =>
+    new Intl.DateTimeFormat(intlLocale(lang), {
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    }).format(Date.parse(date));
+  const overall = weeks.map((_, i) => sum(groups.map((g) => g.attendance[i]!)));
+  const total = rate(sum(overall));
+
+  return (
+    <div className="grid gap-5">
+      <PageHeader title={t('dashboard.title')} subtitle={t('dashboard.subtitle')} />
+
+      <Panel className="grid gap-4 p-5">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="font-semibold">{t('dashboard.attendance')}</h2>
+          {total !== null && <bdi className="text-2xl font-bold text-present">{`${total}%`}</bdi>}
+        </div>
+        <Bars
+          top={100}
+          label={t('dashboard.attendance')}
+          items={overall.map((c, i) => ({
+            key: weeks[i]!,
+            label: week(weeks[i]!),
+            value: rate(c),
+            text: rate(c) === null ? t('dashboard.noRecords') : `${rate(c)}%`,
+          }))}
+        />
+      </Panel>
+
+      {money && (
+        <section data-testid="money-trend">
+          <Panel className="grid gap-4 p-5">
+            <h2 className="font-semibold">{t('dashboard.money')}</h2>
+            <Bars
+              label={t('dashboard.money')}
+              items={money.map((m) => ({
+                key: m.month,
+                label: monthLabel(m.month, lang).split(' ')[0]!,
+                value: m.total,
+                text: formatEgp(m.total, lang),
+              }))}
+            />
+          </Panel>
+        </section>
+      )}
+
+      <section className="grid gap-3">
+        <h2 className="font-semibold">{t('dashboard.groups')}</h2>
+        {groups.length === 0 && (
+          <Panel className="p-8 text-center text-muted-foreground">{t('dashboard.empty')}</Panel>
+        )}
+        <ul className="grid gap-3 md:grid-cols-2">
+          {groups.map((g) => (
+            <GroupCard key={g.id} group={g} weekLabel={week} weeks={weeks} />
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function GroupCard({
+  group: g,
+  weeks,
+  weekLabel,
+}: {
+  group: GroupTrend;
+  weeks: string[];
+  weekLabel: (date: string) => string;
+}) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const r = rate(sum(g.attendance));
+  const graded = g.exams.filter((e) => e.averagePct !== null);
+  const last = graded.at(-1);
+  const name = `${itemName(g.subject, lang)} · ${itemName(g.gradeLevel, lang)}${g.label ? ` · ${g.label}` : ''}`;
+  return (
+    <li>
+      <Panel className="grid gap-3 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="grid min-w-0">
+            <h3 className="truncate font-semibold">{name}</h3>
+            <p className="truncate text-sm text-muted-foreground">{g.teacherName}</p>
+          </div>
+          {r !== null && <bdi className="shrink-0 text-lg font-bold text-present">{`${r}%`}</bdi>}
+        </div>
+        <Bars
+          small
+          top={100}
+          label={t('dashboard.groupAttendance', { name })}
+          items={g.attendance.map((c, i) => ({
+            key: weeks[i]!,
+            label: weekLabel(weeks[i]!),
+            value: rate(c),
+            text: rate(c) === null ? t('dashboard.noRecords') : `${rate(c)}%`,
+          }))}
+        />
+        <Link
+          to={`/groups/${g.id}/exams`}
+          className="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2 text-sm hover:bg-muted/70 focus-visible:ring-2"
+        >
+          <span>{t('dashboard.exams', { count: graded.length })}</span>
+          {last && (
+            <bdi className="font-semibold">
+              {t('dashboard.lastAverage', { pct: last.averagePct })}
+            </bdi>
+          )}
+        </Link>
+      </Panel>
+    </li>
+  );
+}
+
+type Bar = { key: string; label: string; value: number | null; text: string };
+
+/** A row of bars scaled to the largest value; the text of each bar is read by screen readers. */
+function Bars({
+  items,
+  label,
+  small,
+  top = Math.max(1, ...items.map((b) => b.value ?? 0)),
+}: {
+  items: Bar[];
+  label: string;
+  small?: boolean;
+  // The value of a full bar: 100 for rates, the largest value otherwise.
+  top?: number;
+}) {
+  return (
+    <ol className="flex items-end gap-1.5" aria-label={label}>
+      {items.map((b, i) => (
+        <li key={b.key} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+          <div className={cn('flex w-full items-end', small ? 'h-12' : 'h-28')} title={b.text}>
+            <div
+              className={cn(
+                'w-full rounded-t-md',
+                i === items.length - 1 ? 'bg-ink' : 'bg-ink/30',
+                b.value === null && 'bg-muted',
+              )}
+              style={{ height: `${Math.max(((b.value ?? 0) / top) * 100, 4)}%` }}
+            />
+          </div>
+          {!small && (
+            <span className="w-full truncate text-center text-[10px] text-muted-foreground">
+              {b.label}
+            </span>
+          )}
+          <span className="sr-only">{`${b.label}: ${b.text}`}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}

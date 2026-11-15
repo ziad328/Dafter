@@ -232,3 +232,92 @@ describe('GET /stats/owing', () => {
     expect((await (await f.center()).owner('GET', 'stats/owing')).json()).toEqual([]);
   });
 });
+
+describe('GET /stats/trends', () => {
+  it('gives 8 Saturday weeks of attendance and exams per visible group, and 6 months of money', async () => {
+    const c = await f.center();
+    const [a, b] = [await c.newStudent(), await c.newStudent()];
+    for (const id of [a, b])
+      await c.owner('POST', `students/${id}/enrollments`, { groupId: c.groupId });
+    const session = (await c.owner('GET', 'sessions?from=2026-11-21&to=2026-11-21')).json()[0].id;
+    await c.teacher('POST', `sessions/${session}/open`);
+    await c.teacher('PUT', `sessions/${session}/attendance/${a}`, { status: 'present' });
+    await c.teacher('PUT', `sessions/${session}/attendance/${b}`, { status: 'absent' });
+    const exam = (
+      await c.teacher('POST', `groups/${c.groupId}/exams`, {
+        title: 'شهر',
+        heldOn: '2026-11-21',
+        maxScore: 20,
+      })
+    ).json().id;
+    await c.teacher('PUT', `exams/${exam}/results`, {
+      results: [
+        { studentId: a, score: 15, absent: false },
+        { studentId: b, score: null, absent: true },
+      ],
+    });
+    await c.teacher('POST', `groups/${c.groupId}/exams`, {
+      title: 'قديم',
+      heldOn: '2026-09-01',
+      maxScore: 20,
+    });
+    let receiptNo = 0;
+    const pay = (pounds: number, at: string) =>
+      testDb()
+        .db.insert(ledgerEntries)
+        .values({
+          workspaceId: c.workspaceId,
+          studentId: a,
+          groupId: c.groupId,
+          type: 'payment',
+          amountPiastres: -pounds * 100,
+          method: 'cash',
+          receiptNo: ++receiptNo,
+          createdAt: new Date(at),
+        });
+    await pay(100, '2026-11-21T10:00:00Z');
+    await pay(70, '2026-10-31T21:30:00Z'); // 23:30 on Oct 31 in Cairo
+    await pay(40, '2026-06-30T20:00:00Z'); // June: before the 6 months
+
+    const res = await c.owner('GET', 'stats/trends');
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.weeks).toHaveLength(8);
+    expect(body.weeks.at(0)).toBe('2026-10-03');
+    expect(body.weeks.at(-1)).toBe('2026-11-21'); // a Saturday starts its own week
+    expect(body.groups).toHaveLength(1);
+    expect(body.groups[0].attendance.at(-1)).toEqual({ present: 1, total: 2 });
+    expect(body.groups[0].attendance.at(0)).toEqual({ present: 0, total: 0 });
+    expect(body.groups[0].exams).toEqual([
+      { id: exam, title: 'شهر', heldOn: '2026-11-21', averagePct: 75 },
+    ]);
+    expect(body.money.map((m: { month: string }) => m.month)).toEqual([
+      '2026-06',
+      '2026-07',
+      '2026-08',
+      '2026-09',
+      '2026-10',
+      '2026-11',
+    ]);
+    expect(body.money.at(-1)).toEqual({
+      month: '2026-11',
+      cash: 10000,
+      vodafone_cash: 0,
+      instapay: 0,
+      total: 10000,
+    });
+    expect(body.money.at(-2).total).toBe(7000);
+    expect(body.money.at(0).total).toBe(4000);
+
+    // Teachers see their groups but no money; an unscoped assistant sees no groups and zeros.
+    const teacher = (await c.teacher('GET', 'stats/trends')).json();
+    expect([teacher.groups.length, teacher.money]).toEqual([1, null]);
+    const assistant = (await c.assistant('GET', 'stats/trends')).json();
+    expect(assistant.groups).toEqual([]);
+    expect(assistant.money.every((m: { total: number }) => m.total === 0)).toBe(true);
+    const other = (await (await f.center()).owner('GET', 'stats/trends')).json();
+    expect(other.groups).toHaveLength(1); // its own fixture group, with no records
+    expect(other.groups[0].id).not.toBe(c.groupId);
+    expect(other.groups[0].exams).toEqual([]);
+  });
+});

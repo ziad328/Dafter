@@ -47,8 +47,57 @@ export const owingStudent = z
 
 export const owingList = z.array(owingStudent).meta({ id: 'OwingList' });
 
+/** Attendance of one group in one week: checked-in records out of all records. */
+export const weekCount = z
+  .object({ present: z.int().min(0), total: z.int().min(0) })
+  .meta({ id: 'WeekCount' });
+
+/** One exam's average as a percent of its max (null before any score). */
+export const examPoint = z
+  .object({
+    id: z.uuid(),
+    title: z.string(),
+    heldOn: localDate,
+    averagePct: z.number().nullable(),
+  })
+  .meta({ id: 'ExamPoint' });
+
+export const groupTrend = z
+  .object({
+    id: z.uuid(),
+    subject: curriculumItem,
+    gradeLevel: curriculumItem,
+    label: z.string().nullable(),
+    teacherName: z.string(),
+    // One per week of `weeks`, oldest first.
+    attendance: z.array(weekCount),
+    // Exams held in those weeks, oldest first.
+    exams: z.array(examPoint),
+  })
+  .meta({ id: 'GroupTrend' });
+
+export const monthTotals = methodTotals
+  .extend({ month: z.string().regex(/^\d{4}-\d{2}$/) })
+  .meta({ id: 'MonthTotals' });
+
+/**
+ * The dashboard: the last 8 weeks (Saturday starts, workspace timezone) for the caller's visible
+ * groups, and money in for the last 6 months (owner and assistant; null for a teacher).
+ */
+export const trendStats = z
+  .object({
+    weeks: z.array(localDate),
+    groups: z.array(groupTrend),
+    money: z.array(monthTotals).nullable(),
+  })
+  .meta({ id: 'TrendStats' });
+
 export type StatsDay = z.infer<typeof statsDay>;
 export type OwingStudent = z.infer<typeof owingStudent>;
 export type MethodTotals = z.infer<typeof methodTotals>;
 export type CollectionStats = z.infer<typeof collectionStats>;
 export type TodayStats = z.infer<typeof todayStats>;
+export type WeekCount = z.infer<typeof weekCount>;
+export type GroupTrend = z.infer<typeof groupTrend>;
+export type MonthTotals = z.infer<typeof monthTotals>;
+export type TrendStats = z.infer<typeof trendStats>;

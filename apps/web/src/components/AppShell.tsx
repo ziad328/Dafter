@@ -1,6 +1,7 @@
 import {
   CalendarCheck,
   CalendarDays,
+  ChartColumn,
   ChevronsUpDown,
   Ellipsis,
   Layers,
@@ -38,6 +39,7 @@ export function useNavItems() {
     { to: '/groups', label: t('nav.groups'), icon: Layers },
   ];
   const more: Item[] = [
+    { to: '/dashboard', label: t('nav.dashboard'), icon: ChartColumn },
     ...(role && role !== 'teacher'
       ? [
           { to: '/fees', label: t('nav.fees'), icon: Wallet },

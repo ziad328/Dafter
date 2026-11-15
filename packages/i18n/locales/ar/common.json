@@ -459,7 +459,8 @@
     "live": "الحصة المباشرة",
     "receipt": "الإيصال",
     "breadcrumbs": "أنت هنا",
-    "fees": "المصروفات"
+    "fees": "المصروفات",
+    "dashboard": "لوحة المتابعة"
   },
   "today": {
     "next": "الحصة التالية",
@@ -533,5 +534,17 @@
     "alreadySent": "أُرسلت النتيجة من قبل.",
     "delete": "احذف الامتحان",
     "confirmDelete": "تأكيد الحذف"
+  },
+  "dashboard": {
+    "title": "لوحة المتابعة",
+    "subtitle": "آخر 8 أسابيع",
+    "attendance": "نسبة الحضور كل أسبوع",
+    "money": "المحصّل كل شهر",
+    "groups": "المجموعات",
+    "empty": "لا مجموعات بعد.",
+    "noRecords": "لا حضور مسجّل",
+    "groupAttendance": "حضور {name}",
+    "exams": "{count, plural, =0 {لا امتحانات مرصودة} one {امتحان واحد} two {امتحانان} few {# امتحانات} many {# امتحانًا} other {# امتحان}}",
+    "lastAverage": "آخر متوسط {pct}%"
   }
 }
