@@ -1,5 +1,5 @@
 import { normalizeArabic } from '@dafter/contracts';
-import { BookOpen, Plus, Users } from 'lucide-react';
+import { BookOpen, ClipboardList, Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -148,7 +148,11 @@ export default function Groups() {
             </Panel>
           );
           return (
-            <li key={g.id} className="animate-rise" style={{ animationDelay: `${i * 50}ms` }}>
+            <li
+              key={g.id}
+              className="grid animate-rise gap-2"
+              style={{ animationDelay: `${i * 50}ms` }}
+            >
               {canWrite ? (
                 <Link
                   to={`/groups/${g.id}`}
@@ -159,6 +163,14 @@ export default function Groups() {
               ) : (
                 card
               )}
+              {/* Every role that sees the group grades its exams, assistants too. */}
+              <Link
+                to={`/groups/${g.id}/exams`}
+                className="flex min-h-10 items-center justify-center gap-2 rounded-xl border bg-card text-sm font-medium hover:border-ink/40 focus-visible:ring-2"
+              >
+                <ClipboardList className="size-4 text-ink" aria-hidden />
+                {t('exams.title')}
+              </Link>
             </li>
           );
         })}

@@ -33,7 +33,9 @@
       "code": "Enter the 6-digit code.",
       "discount": "Enter a number from 0 to 100.",
       "amount": "Enter an amount in pounds, like 150 or 150.50.",
-      "label": "Keep the label to 40 characters."
+      "label": "Keep the label to 40 characters.",
+      "examTitle": "Enter a title for the exam.",
+      "maxScore": "The max score is a whole number from 1 to 1000."
     },
     "choose": "Choose…"
   },
@@ -178,7 +180,12 @@
     "ENTRY_ALREADY_REVERSED": "This entry was already reversed.",
     "ENTRY_NOT_REVERSIBLE": "A reversal cannot be reversed. Record a new entry instead.",
     "RESET_INVALID": "This link is invalid, expired or already used.",
-    "RESET_NOT_ALLOWED": "This account is also used in another workspace or as a student, so only its owner can reset it, from \"Forgot your password?\"."
+    "RESET_NOT_ALLOWED": "This account is also used in another workspace or as a student, so only its owner can reset it, from \"Forgot your password?\".",
+    "EXAM_NOT_FOUND": "This exam was not found.",
+    "EXAM_SCORE_ABOVE_MAX": "A score is above the max score.",
+    "EXAM_STUDENT_INVALID": "This student is not in the group.",
+    "EXAM_HAS_RESULTS": "Clear the scores before deleting the exam.",
+    "EXAM_NOT_GRADED": "Enter the scores first."
   },
   "timetable": {
     "title": "Timetable",
@@ -296,7 +303,9 @@
     "today": "Today",
     "rate": "Attended {attended} of {total}",
     "settings": "Settings",
-    "confirmLogout": "Tap again to sign out"
+    "confirmLogout": "Tap again to sign out",
+    "grades": "My grades",
+    "noGrades": "No grades yet."
   },
   "live": {
     "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",
@@ -398,7 +407,8 @@
     "settings": "When do we message parents?",
     "toggles": {
       "absence": "When a student is absent (on session close)",
-      "sessionChange": "When a session is cancelled or moved"
+      "sessionChange": "When a session is cancelled or moved",
+      "examResult": "When exam results are sent"
     },
     "ownerOnly": "Only the workspace owner can change these settings.",
     "filter": "Status",
@@ -412,7 +422,8 @@
     "triggers": {
       "absence": "Absence",
       "session_cancelled": "Cancelled",
-      "session_moved": "Moved"
+      "session_moved": "Moved",
+      "exam_result": "Exam result"
     },
     "heldUntil": "Sends at {time}, after quiet hours",
     "attempts": "{count, plural, one {# attempt} other {# attempts}}"
@@ -497,5 +508,30 @@
     "month": "Collected this month",
     "owing": "{count, plural, =0 {Who owes} one {Who owes · # student} other {Who owes · # students}}",
     "noneOwe": "Nobody owes anything. Every account is settled."
+  },
+  "exams": {
+    "title": "Exams",
+    "new": "New exam",
+    "examTitle": "Exam title",
+    "heldOn": "Date",
+    "maxScore": "Max score",
+    "create": "Add exam",
+    "empty": "No exams yet.",
+    "notGraded": "Not graded",
+    "averageOf": "Average {average}/{max}",
+    "all": "All exams",
+    "average": "Average",
+    "highest": "Highest",
+    "lowest": "Lowest",
+    "noStudents": "No students in this group.",
+    "scoreFor": "Score for {name}",
+    "absentFor": "{name} absent",
+    "absent": "Absent",
+    "save": "Save scores",
+    "notify": "Send results to parents",
+    "queued": "{count, plural, =0 {No new messages} one {# message on its way} other {# messages on their way}}",
+    "alreadySent": "Results were sent before.",
+    "delete": "Delete exam",
+    "confirmDelete": "Confirm delete"
   }
 }

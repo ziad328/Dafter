@@ -26,6 +26,16 @@ import {
   openSession,
 } from './attendance.js';
 import { createEnrollmentRequest, enrollment, enrollmentList } from './enrollments.js';
+import {
+  createExamRequest,
+  exam,
+  examList,
+  examSheet,
+  myGrades,
+  notifyExamResponse,
+  saveExamResultsRequest,
+  updateExamRequest,
+} from './exams.js';
 import { healthResponse } from './health.js';
 import { createPaymentRequest, ledgerEntry, receipt, studentLedger } from './money.js';
 import {
@@ -162,6 +172,15 @@ export function buildOpenApi() {
             200: { description: 'My attendance', content: json(myAttendance) },
             ...errors,
           },
+        },
+      },
+      '/api/v1/me/grades': {
+        get: {
+          operationId: 'getMyGrades',
+          tags: ['student'],
+          description: 'Student: my last 50 exam results in every center, newest first.',
+          security: [{ bearer: [] }],
+          responses: { 200: { description: 'My grades', content: json(myGrades) }, ...errors },
         },
       },
       '/api/v1/workspaces': {
@@ -302,6 +321,79 @@ export function buildOpenApi() {
           requestParams: { path: z.object({ id: z.uuid() }) },
           requestBody: { required: true, content: json(updateGroupRequest) },
           responses: { 200: { description: 'Updated', content: json(group) }, ...errors },
+        },
+      },
+      '/api/v1/groups/{id}/exams': {
+        get: {
+          operationId: 'listExams',
+          tags: ['exams'],
+          description: 'Same visibility as groups. Newest first.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 200: { description: 'Exams', content: json(examList) }, ...errors },
+        },
+        post: {
+          operationId: 'createExam',
+          tags: ['exams'],
+          description: 'Owner, the group teacher, or an assigned assistant.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(createExamRequest) },
+          responses: { 201: { description: 'Created', content: json(exam) }, ...errors },
+        },
+      },
+      '/api/v1/exams/{id}': {
+        get: {
+          operationId: 'getExamSheet',
+          tags: ['exams'],
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            200: { description: 'The grade grid', content: json(examSheet) },
+            ...errors,
+          },
+        },
+        patch: {
+          operationId: 'updateExam',
+          tags: ['exams'],
+          description: 'A new max score may not be below a recorded score.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(updateExamRequest) },
+          responses: { 200: { description: 'Updated', content: json(exam) }, ...errors },
+        },
+        delete: {
+          operationId: 'deleteExam',
+          tags: ['exams'],
+          description: 'Only an exam without results.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 204: { description: 'Deleted' }, ...errors },
+        },
+      },
+      '/api/v1/exams/{id}/results': {
+        put: {
+          operationId: 'saveExamResults',
+          tags: ['exams'],
+          description: 'Replaces every result of the exam with the grid sent.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          requestBody: { required: true, content: json(saveExamResultsRequest) },
+          responses: { 200: { description: 'Saved', content: json(examSheet) }, ...errors },
+        },
+      },
+      '/api/v1/exams/{id}/notify': {
+        post: {
+          operationId: 'notifyExam',
+          tags: ['exams'],
+          description:
+            'Queues one result message per guardian of the graded students (siblings merged). Repeats queue nothing new.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: {
+            200: { description: 'Queued', content: json(notifyExamResponse) },
+            ...errors,
+          },
         },
       },
       '/api/v1/sessions': {

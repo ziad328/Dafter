@@ -186,11 +186,23 @@ describe('student home', () => {
       http.post(route('devices/bind'), fail('INTERNAL', 500)),
       http.get(route('me/schedule'), () => Response.json([])),
       http.get(route('me/attendance'), () => Response.json([])),
+      http.get(route('me/grades'), () => Response.json([])),
     );
     await renderAt('/s', { workspace: null });
     expect(await screen.findByText(tr('studentApp.bindErrors.failed'))).toBeVisible();
     expect(screen.getByText(tr('studentApp.noSessions'))).toBeVisible();
     expect(screen.getByText(tr('studentApp.noHistory'))).toBeVisible();
+    expect(await screen.findByText(tr('studentApp.noGrades'))).toBeVisible();
+  });
+
+  it('shows my grades: a score out of the max, or absent', async () => {
+    await renderAt('/s', { workspace: null, lang: 'en' });
+    const list = await screen.findByTestId('my-grades');
+    expect(within(list).getByText('18/20')).toBeVisible();
+    expect(within(list).getByText('Absent')).toBeVisible();
+    expect(within(list).getByText('امتحان 1')).toBeVisible();
+    // Let the bind finish: its promise is shared with the next test's render.
+    expect(await screen.findByRole('link', { name: tr('scan.open') })).toBeVisible();
   });
 
   it('fails binding when the key cannot be stored, and hides a rate of only excused classes', async () => {

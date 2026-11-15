@@ -162,6 +162,7 @@ describe('messages', () => {
       .toEqual({
         absence: false,
         sessionChange: true,
+        examResult: true,
       });
     expect(absence).not.toBeChecked();
     await user.click(screen.getByRole('button', { name: tr('messages.status.sent') }));

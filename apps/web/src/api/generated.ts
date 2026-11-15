@@ -7,6 +7,7 @@ export const addTagTypes = [
   'members',
   'curriculum',
   'groups',
+  'exams',
   'sessions',
   'attendance',
   'money',
@@ -74,6 +75,10 @@ const injectedRtkApi = api
       }),
       getMyAttendance: build.query<GetMyAttendanceApiResponse, GetMyAttendanceApiArg>({
         query: () => ({ url: `/api/v1/me/attendance` }),
+        providesTags: ['student'],
+      }),
+      getMyGrades: build.query<GetMyGradesApiResponse, GetMyGradesApiArg>({
+        query: () => ({ url: `/api/v1/me/grades` }),
         providesTags: ['student'],
       }),
       createWorkspace: build.mutation<CreateWorkspaceApiResponse, CreateWorkspaceApiArg>({
@@ -157,6 +162,46 @@ const injectedRtkApi = api
           body: queryArg.updateGroupRequest,
         }),
         invalidatesTags: ['groups'],
+      }),
+      listExams: build.query<ListExamsApiResponse, ListExamsApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/groups/${queryArg.id}/exams` }),
+        providesTags: ['exams'],
+      }),
+      createExam: build.mutation<CreateExamApiResponse, CreateExamApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/groups/${queryArg.id}/exams`,
+          method: 'POST',
+          body: queryArg.createExamRequest,
+        }),
+        invalidatesTags: ['exams'],
+      }),
+      getExamSheet: build.query<GetExamSheetApiResponse, GetExamSheetApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/exams/${queryArg.id}` }),
+        providesTags: ['exams'],
+      }),
+      updateExam: build.mutation<UpdateExamApiResponse, UpdateExamApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/exams/${queryArg.id}`,
+          method: 'PATCH',
+          body: queryArg.updateExamRequest,
+        }),
+        invalidatesTags: ['exams'],
+      }),
+      deleteExam: build.mutation<DeleteExamApiResponse, DeleteExamApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/exams/${queryArg.id}`, method: 'DELETE' }),
+        invalidatesTags: ['exams'],
+      }),
+      saveExamResults: build.mutation<SaveExamResultsApiResponse, SaveExamResultsApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/exams/${queryArg.id}/results`,
+          method: 'PUT',
+          body: queryArg.saveExamResultsRequest,
+        }),
+        invalidatesTags: ['exams'],
+      }),
+      notifyExam: build.mutation<NotifyExamApiResponse, NotifyExamApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/exams/${queryArg.id}/notify`, method: 'POST' }),
+        invalidatesTags: ['exams'],
       }),
       listSessions: build.query<ListSessionsApiResponse, ListSessionsApiArg>({
         query: (queryArg) => ({
@@ -406,6 +451,8 @@ export type GetMyScheduleApiResponse = /** status 200 My sessions */ MySchedule;
 export type GetMyScheduleApiArg = void;
 export type GetMyAttendanceApiResponse = /** status 200 My attendance */ MyAttendance;
 export type GetMyAttendanceApiArg = void;
+export type GetMyGradesApiResponse = /** status 200 My grades */ MyGrades;
+export type GetMyGradesApiArg = void;
 export type CreateWorkspaceApiResponse =
   /** status 201 Created; the caller is its owner */ Workspace;
 export type CreateWorkspaceApiArg = {
@@ -456,6 +503,37 @@ export type UpdateGroupApiResponse = /** status 200 Updated */ Group;
 export type UpdateGroupApiArg = {
   id: string;
   updateGroupRequest: UpdateGroupRequest;
+};
+export type ListExamsApiResponse = /** status 200 Exams */ ExamList;
+export type ListExamsApiArg = {
+  id: string;
+};
+export type CreateExamApiResponse = /** status 201 Created */ Exam;
+export type CreateExamApiArg = {
+  id: string;
+  createExamRequest: CreateExamRequest;
+};
+export type GetExamSheetApiResponse = /** status 200 The grade grid */ ExamSheet;
+export type GetExamSheetApiArg = {
+  id: string;
+};
+export type UpdateExamApiResponse = /** status 200 Updated */ Exam;
+export type UpdateExamApiArg = {
+  id: string;
+  updateExamRequest: UpdateExamRequest;
+};
+export type DeleteExamApiResponse = unknown;
+export type DeleteExamApiArg = {
+  id: string;
+};
+export type SaveExamResultsApiResponse = /** status 200 Saved */ ExamSheet;
+export type SaveExamResultsApiArg = {
+  id: string;
+  saveExamResultsRequest: SaveExamResultsRequest;
+};
+export type NotifyExamApiResponse = /** status 200 Queued */ NotifyExamResponse;
+export type NotifyExamApiArg = {
+  id: string;
 };
 export type ListSessionsApiResponse = /** status 200 Sessions the caller can see */ SessionList;
 export type ListSessionsApiArg = {
@@ -636,6 +714,11 @@ export type ErrorCode =
   | 'ENTRY_NOT_FOUND'
   | 'ENTRY_ALREADY_REVERSED'
   | 'ENTRY_NOT_REVERSIBLE'
+  | 'EXAM_NOT_FOUND'
+  | 'EXAM_SCORE_ABOVE_MAX'
+  | 'EXAM_STUDENT_INVALID'
+  | 'EXAM_HAS_RESULTS'
+  | 'EXAM_NOT_GRADED'
   | 'INTERNAL';
 export type ErrorResponse = {
   code: ErrorCode;
@@ -705,6 +788,20 @@ export type MyAttendanceRecord = {
   status: 'present' | 'late' | 'absent' | 'excused' | 'makeup';
 };
 export type MyAttendance = MyAttendanceRecord[];
+export type MyGrade = {
+  examId: string;
+  center: {
+    nameAr: string;
+    nameEn: string | null;
+  };
+  subject: CurriculumItem;
+  title: string;
+  heldOn: string;
+  maxScore: number;
+  score: number | null;
+  absent: boolean;
+};
+export type MyGrades = MyGrade[];
 export type Workspace = {
   id: string;
   type: 'center' | 'independent';
@@ -787,6 +884,51 @@ export type UpdateGroupRequest = {
   monthlyFeePiastres?: number | null;
   status?: 'active' | 'archived';
   slots?: GroupSlot[];
+};
+export type Exam = {
+  id: string;
+  groupId: string;
+  title: string;
+  heldOn: string;
+  maxScore: number;
+  graded: number;
+  absent: number;
+  average: number | null;
+  notifiedAt: string | null;
+};
+export type ExamList = Exam[];
+export type CreateExamRequest = {
+  title: string;
+  heldOn: string;
+  maxScore: number;
+};
+export type ExamSheetRow = {
+  studentId: string;
+  nameAr: string;
+  nameEn: string | null;
+  score: number | null;
+  absent: boolean;
+};
+export type ExamSheet = {
+  exam: Exam;
+  subject: CurriculumItem;
+  groupLabel: string | null;
+  rows: ExamSheetRow[];
+};
+export type UpdateExamRequest = {
+  title?: string;
+  heldOn?: string;
+  maxScore?: number;
+};
+export type SaveExamResultsRequest = {
+  results: {
+    studentId: string;
+    score: number | null;
+    absent: boolean;
+  }[];
+};
+export type NotifyExamResponse = {
+  queued: number;
 };
 export type Session = {
   id: string;
@@ -899,7 +1041,7 @@ export type Receipt = {
 };
 export type OutboxMessage = {
   id: string;
-  trigger: 'absence' | 'session_cancelled' | 'session_moved';
+  trigger: 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result';
   status: 'queued' | 'sent' | 'failed';
   phone: string;
   guardianName: string | null;
@@ -916,10 +1058,12 @@ export type OutboxMessageList = OutboxMessage[];
 export type MessageSettingsOutput = {
   absence: boolean;
   sessionChange: boolean;
+  examResult: boolean;
 };
 export type MessageSettings = {
   absence: boolean;
   sessionChange: boolean;
+  examResult: boolean;
 };
 export type SentMessage = {
   id: string;
@@ -1035,6 +1179,7 @@ export const {
   useGetMeQuery,
   useGetMyScheduleQuery,
   useGetMyAttendanceQuery,
+  useGetMyGradesQuery,
   useCreateWorkspaceMutation,
   useListWorkspacesQuery,
   useGetCurrentWorkspaceQuery,
@@ -1049,6 +1194,13 @@ export const {
   useCreateGroupMutation,
   useGetGroupQuery,
   useUpdateGroupMutation,
+  useListExamsQuery,
+  useCreateExamMutation,
+  useGetExamSheetQuery,
+  useUpdateExamMutation,
+  useDeleteExamMutation,
+  useSaveExamResultsMutation,
+  useNotifyExamMutation,
   useListSessionsQuery,
   useMoveSessionMutation,
   useCancelSessionMutation,

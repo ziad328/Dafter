@@ -1,10 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { aliasedTable, and, desc, eq, gt, inArray, lt } from 'drizzle-orm';
-import type { MyAttendanceRecord, MySession } from '@dafter/contracts';
+import type { MyAttendanceRecord, MyGrade, MySession } from '@dafter/contracts';
 import {
   attendanceRecords,
   type Db,
   enrollments,
+  examResults,
+  exams,
   gradeLevels,
   groups,
   memberships,
@@ -125,5 +127,39 @@ export class MeRepository {
       out.push(...rows.map((r) => ({ ...r, startsAt: r.startsAt.toISOString() })));
     }
     return out.sort((a, b) => b.startsAt.localeCompare(a.startsAt)).slice(0, limit);
+  }
+
+  async grades(userId: string, limit: number): Promise<MyGrade[]> {
+    const out: MyGrade[] = [];
+    for (const [workspaceId, studentIds] of await this.byWorkspace(userId)) {
+      const rows = await withTenant(this.db, workspaceId, (tx) =>
+        tx
+          .select({
+            examId: exams.id,
+            center,
+            subject: item(subjects),
+            title: exams.title,
+            heldOn: exams.heldOn,
+            maxScore: exams.maxScore,
+            score: examResults.score,
+            absent: examResults.absent,
+          })
+          .from(examResults)
+          .innerJoin(exams, eq(exams.id, examResults.examId))
+          .innerJoin(workspaces, eq(workspaces.id, examResults.workspaceId))
+          .innerJoin(groups, eq(groups.id, exams.groupId))
+          .innerJoin(subjects, eq(subjects.id, groups.subjectId))
+          .where(
+            and(
+              eq(examResults.workspaceId, workspaceId),
+              inArray(examResults.studentId, studentIds),
+            ),
+          )
+          .orderBy(desc(exams.heldOn))
+          .limit(limit),
+      );
+      out.push(...rows);
+    }
+    return out.sort((a, b) => b.heldOn.localeCompare(a.heldOn)).slice(0, limit);
   }
 }

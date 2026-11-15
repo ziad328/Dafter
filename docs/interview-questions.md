@@ -119,3 +119,14 @@ Accounts are global: the same login may teach at another center or own its own w
 
 **2. Why does that check read other workspaces' memberships, and how is it kept safe?**
 RLS hides other tenants, so the check runs as the table owner without RLS, like the invite lookup. It returns only a yes/no (count of memberships, any student record), never another workspace's data, and the member id is first resolved inside the caller's workspace, so an unknown or foreign id is a plain 404.
+
+## v1 · Exams and grades
+
+**1. Why does `PUT /exams/:id/results` replace the whole grid instead of patching one score at a time?**
+The teacher types a grid and taps save once, often on a weak connection. Replacing every row in one transaction makes the request idempotent: a retry or a double tap ends in the same state, and a cleared cell really clears. The exam row is locked `FOR UPDATE` first, so a max-score change and a save can't interleave and let a score above the max in.
+
+**2. How does "send results to parents" stay exactly once, and what is the trade-off?**
+The outbox rows are inserted in the same transaction that stamps `notified_at`, with `dedupe_key = exam_result:<exam>:<guardian>` and `ON CONFLICT DO NOTHING`, grouped by guardian so siblings get one message. A second press queues 0. The cost: if a score is fixed after sending, pressing again sends nothing; a versioned key (exam plus a results revision) would allow a correction message.
+
+**3. Why is the score-above-max rule in the service and not a database check?**
+A check constraint can only see its own row, and the max lives on the exam row. A trigger could do it, but the service already holds the exam row locked and returns a code with the student's id for the grid. The database still enforces what it can see: score ≥ 0 or absent, never both.

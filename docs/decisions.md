@@ -73,3 +73,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** the web app and the API deploy as one Vercel Hobby project (no card): static files plus one function running the NestJS app. No pg-boss on Vercel: messages are sent right after the write that queued them (`OUTBOX_SEND_INLINE=1`), and `GET /internal/tick` (guarded by `CRON_SECRET`) runs the daily jobs and sends what quiet hours held, from Vercel's daily cron at 08:00 Cairo; an hourly cron-job.org call retries failures. The live list polls the database every second instead of an in-process bus. This replaces the Hugging Face plan above (Docker Spaces became paid) and the Cloudflare Pages proxy (one origin on Vercel).
 - **Alternatives:** Render, Koyeb, Fly.io (all need a card); Hugging Face Docker (now paid); Railway (a month-long trial); the laptop behind a tunnel (only up while it's on); a per-minute cron (keeps Neon awake and exceeds its free compute hours).
 - **Why:** free with no card and no expiry, one origin without a proxy, and the real client IP for rate limits. The always-on mode (pg-boss, migrations at boot) stays in the code for a VPS. Costs: up to 1 s live delay, cold starts, and Hobby's non-commercial terms.
+
+## 2026-11-15 · v1: exam results as a whole-grid replace, sent through the outbox
+
+- **Decision:** a grade grid is saved with one `PUT` that replaces all results of the exam under a row lock; parents get results only on an explicit "send", as `exam_result` outbox rows keyed per exam and guardian.
+- **Alternatives:** one request per cell (chatty, half-saved grids on a bad connection); sending on every save (parents get a message per correction); a key with a results revision (allows corrections, but needs a version column and wording for "corrected").
+- **Why:** one tap, idempotent, and the same exactly-once machinery as absences. Corrections after sending are a known limit.

@@ -97,8 +97,9 @@ describe('message settings', () => {
     expect((await c.teacher('GET', 'message-settings')).json()).toEqual({
       absence: true,
       sessionChange: true,
+      examResult: true,
     });
-    const off = { absence: false, sessionChange: false };
+    const off = { absence: false, sessionChange: false, examResult: false };
     expect((await c.assistant('PUT', 'message-settings', off)).json().code).toBe('FORBIDDEN');
     expect((await c.owner('PUT', 'message-settings', off)).json()).toEqual(off);
     expect((await c.assistant('GET', 'message-settings')).json()).toEqual(off);
@@ -110,7 +111,11 @@ describe('message settings', () => {
     await c.teacher('POST', `sessions/${closed}/close`);
     expect((await rows()).length).toBe(before);
 
-    await c.owner('PUT', 'message-settings', { absence: true, sessionChange: true });
+    await c.owner('PUT', 'message-settings', {
+      absence: true,
+      sessionChange: true,
+      examResult: true,
+    });
   });
 });
 

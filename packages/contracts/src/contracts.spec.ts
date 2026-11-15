@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { registerRequest } from './auth.js';
+import { saveExamResultsRequest } from './exams.js';
 import { ERROR_CODES, ERROR_STATUS, errorResponse } from './errors.js';
 import { createGroupRequest, groupSlot } from './groups.js';
 import { normalizeArabic } from './normalize.js';
@@ -46,6 +47,17 @@ describe('OpenAPI', () => {
 describe('schema rules', () => {
   const issues = (r: { success: boolean; error?: { issues: { message: string }[] } }) =>
     r.success ? [] : r.error!.issues.map((i) => i.message);
+
+  it('an exam result is a score or absent, once per student', () => {
+    const id = crypto.randomUUID();
+    const save = (results: object[]) => issues(saveExamResultsRequest.safeParse({ results }));
+    expect(save([{ studentId: id, score: 18, absent: false }])).toEqual([]);
+    expect(save([{ studentId: id, score: null, absent: true }])).toEqual([]);
+    expect(save([{ studentId: id, score: 5, absent: true }])).toContain('SCORE_OR_ABSENT');
+    expect(save([{ studentId: id, score: null, absent: false }])).toContain('SCORE_OR_ABSENT');
+    const row = { studentId: id, score: 1, absent: false };
+    expect(save([row, row])).toContain('DUPLICATE_STUDENT');
+  });
 
   it('register needs a phone or an email', () => {
     const base = { name: 'منى', password: 'correct horse' };

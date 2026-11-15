@@ -34,6 +34,7 @@ const NON_TENANT_ROUTES = new Set([
   // The student's own rows in every center, read per center inside withTenant.
   'GET /api/v1/me/schedule',
   'GET /api/v1/me/attendance',
+  'GET /api/v1/me/grades',
   // Development only (DEV_MAIL_INBOX=1).
   'GET /api/v1/dev/mail',
   // Cron only, guarded by CRON_SECRET; runs every workspace through withTenant.

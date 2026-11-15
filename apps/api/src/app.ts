@@ -7,6 +7,7 @@ import type { HealthResponse } from '@dafter/contracts';
 import { createDb, type Db } from '@dafter/db';
 import { AttendanceModule } from './attendance/attendance.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { ExamsModule } from './exams/exams.module.js';
 import { GroupsModule } from './groups/groups.module.js';
 import { MeModule } from './me/me.module.js';
 import { JobsModule } from './jobs/tick.controller.js';
@@ -48,6 +49,7 @@ class HealthController {
     MessagesModule,
     JobsModule,
     StatsModule,
+    ExamsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],

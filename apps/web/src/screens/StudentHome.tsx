@@ -7,6 +7,7 @@ import {
   useBindDeviceMutation,
   useGetMeQuery,
   useGetMyAttendanceQuery,
+  useGetMyGradesQuery,
   useGetMyScheduleQuery,
 } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
@@ -82,6 +83,7 @@ export default function StudentHome() {
       )}
       <Schedule />
       <History />
+      <Grades />
       <Settings />
     </>
   );
@@ -230,6 +232,42 @@ function History() {
             ))}
           </ul>
         </>
+      )}
+    </Panel>
+  );
+}
+
+/** My exam results, newest first: the score out of the max, or absent. */
+function Grades() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const { data, isLoading } = useGetMyGradesQuery();
+  if (isLoading) return <Skeleton />;
+  return (
+    <Panel className="grid gap-3 p-5">
+      <h2 className="font-semibold">{t('studentApp.grades')}</h2>
+      {!data?.length ? (
+        <p className="text-sm text-muted-foreground">{t('studentApp.noGrades')}</p>
+      ) : (
+        <ul className="grid gap-2" data-testid="my-grades">
+          {data.map((g) => (
+            <li key={g.examId} className="flex items-center justify-between gap-2 text-sm">
+              <span className="grid min-w-0">
+                <span className="truncate font-medium">{g.title}</span>
+                <span className="text-muted-foreground">
+                  {`${dayLabel(g.heldOn, lang)} · ${itemName(g.subject, lang)}`}
+                </span>
+              </span>
+              {g.absent ? (
+                <span className="rounded-full bg-absent-soft px-2.5 py-0.5 text-xs font-medium text-rose">
+                  {t('exams.absent')}
+                </span>
+              ) : (
+                <bdi className="shrink-0 text-base font-bold">{`${g.score}/${g.maxScore}`}</bdi>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </Panel>
   );

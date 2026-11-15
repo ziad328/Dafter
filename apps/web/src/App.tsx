@@ -38,6 +38,8 @@ const FakePhone = lazyPage(() => import('./screens/FakePhone'));
 const Messages = lazyPage(() => import('./screens/Messages'));
 const More = lazyPage(() => import('./screens/More'));
 const Fees = lazyPage(() => import('./screens/Fees'));
+const GroupExams = lazyPage(() => import('./screens/GroupExams'));
+const ExamSheet = lazyPage(() => import('./screens/ExamSheet'));
 
 /** Signed-out screens and the student app: the wordmark, the notebook's red line, one column. */
 function Layout() {
@@ -127,6 +129,8 @@ export const routes: RouteObject[] = [
           { path: '/groups', element: <Groups /> },
           { path: '/groups/new', element: <GroupForm /> },
           { path: '/groups/:id', element: <GroupForm /> },
+          { path: '/groups/:id/exams', element: <GroupExams /> },
+          { path: '/exams/:id', element: <ExamSheet /> },
           { path: '/timetable', element: <Timetable /> },
           { path: '/sessions/:id/live', element: <SessionLive /> },
           { path: '/receipts/:id', element: <Receipt /> },

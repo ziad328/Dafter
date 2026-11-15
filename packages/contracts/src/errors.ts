@@ -65,6 +65,16 @@ export const ERROR_STATUS = {
   ENTRY_ALREADY_REVERSED: 409,
   // Reversals are not reversed; record a new entry instead.
   ENTRY_NOT_REVERSIBLE: 409,
+  // Unknown id, another workspace's exam, or a group outside the caller's scope: never 403.
+  EXAM_NOT_FOUND: 404,
+  // A score above the exam's max (details.studentId), or a new max below a recorded score.
+  EXAM_SCORE_ABOVE_MAX: 400,
+  // A result for a student who was never enrolled in the exam's group (details.studentId).
+  EXAM_STUDENT_INVALID: 400,
+  // Delete an exam that has results: clear the grid first.
+  EXAM_HAS_RESULTS: 409,
+  // Send to parents before any result is recorded.
+  EXAM_NOT_GRADED: 409,
   INTERNAL: 500,
 } as const;
 

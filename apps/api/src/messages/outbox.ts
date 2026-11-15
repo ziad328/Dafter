@@ -3,10 +3,11 @@ import type { Tx } from '@dafter/db';
 import type { Trigger } from './templates.js';
 
 /** Per-workspace switches in `workspaces.settings.messages`; missing means on. */
-export const TOGGLE: Record<Trigger, 'absence' | 'sessionChange'> = {
+export const TOGGLE: Record<Trigger, 'absence' | 'sessionChange' | 'examResult'> = {
   absence: 'absence',
   session_cancelled: 'sessionChange',
   session_moved: 'sessionChange',
+  exam_result: 'examResult',
 };
 
 /**
@@ -86,3 +87,39 @@ export const enqueueSessionChange = (
           and e.status = 'active' and st2.status = 'active'`,
     trigger === 'session_moved' ? sql`|| ':' || extract(epoch from s.starts_at)::bigint` : sql``,
   );
+
+/**
+ * Exam "send to parents": one message per guardian of the students with a result, siblings
+ * merged, keyed by exam and guardian so a second press queues nothing. Returns how many rows
+ * were queued now.
+ */
+export async function enqueueExamResults(tx: Tx, workspaceId: string, examId: string, now: Date) {
+  const res = await tx.execute(sql`
+    insert into outbox_messages (workspace_id, guardian_id, trigger, payload, dedupe_key, send_after)
+    select ${workspaceId}, sg.guardian_id, 'exam_result',
+      jsonb_build_object(
+        'examId', ex.id,
+        'title', ex.title,
+        'heldOn', to_char(ex.held_on, 'YYYY-MM-DD'),
+        'maxScore', ex.max_score,
+        'centerAr', w.name_ar,
+        'centerEn', w.name_en,
+        'subjectAr', sub.name_ar,
+        'subjectEn', sub.name_en,
+        'students', jsonb_agg(jsonb_build_object('nameAr', st.name_ar, 'nameEn', st.name_en,
+                              'score', r.score, 'absent', r.absent) order by st.name_ar)),
+      'exam_result:' || ex.id || ':' || sg.guardian_id,
+      quiet_hours_send_after(${now.toISOString()}::timestamptz, w.timezone)
+    from exams ex
+    join groups g on g.workspace_id = ex.workspace_id and g.id = ex.group_id
+    join subjects sub on sub.workspace_id = g.workspace_id and sub.id = g.subject_id
+    join workspaces w on w.id = ex.workspace_id
+    join exam_results r on r.workspace_id = ex.workspace_id and r.exam_id = ex.id
+    join students st on st.workspace_id = r.workspace_id and st.id = r.student_id
+    join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
+    where ex.workspace_id = ${workspaceId} and ex.id = ${examId}
+      and coalesce((w.settings->'messages'->>${TOGGLE.exam_result})::boolean, true)
+    group by sg.guardian_id, ex.id, w.id, sub.id
+    on conflict (workspace_id, dedupe_key) do nothing`);
+  return res.rowCount ?? 0;
+}

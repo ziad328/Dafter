@@ -1,6 +1,9 @@
 import type {
   AttendanceRecord,
+  Exam,
+  ExamSheet,
   MyAttendanceRecord,
+  MyGrade,
   MySession,
   OpenSession,
 } from '@dafter/contracts';
@@ -36,8 +39,57 @@ const mySession = (startsInMin: number, status: MySession['status'] = 'scheduled
   timezone: 'Africa/Cairo',
 });
 
+const exam: Exam = {
+  id: '7d0c3a52-6f2e-4b8e-9a4f-1c2d3e4f5a6b',
+  groupId: captured.group.id,
+  title: 'امتحان الشهر',
+  heldOn: '2026-11-21',
+  maxScore: 20,
+  graded: 1,
+  absent: 1,
+  average: 18,
+  notifiedAt: null,
+};
+const examSheet: ExamSheet = {
+  exam,
+  subject: captured.group.subject,
+  groupLabel: null,
+  rows: [
+    { studentId: first!.studentId, nameAr: first!.nameAr, nameEn: null, score: 18, absent: false },
+    {
+      studentId: second!.studentId,
+      nameAr: second!.nameAr,
+      nameEn: null,
+      score: null,
+      absent: true,
+    },
+    {
+      studentId: '3c1f7e2a-9b8d-4c6e-8f1a-2b3c4d5e6f70',
+      nameAr: 'عمر خالد',
+      nameEn: 'Omar',
+      score: null,
+      absent: false,
+    },
+  ],
+};
+const myGrades: MyGrade[] = [
+  { score: 18, absent: false },
+  { score: null, absent: true },
+].map((g, i) => ({
+  examId: crypto.randomUUID(),
+  center: { nameAr: 'سنتر النور', nameEn: null },
+  subject: captured.subjects[0]!,
+  title: `امتحان ${i + 1}`,
+  heldOn: `2026-11-${21 - i * 7}`,
+  maxScore: 20,
+  ...g,
+}));
+
 export const fx = {
   ...captured,
+  exam,
+  examSheet,
+  myGrades,
   openSession: {
     sessionId: open.id,
     qrKey: 'dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXk',
@@ -99,6 +151,7 @@ export const handlers = [
   http.get(api('me'), log(fx.me)),
   http.get(api('me/schedule'), log(fx.mySchedule)),
   http.get(api('me/attendance'), log(fx.myAttendance)),
+  http.get(api('me/grades'), log(fx.myGrades)),
   http.post(
     api('devices/bind'),
     log({ id: crypto.randomUUID(), boundAt: new Date().toISOString() }, 201),
@@ -220,6 +273,27 @@ export const handlers = [
     log(async (req) => (await req.clone().json()) as JsonBodyType),
   ),
   http.get(api('dev/phone'), log(fx.phone)),
+  http.get(
+    api('groups/:id/exams'),
+    log([
+      fx.exam,
+      {
+        ...fx.exam,
+        id: crypto.randomUUID(),
+        title: 'امتحان قديم',
+        heldOn: '2026-11-07',
+        graded: 0,
+        absent: 0,
+        average: null,
+      },
+    ]),
+  ),
+  http.post(api('groups/:id/exams'), log(fx.exam, 201)),
+  http.get(api('exams/:id'), log(fx.examSheet)),
+  http.patch(api('exams/:id'), log(fx.exam)),
+  http.delete(api('exams/:id'), log(null, 204)),
+  http.put(api('exams/:id/results'), log(fx.examSheet)),
+  http.post(api('exams/:id/notify'), log({ queued: 2 })),
 ];
 
 export const server = setupServer(...handlers);

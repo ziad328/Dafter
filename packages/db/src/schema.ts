@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   check,
+  date,
   foreignKey,
   index,
   integer,
@@ -659,5 +660,68 @@ export const outboxMessages = pgTable(
       columns: [t.workspaceId, t.guardianId],
       foreignColumns: [guardians.workspaceId, guardians.id],
     }),
+  ],
+);
+
+// Exams (v1). A result row is a score or "absent"; no row = not entered yet.
+
+export const exams = pgTable(
+  'exams',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    groupId: uuid('group_id').notNull(),
+    title: text('title').notNull(),
+    heldOn: date('held_on').notNull(),
+    maxScore: integer('max_score').notNull(),
+    notifiedAt: tz('notified_at'),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('exams_workspace_id_key').on(t.workspaceId, t.id),
+    index('exams_group_idx').on(t.workspaceId, t.groupId, t.heldOn),
+    foreignKey({
+      name: 'exams_group_fk',
+      columns: [t.workspaceId, t.groupId],
+      foreignColumns: [groups.workspaceId, groups.id],
+    }),
+    check('exams_max_score_check', sql`${t.maxScore} > 0`),
+  ],
+);
+
+export const examResults = pgTable(
+  'exam_results',
+  {
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    examId: uuid('exam_id').notNull(),
+    studentId: uuid('student_id').notNull(),
+    score: integer('score'),
+    absent: boolean('absent').notNull().default(false),
+    recordedBy: uuid('recorded_by').references(() => users.id),
+    recordedAt: tz('recorded_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.workspaceId, t.examId, t.studentId] }),
+    index('exam_results_student_idx').on(t.workspaceId, t.studentId),
+    foreignKey({
+      name: 'exam_results_exam_fk',
+      columns: [t.workspaceId, t.examId],
+      foreignColumns: [exams.workspaceId, exams.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'exam_results_student_fk',
+      columns: [t.workspaceId, t.studentId],
+      foreignColumns: [students.workspaceId, students.id],
+    }),
+    // The max is checked by the service (it lives on the exam row).
+    check(
+      'exam_results_score_or_absent',
+      sql`(${t.absent} and ${t.score} is null) or (not ${t.absent} and ${t.score} >= 0)`,
+    ),
   ],
 );

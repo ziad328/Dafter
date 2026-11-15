@@ -620,7 +620,8 @@
   ],
   "messageSettings": {
     "absence": true,
-    "sessionChange": true
+    "sessionChange": true,
+    "examResult": true
   },
   "phone": []
 }

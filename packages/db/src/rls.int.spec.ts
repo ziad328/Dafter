@@ -20,6 +20,8 @@ import {
   outboxMessages,
   memberships,
   subjects,
+  exams,
+  examResults,
 } from './schema.js';
 import { type Tx, withTenant } from './tenant.js';
 import { makeMembership, makeUser, makeWorkspace, useTestDb } from './testing/index.js';
@@ -136,6 +138,23 @@ beforeAll(async () => {
     dedupeKey: 'absence:x:y',
     sendAfter: new Date(),
   });
+  const [exam] = await db
+    .insert(exams)
+    .values({
+      workspaceId: a,
+      groupId: group!.id,
+      title: 'شهر',
+      heldOn: '2026-11-21',
+      maxScore: 20,
+    })
+    .returning();
+  await db.insert(examResults).values({
+    workspaceId: a,
+    examId: exam!.id,
+    studentId: student!.id,
+    score: 18,
+    recordedAt: new Date(),
+  });
   tables = await tenantTables();
 });
 
@@ -168,6 +187,8 @@ describe('RLS on every tenant table', () => {
         'ledger_entries',
         'receipt_counters',
         'outbox_messages',
+        'exams',
+        'exam_results',
       ]),
     );
   });

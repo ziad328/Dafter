@@ -21,7 +21,7 @@ const PILL: Record<Status, string> = {
   sent: 'bg-present-soft text-present',
   failed: 'bg-rose-soft text-rose',
 };
-const TOGGLES: (keyof MessageSettings)[] = ['absence', 'sessionChange'];
+const TOGGLES: (keyof MessageSettings)[] = ['absence', 'sessionChange', 'examResult'];
 
 /** Parent messages: the owner's switches, and the log (owner and assistant). */
 export default function Messages() {

@@ -16,12 +16,17 @@ export const sentMessageList = z.array(sentMessage).meta({ id: 'SentMessageList'
 
 export type SentMessage = z.infer<typeof sentMessage>;
 
-export const messageTrigger = z.enum(['absence', 'session_cancelled', 'session_moved']);
+export const messageTrigger = z.enum([
+  'absence',
+  'session_cancelled',
+  'session_moved',
+  'exam_result',
+]);
 export const messageStatus = z.enum(['queued', 'sent', 'failed']);
 
-/** Per-workspace switches: which events message parents. Both default to on. */
+/** Per-workspace switches: which events message parents. All default to on. */
 export const messageSettings = z
-  .object({ absence: z.boolean(), sessionChange: z.boolean() })
+  .object({ absence: z.boolean(), sessionChange: z.boolean(), examResult: z.boolean() })
   .meta({ id: 'MessageSettings' });
 
 export const listMessagesQuery = z

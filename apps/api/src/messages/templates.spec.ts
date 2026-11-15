@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type MessagePayload, render } from './templates.js';
+import { type ExamPayload, type MessagePayload, render } from './templates.js';
 
 const p: MessagePayload = {
   startsAt: '2026-11-21T14:00:00Z', // Saturday 16:00 Cairo
@@ -30,6 +30,32 @@ describe('message templates', () => {
     expect(render('session_cancelled', p, 'ar')).toContain('تم إلغاء حصة الفيزياء');
     expect(render('session_moved', { ...p, centerEn: 'Al-Nour' }, 'en')).toBe(
       'Al-Nour: the Physics session has moved to Saturday 21 November at 4:00 pm.',
+    );
+  });
+});
+
+describe('exam result template', () => {
+  const exam: ExamPayload = {
+    title: 'امتحان الشهر',
+    heldOn: '2026-11-21',
+    maxScore: 20,
+    centerAr: 'سنتر النور',
+    centerEn: 'Al-Nour',
+    subjectAr: 'الفيزياء',
+    subjectEn: 'Physics',
+    students: [
+      { nameAr: 'أحمد', nameEn: 'Ahmed', score: 18, absent: false },
+      { nameAr: 'مريم', nameEn: null, score: null, absent: true },
+    ],
+  };
+
+  it('lists each sibling with a score or absent, in both languages', () => {
+    const ar = render('exam_result', exam, 'ar');
+    expect(ar).toContain('سنتر النور: نتيجة امتحان الفيزياء «امتحان الشهر»');
+    expect(ar).toContain('أحمد 18/20');
+    expect(ar).toContain('مريم غائب');
+    expect(render('exam_result', exam, 'en')).toBe(
+      'Al-Nour: Physics exam "امتحان الشهر" (21 November): Ahmed 18/20 and مريم absent.',
     );
   });
 });
