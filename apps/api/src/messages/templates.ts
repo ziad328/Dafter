@@ -17,6 +17,8 @@ export type ExamPayload = {
   title: string;
   heldOn: string;
   maxScore: number;
+  // A resend after a score was fixed (missing on rows queued before this field).
+  corrected?: boolean;
   centerAr: string;
   centerEn: string | null;
   subjectAr: string;
@@ -94,9 +96,9 @@ const templates: Templates = {
   },
   exam_result: {
     ar: (p) =>
-      `${p.centerAr}: نتيجة امتحان ${p.subjectAr} «${p.title}» (${day(p, 'ar')}): ${scores(p, 'ar')}.`,
+      `${p.centerAr}: ${p.corrected ? 'تصحيح: ' : ''}نتيجة امتحان ${p.subjectAr} «${p.title}» (${day(p, 'ar')}): ${scores(p, 'ar')}.`,
     en: (p) =>
-      `${p.centerEn ?? p.centerAr}: ${p.subjectEn} exam "${p.title}" (${day(p, 'en')}): ${scores(p, 'en')}.`,
+      `${p.centerEn ?? p.centerAr}: ${p.corrected ? 'Correction: ' : ''}${p.subjectEn} exam "${p.title}" (${day(p, 'en')}): ${scores(p, 'en')}.`,
   },
 };
 

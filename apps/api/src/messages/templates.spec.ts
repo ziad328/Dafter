@@ -58,4 +58,10 @@ describe('exam result template', () => {
       'Al-Nour: Physics exam "امتحان الشهر" (21 November): Ahmed 18/20 and مريم absent.',
     );
   });
+
+  it('says when it is a correction', () => {
+    const fixed = { ...exam, corrected: true };
+    expect(render('exam_result', fixed, 'ar')).toContain('سنتر النور: تصحيح: نتيجة امتحان');
+    expect(render('exam_result', fixed, 'en')).toMatch(/^Al-Nour: Correction: Physics exam/);
+  });
 });

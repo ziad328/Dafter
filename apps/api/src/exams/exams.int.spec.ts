@@ -150,7 +150,12 @@ describe('exams', () => {
     });
     expect((await c.teacher('POST', `exams/${examId}/notify`)).json()).toEqual({ queued: 1 });
     expect((await c.teacher('POST', `exams/${examId}/notify`)).json()).toEqual({ queued: 0 });
-    expect(await outbox(c.workspaceId)).toHaveLength(2);
+    const rows = await outbox(c.workspaceId);
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => (r.payload as { corrected: boolean }).corrected).sort()).toEqual([
+      false,
+      true,
+    ]);
     expect((await c.teacher('GET', `exams/${examId}`)).json().exam.notifiedAt).toBe(notifiedAt);
 
     // Switched off: grading another exam queues nothing.

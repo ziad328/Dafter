@@ -107,6 +107,10 @@ export async function enqueueExamResults(tx: Tx, workspaceId: string, examId: st
         'centerEn', w.name_en,
         'subjectAr', sub.name_ar,
         'subjectEn', sub.name_en,
+        -- This guardian already got this exam's results: the new message is a correction.
+        'corrected', exists (select 1 from outbox_messages o
+          where o.workspace_id = ex.workspace_id and o.guardian_id = sg.guardian_id
+            and o.trigger = 'exam_result' and o.payload->>'examId' = ex.id::text),
         'students', jsonb_agg(jsonb_build_object('nameAr', st.name_ar, 'nameEn', st.name_en,
                               'score', r.score, 'absent', r.absent) order by st.name_ar)),
       -- The guardian's results are in the key: a repeat is a no-op, a corrected score sends again.
