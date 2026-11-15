@@ -141,6 +141,18 @@ describe('exams', () => {
     expect(sent!.body).toContain('18/20');
     expect(sent!.body).toContain('غائب');
 
+    // A corrected score sends the guardian the new result once; the first send stays the stamp.
+    await c.teacher('PUT', `exams/${examId}/results`, {
+      results: [
+        { studentId: a, score: 19, absent: false },
+        { studentId: b, score: null, absent: true },
+      ],
+    });
+    expect((await c.teacher('POST', `exams/${examId}/notify`)).json()).toEqual({ queued: 1 });
+    expect((await c.teacher('POST', `exams/${examId}/notify`)).json()).toEqual({ queued: 0 });
+    expect(await outbox(c.workspaceId)).toHaveLength(2);
+    expect((await c.teacher('GET', `exams/${examId}`)).json().exam.notifiedAt).toBe(notifiedAt);
+
     // Switched off: grading another exam queues nothing.
     await c.owner('PUT', 'message-settings', {
       absence: true,

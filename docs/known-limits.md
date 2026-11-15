@@ -85,7 +85,6 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Teachers can't see the message log (it shows every parent's phone) | They ask the owner or assistant | centers |
 | The message log shows the newest 100, no pagination or search | Older messages are hidden | later |
 | A moved session's message gives the new time only, not the old one | Parents may not know which session moved if there are several | centers |
-| Exam results are sent once per exam; a fixed score after sending sends nothing | Parents keep the old score | later (results revision in the dedupe key) |
 
 ## Tooling
 

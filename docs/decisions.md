@@ -76,6 +76,6 @@ Short records of design choices: decision, alternatives, why.
 
 ## 2026-11-15 · v1: exam results as a whole-grid replace, sent through the outbox
 
-- **Decision:** a grade grid is saved with one `PUT` that replaces all results of the exam under a row lock; parents get results only on an explicit "send", as `exam_result` outbox rows keyed per exam and guardian.
+- **Decision:** a grade grid is saved with one `PUT` that replaces all results of the exam under a row lock; parents get results only on an explicit "send", as `exam_result` outbox rows keyed by exam, guardian and a hash of that guardian's results.
 - **Alternatives:** one request per cell (chatty, half-saved grids on a bad connection); sending on every save (parents get a message per correction); a key with a results revision (allows corrections, but needs a version column and wording for "corrected").
-- **Why:** one tap, idempotent, and the same exactly-once machinery as absences. Corrections after sending are a known limit.
+- **Why:** one tap, idempotent, and the same exactly-once machinery as absences; the hash in the key lets a correction reach only the affected parents without a version column.

@@ -90,8 +90,9 @@ export const enqueueSessionChange = (
 
 /**
  * Exam "send to parents": one message per guardian of the students with a result, siblings
- * merged, keyed by exam and guardian so a second press queues nothing. Returns how many rows
- * were queued now.
+ * merged. Keyed by exam, guardian and that guardian's results, so a second press queues nothing
+ * and a press after a correction texts only the guardians whose children's results changed.
+ * Returns how many rows were queued now.
  */
 export async function enqueueExamResults(tx: Tx, workspaceId: string, examId: string, now: Date) {
   const res = await tx.execute(sql`
@@ -108,7 +109,9 @@ export async function enqueueExamResults(tx: Tx, workspaceId: string, examId: st
         'subjectEn', sub.name_en,
         'students', jsonb_agg(jsonb_build_object('nameAr', st.name_ar, 'nameEn', st.name_en,
                               'score', r.score, 'absent', r.absent) order by st.name_ar)),
-      'exam_result:' || ex.id || ':' || sg.guardian_id,
+      -- The guardian's results are in the key: a repeat is a no-op, a corrected score sends again.
+      'exam_result:' || ex.id || ':' || sg.guardian_id || ':' || md5((jsonb_agg(
+        jsonb_build_object('id', st.id, 'score', r.score, 'absent', r.absent) order by st.id))::text),
       quiet_hours_send_after(${now.toISOString()}::timestamptz, w.timezone)
     from exams ex
     join groups g on g.workspace_id = ex.workspace_id and g.id = ex.group_id
