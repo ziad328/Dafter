@@ -206,6 +206,9 @@ describe('staff', () => {
     await user.click(await screen.findByRole('button', { name: tr('members.inviteShort') }));
     await user.click(screen.getByRole('button', { name: tr('members.createLink') }));
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
+    const sheet = screen.getByRole('dialog', { name: tr('members.invite') });
+    await user.click(within(sheet).getByRole('button', { name: tr('payments.close') }));
+    expect(sheet).not.toHaveAttribute('open');
   });
 });
 

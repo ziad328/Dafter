@@ -67,7 +67,8 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
   await expect(balance).toContainText(egp(lang, 500));
 
   // The student is in one group, so no group picker: amount, method, save.
-  // The amount starts at what the student owes.
+  // The amount starts at what the student owes; the form opens in a sheet.
+  await page.getByRole('button', { name: t.fees.record }).click();
   await expect(page.getByLabel(t.fees.amount)).toHaveValue(/^500(\.00)?$/);
   await page.getByLabel(t.fees.amount).fill('200');
   await choose(page, t.fees.method, t.fees.methods.vodafone_cash);

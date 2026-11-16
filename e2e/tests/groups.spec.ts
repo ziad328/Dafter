@@ -15,7 +15,8 @@ test.use({ expectedErrors: GROUP_CONFLICT });
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
-const SLOT = { ar: /4:00\sم – 5:30\sم/, en: /4:00\sPM – 5:30\sPM/ };
+// Rows show each slot's day and start (audit 3 G2).
+const SLOT = { ar: /4:00\sم/, en: /4:00\sPM/ };
 
 test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   // The dev database is not reset between runs, so find this run's group by its capacity.
@@ -29,6 +30,8 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   await choose(page, t.groups.subject, PHYSICS[lang]);
   await choose(page, t.groups.gradeLevel, SEC3[lang]);
   await choose(page, t.groups.teacher, 'منى حسن');
+  // Optional fields sit under «تفاصيل أكثر».
+  await page.getByText(t.students.more).click();
   await page.getByLabel(new RegExp(t.groups.capacity)).fill(capacity);
   await page.getByLabel(t.groups.start).fill('16:00');
   await page.getByLabel(t.groups.end).fill('17:30');

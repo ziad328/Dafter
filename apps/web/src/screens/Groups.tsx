@@ -1,12 +1,12 @@
 import { normalizeArabic } from '@dafter/contracts';
-import { BookOpen, ClipboardList, DoorOpen, Plus, Users } from 'lucide-react';
+import { BookOpen, ClipboardList, Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useGetCurrentWorkspaceQuery, useListGroupsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { FilterPicker, uniqueOptions } from '@/components/FilterChips';
-import { Avatar, PageHeader, Panel } from '@/components/Page';
+import { PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { itemName, sortedSlots, weekdayName } from '@/lib/groups';
 import { formatEgp } from '@/lib/money';
@@ -92,103 +92,93 @@ export default function Groups() {
           {t(all.length ? 'groups.noMatch' : 'groups.empty')}
         </Panel>
       )}
-      <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {shown.map((g, i) => {
-          const card = (
-            <Panel className="grid h-full gap-4 p-5 transition-all hover:-translate-y-0.5 hover:border-ink/40">
-              <div className="flex items-start gap-3">
-                <span
-                  className={cn(
-                    'grid size-11 shrink-0 place-items-center rounded-xl',
-                    TONES[i % TONES.length],
-                  )}
-                >
-                  <BookOpen className="size-5" aria-hidden />
-                </span>
-                <div className="grid min-w-0">
-                  <h2 className="truncate text-lg font-semibold">{itemName(g.subject, lang)}</h2>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {itemName(g.gradeLevel, lang)}
-                    {g.label && ` · ${g.label}`}
-                  </p>
-                </div>
-                {g.status === 'archived' && (
-                  <span className="ms-auto rounded-full bg-muted px-2 py-0.5 text-xs">
-                    {t('groups.archived')}
-                  </span>
-                )}
-              </div>
-              <ul className="flex flex-wrap gap-2 text-sm">
-                {sortedSlots(g).map((s) => (
-                  <li
-                    key={`${s.weekday}-${s.startTime}`}
-                    className="rounded-full bg-muted px-3 py-1"
+      {/* Two-line rows instead of tall cards, with exams as an icon in the row (audit 3 G2). */}
+      {shown.length > 0 && (
+        <Panel className="overflow-hidden">
+          <ul className="divide-y">
+            {shown.map((g, i) => {
+              const when = sortedSlots(g)
+                .map((s) => `${weekdayName(lang, s.weekday)} ${clockLabel(s.startTime, lang)}`)
+                .join('، ');
+              const body = (
+                <>
+                  <span
+                    className={cn(
+                      'hidden size-10 shrink-0 place-items-center rounded-xl sm:grid',
+                      TONES[i % TONES.length],
+                    )}
                   >
-                    {`${weekdayName(lang, s.weekday)} `}
-                    <bdi>{`${clockLabel(s.startTime, lang)} – ${clockLabel(s.endTime, lang)}`}</bdi>
-                  </li>
-                ))}
-                {g.room && (
-                  <li className="flex items-center gap-1 rounded-full bg-muted px-3 py-1">
-                    <DoorOpen className="size-4" aria-hidden />
-                    {g.room.name}
-                  </li>
-                )}
-              </ul>
-              <div className="flex items-center gap-2 border-t pt-3 text-sm">
-                <Avatar name={g.teacherName} className="size-8 text-xs" />
-                <span className="truncate">{g.teacherName}</span>
-                {/* Removed from the center: the group waits for a new teacher. */}
-                {g.teacherRemoved && (
-                  <span className="shrink-0 rounded-full bg-late-soft px-2 py-0.5 text-xs font-medium text-late">
-                    {t('groups.teacherRemoved')}
+                    <BookOpen className="size-5" aria-hidden />
                   </span>
-                )}
-                {/* Students and fee tell apart a teacher's groups of one subject (audit G1). */}
-                <span className="ms-auto flex shrink-0 items-center gap-2 text-muted-foreground">
-                  <Users className="size-4" aria-hidden />
-                  {g.capacity === null ? (
-                    t('groups.students', { count: g.studentCount })
-                  ) : (
-                    <bdi>{t('groups.seats', { count: g.studentCount, capacity: g.capacity })}</bdi>
-                  )}
-                </span>
-              </div>
-              {g.monthlyFeePiastres !== null && (
-                <p className="-mt-2 text-sm text-muted-foreground">
-                  {t('groups.perMonth', { fee: formatEgp(g.monthlyFeePiastres, lang) })}
-                </p>
-              )}
-            </Panel>
-          );
-          return (
-            <li
-              key={g.id}
-              className="grid animate-rise gap-2"
-              style={{ animationDelay: `${i * 50}ms` }}
-            >
-              {canWrite ? (
-                <Link
-                  to={`/groups/${g.id}`}
-                  className="block h-full rounded-2xl focus-visible:ring-2"
+                  <span className="grid min-w-0 flex-1 gap-0.5">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <h2 className="truncate font-semibold">
+                        {itemName(g.subject, lang)}
+                        <span className="font-normal text-muted-foreground">
+                          {` · ${g.label ?? itemName(g.gradeLevel, lang)}`}
+                        </span>
+                      </h2>
+                      {g.status === 'archived' && (
+                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs">
+                          {t('groups.archived')}
+                        </span>
+                      )}
+                      {/* Removed from the center: the group waits for a new teacher. */}
+                      {g.teacherRemoved && (
+                        <span className="shrink-0 rounded-full bg-late-soft px-2 py-0.5 text-xs font-medium text-late">
+                          {t('groups.teacherRemoved')}
+                        </span>
+                      )}
+                    </span>
+                    <span className="truncate text-sm text-muted-foreground">
+                      <bdi>{when}</bdi>
+                      {` · ${g.teacherName}`}
+                      {g.room && ` · ${g.room.name}`}
+                      {g.monthlyFeePiastres !== null &&
+                        ` · ${t('groups.perMonth', { fee: formatEgp(g.monthlyFeePiastres, lang) })}`}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground">
+                    <Users className="size-4" aria-hidden />
+                    {g.capacity === null ? (
+                      t('groups.students', { count: g.studentCount })
+                    ) : (
+                      <bdi>
+                        {t('groups.seats', { count: g.studentCount, capacity: g.capacity })}
+                      </bdi>
+                    )}
+                  </span>
+                </>
+              );
+              const rowClass = 'flex min-w-0 flex-1 items-center gap-3 px-4 py-3';
+              return (
+                <li
+                  key={g.id}
+                  className="flex animate-rise items-center"
+                  style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
                 >
-                  {card}
-                </Link>
-              ) : (
-                card
-              )}
-              {/* Every role that sees the group grades its exams, assistants too. */}
-              <Link
-                to={`/groups/${g.id}/exams`}
-                className="flex min-h-10 items-center justify-center gap-2 rounded-xl border bg-card text-sm font-medium hover:border-ink/40 focus-visible:ring-2"
-              >
-                <ClipboardList className="size-4 text-ink" aria-hidden />
-                {t('exams.title')}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                  {canWrite ? (
+                    <Link
+                      to={`/groups/${g.id}`}
+                      className={cn(rowClass, 'hover:bg-ink-soft/50 focus-visible:bg-ink-soft')}
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <div className={rowClass}>{body}</div>
+                  )}
+                  {/* Every role that sees the group grades its exams, assistants too. */}
+                  <Button asChild variant="ghost" size="icon" className="me-2 shrink-0">
+                    <Link to={`/groups/${g.id}/exams`} aria-label={t('exams.title')}>
+                      <ClipboardList className="size-5 text-ink" aria-hidden />
+                    </Link>
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </Panel>
+      )}
     </div>
   );
 }

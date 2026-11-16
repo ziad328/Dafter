@@ -175,7 +175,7 @@ describe('rooms on groups and the timetable', () => {
     const room = { id: ROOMS[0]!.id, name: 'قاعة 1' };
     server.use(http.get(route('groups'), () => Response.json([{ ...fx.group, room }])));
     await renderAt('/groups');
-    expect(await screen.findByText('قاعة 1')).toBeVisible();
+    expect(await screen.findByText(/· قاعة 1/)).toBeVisible();
   });
 
   it('shows the room on timetable rows', async () => {

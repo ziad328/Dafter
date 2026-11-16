@@ -56,7 +56,8 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await choose(page, t.enrollments.group, { index: 0 });
   await page.getByLabel(new RegExp(t.enrollments.discount.replace('%', ''))).fill('10');
   await page.getByRole('button', { name: t.enrollments.add }).click();
-  await expect(page.getByRole('button', { name: t.enrollments.leave })).toBeVisible();
+  // The group shows with its «⋯» menu (leaving waits behind it).
+  await expect(page.getByRole('button', { name: t.enrollments.actions })).toBeVisible();
 
   await expect(page.getByText(t.studentApp.staff.notActivated)).toBeVisible();
   await page.getByRole('button', { name: t.studentApp.staff.invite }).click();

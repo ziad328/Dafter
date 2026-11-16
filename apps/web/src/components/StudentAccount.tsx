@@ -12,6 +12,7 @@ import {
 } from '@/api/generated';
 import { Field, FormError, SelectField } from '@/components/Field';
 import { ShareButton } from '@/components/ShareButton';
+import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
@@ -111,14 +112,10 @@ export function Enrollments({ studentId }: { studentId: string }) {
                   </span>
                 )}
               </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={left.isLoading}
-                onClick={() => void leave({ id: studentId, enrollmentId: e.id })}
-              >
-                {t('enrollments.leave')}
-              </Button>
+              <LeaveMenu
+                busy={left.isLoading}
+                onLeave={() => void leave({ id: studentId, enrollmentId: e.id })}
+              />
             </li>
           ))}
         </ul>
@@ -245,5 +242,41 @@ export function AppAccess({ student }: { student: Student }) {
         />
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * «إخراج من المجموعة» waits behind a «⋯» and a second tap, so it is never a stray tap next
+ * to the group's name (audit 3 S7).
+ */
+function LeaveMenu({ busy, onLeave }: { busy: boolean; onLeave: () => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <span className="flex shrink-0 items-center gap-1">
+      {open && (
+        <Button
+          size="sm"
+          variant={confirming ? 'destructive' : 'ghost'}
+          disabled={busy}
+          onClick={() => (confirming ? onLeave() : setConfirming(true))}
+        >
+          {t(confirming ? 'enrollments.confirmLeave' : 'enrollments.leave')}
+        </Button>
+      )}
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        aria-label={t('enrollments.actions')}
+        aria-expanded={open}
+        onClick={() => {
+          setOpen(!open);
+          setConfirming(false);
+        }}
+      >
+        <MoreHorizontal aria-hidden />
+      </Button>
+    </span>
   );
 }

@@ -1,31 +1,41 @@
 import type { LedgerEntry } from '@dafter/contracts';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import {
   useCreatePaymentMutation,
+  useGetCurrentWorkspaceQuery,
   useGetStudentLedgerQuery,
   useListEnrollmentsQuery,
   useReverseEntryMutation,
 } from '@/api/generated';
 import { Field, FormError, SelectField, Skeleton } from '@/components/Field';
+import { Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { itemName } from '@/lib/groups';
 import { egpText, formatEgp, toPiastres } from '@/lib/money';
 import { errorKey } from '@/lib/session';
-import { monthLabel } from '@/lib/time';
+import { intlLocale, monthLabel } from '@/lib/time';
+import { cn } from '@/lib/utils';
 
 const METHODS = ['cash', 'vodafone_cash', 'instapay'] as const;
 
 /** Balance, entries, record a payment, reverse. Money waits for the server (no optimistic UI). */
-/** Balance, entries, record a payment, reverse. Money waits for the server (no optimistic UI). */
 export function StudentFees({ studentId }: { studentId: string }) {
   const { t, i18n } = useTranslation();
   const ledger = useGetStudentLedgerQuery({ id: studentId });
+  const canPay = !!useListEnrollmentsQuery({ id: studentId }).data?.some(
+    (e) => e.status === 'active',
+  );
+  const [paying, setPaying] = useState(false);
   if (ledger.isLoading) return <Skeleton />;
   const balance = ledger.data?.balancePiastres ?? 0;
+  // A reversal shows as its struck-through original, not as a second line (audit 3 S4).
+  const all = ledger.data?.entries ?? [];
+  const shownIds = new Set(all.map((e) => e.id));
+  const entries = all.filter((e) => !(e.reversesEntryId && shownIds.has(e.reversesEntryId)));
 
   return (
     <Card>
@@ -35,13 +45,24 @@ export function StudentFees({ studentId }: { studentId: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
-        <Balance piastres={balance} lang={i18n.language} />
-        <ul className="grid gap-2" data-testid="ledger">
-          {ledger.data?.entries.map((e) => (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Balance piastres={balance} lang={i18n.language} />
+          {/* The form waits in a sheet; it was always open under the list (audit 3 S6). */}
+          {canPay && (
+            <Button size="sm" onClick={() => setPaying(true)}>
+              <Wallet aria-hidden />
+              {t('fees.record')}
+            </Button>
+          )}
+        </div>
+        <ul className="grid divide-y" data-testid="ledger">
+          {entries.map((e) => (
             <Entry key={e.id} entry={e} />
           ))}
         </ul>
-        <PaymentForm studentId={studentId} due={balance} />
+        <Sheet open={paying} onClose={() => setPaying(false)} title={t('fees.record')}>
+          <PaymentForm studentId={studentId} due={balance} onPaid={() => setPaying(false)} />
+        </Sheet>
       </CardContent>
     </Card>
   );
@@ -105,8 +126,7 @@ export function PaymentForm({
   if (enrollments.isLoading) return <Skeleton />;
   if (groups.length === 0) return null;
   return (
-    <fieldset className="grid gap-3 rounded-md border p-3">
-      <legend className="px-1 text-sm font-medium">{t('fees.record')}</legend>
+    <div className="grid gap-3">
       {groups.length > 1 && (
         <SelectField
           label={t('enrollments.group')}
@@ -143,7 +163,7 @@ export function PaymentForm({
       <Button type="button" disabled={!piastres || paying.isLoading} onClick={() => void onPay()}>
         {paying.isLoading ? t('fees.saving') : t('fees.save')}
       </Button>
-    </fieldset>
+    </div>
   );
 }
 
@@ -154,6 +174,7 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
   const [confirming, setConfirming] = useState(false);
   const [idem] = useState(() => crypto.randomUUID());
   const reversible = e.type !== 'reversal' && !e.reversedById;
+  const tz = useGetCurrentWorkspaceQuery().data?.timezone ?? 'Africa/Cairo';
   const what =
     e.type === 'charge'
       ? t('fees.charge', { period: e.period ? monthLabel(e.period, i18n.language) : '' })
@@ -161,14 +182,29 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
         ? t('fees.payment', { method: t(`fees.methods.${e.method ?? 'cash'}`) })
         : t('fees.reversal');
 
+  // When, and payments in green, so a charge and a payment never look alike (audit 3 S4).
+  const day = new Intl.DateTimeFormat(intlLocale(i18n.language), {
+    day: 'numeric',
+    month: 'short',
+    timeZone: tz,
+  }).format(Date.parse(e.createdAt));
   return (
-    <li className="grid gap-1 text-sm">
+    <li className="grid gap-1 py-2 text-sm">
       <div className="flex justify-between gap-2">
         <span className={e.reversedById ? 'line-through' : undefined}>
           {`${what} · ${itemName(e.subject, i18n.language)}`}
         </span>
         <span className="flex items-center gap-1">
-          <bdi dir="ltr">{formatEgp(Math.abs(e.amountPiastres), i18n.language)}</bdi>
+          <bdi
+            dir="ltr"
+            className={cn(
+              'font-medium',
+              e.type === 'payment' && !e.reversedById && 'text-present',
+              e.reversedById && 'text-muted-foreground line-through',
+            )}
+          >
+            {formatEgp(Math.abs(e.amountPiastres), i18n.language)}
+          </bdi>
           {/* Reversing waits behind a menu, like the timetable, so it is never a stray tap. */}
           {reversible && (
             <Button
@@ -186,13 +222,14 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
           )}
         </span>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <bdi>{day}</bdi>
         {e.receiptNo && (
           <Link className="underline" to={`/receipts/${e.id}`}>
             {t('fees.receipt')} <bdi>{e.receiptNo}</bdi>
           </Link>
         )}
-        {e.reversedById && <span className="text-muted-foreground">{t('fees.reversed')}</span>}
+        {e.reversedById && <span className="font-medium text-rose">{t('fees.reversed')}</span>}
         {reversible && menu && (
           <Button
             size="sm"

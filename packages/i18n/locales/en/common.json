@@ -293,7 +293,9 @@
     "notJoined": "The student was saved, but not added to the group.",
     "full": "The group is full ({seats}). Add anyway?",
     "addAnyway": "Add anyway",
-    "cancelAdd": "Cancel"
+    "cancelAdd": "Cancel",
+    "confirmLeave": "Tap again to remove",
+    "actions": "Group options"
   },
   "studentApp": {
     "activateTitle": "Activate the Dafter app",

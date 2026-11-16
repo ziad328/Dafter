@@ -82,6 +82,31 @@ describe('dashboard', () => {
     ).toBeVisible();
   });
 
+  it('lists the lowest attendance first and the rest behind «show all»', async () => {
+    const base = fx.trends.groups[0]!;
+    const groups = Array.from({ length: 12 }, (_, i) => ({
+      ...base,
+      id: crypto.randomUUID(),
+      label: `G${i}`,
+      // G0 has no records; the others go up from 1 present out of 20.
+      attendance: base.attendance.map(() =>
+        i === 0 ? { present: 0, total: 0 } : { present: i, total: 20 },
+      ),
+    }));
+    server.use(http.get(route('stats/trends'), () => Response.json({ ...fx.trends, groups })));
+    const { user } = await renderAt('/dashboard', { lang: 'en' });
+    const more = await screen.findByRole('button', {
+      name: tr('dashboard.showAll', { count: 12 }),
+    });
+    const rows = () => screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(rows()).toHaveLength(10);
+    expect(rows()[0]).toMatch(/G1$/);
+    expect(rows()).not.toContain(expect.stringMatching(/G0$/));
+    await user.click(more);
+    expect(rows()).toHaveLength(12);
+    expect(rows().at(-1)).toMatch(/G0$/);
+  });
+
   it('shows the error code translated', async () => {
     server.use(http.get(route('stats/trends'), fail('INTERNAL', 500)));
     await renderAt('/dashboard');

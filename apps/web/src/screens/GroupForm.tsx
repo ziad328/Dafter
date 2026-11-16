@@ -1,5 +1,6 @@
 import { createGroupRequest, type CreateGroupRequest, type Group } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDown } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useFieldArray, useForm, type FieldError } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +23,7 @@ import { itemName, WEEK, weekdayName } from '@/lib/groups';
 import { egpText, toPiastres } from '@/lib/money';
 import { errorKey } from '@/lib/session';
 import { clockLabel } from '@/lib/time';
+import { cn } from '@/lib/utils';
 
 const toForm = (g: Group): CreateGroupRequest => ({
   teacherMembershipId: g.teacherMembershipId,
@@ -188,58 +190,6 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
                   ))}
               </SelectField>
             )}
-            {rooms.length > 0 && (
-              <SelectField
-                label={`${t('groups.room')} ${t('form.optional')}`}
-                // "none" is a real option, so a room can be taken off (the "" one is the placeholder).
-                {...register('roomId', {
-                  setValueAs: (v: string | null) => (v && v !== 'none' ? v : null),
-                })}
-              >
-                <option value="">{t('groups.noRoom')}</option>
-                <option value="none">{t('groups.noRoom')}</option>
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </SelectField>
-            )}
-            <Field
-              label={`${t('groups.label')} ${t('form.optional')}`}
-              hint={t('groups.labelHint')}
-              maxLength={40}
-              error={errors.label && t('form.invalid.label')}
-              {...register('label', { setValueAs: (v: string | null) => v?.trim() || null })}
-            />
-            <Field
-              label={`${t('groups.capacity')} ${t('form.optional')}`}
-              type="number"
-              inputMode="numeric"
-              dir="ltr"
-              error={errors.capacity && t('form.invalid.capacity')}
-              {...register('capacity', {
-                // The form also passes the saved null through here; Number(null) would be 0.
-                setValueAs: (v: string | null) => (v === '' || v === null ? null : Number(v)),
-              })}
-            />
-            {overRoom && (
-              <p role="note" className="text-sm text-amber">
-                {t('groups.overRoom', { capacity: room.capacity!, room: room.name })}
-              </p>
-            )}
-            <Field
-              label={`${t('groups.monthlyFee')} ${t('form.optional')}`}
-              inputMode="decimal"
-              dir="ltr"
-              defaultValue={group?.monthlyFeePiastres ? egpText(group.monthlyFeePiastres) : ''}
-              error={errors.monthlyFeePiastres && t('form.invalid.amount')}
-              // EGP typed, piastres sent; -1 fails validation for text that is not an amount.
-              {...register('monthlyFeePiastres', {
-                setValueAs: (v: string) => (v === '' ? null : (toPiastres(v) ?? -1)),
-              })}
-            />
-
             <fieldset className="grid gap-3">
               <legend className="mb-2 text-sm font-medium">{t('groups.slots')}</legend>
               {slots.fields.map((field, i) => {
@@ -294,6 +244,76 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
                 {t('groups.addSlot')}
               </Button>
             </fieldset>
+            {/* Optional details fold away until needed; open when the group already has them
+              or one of them is wrong (audit 3 G3). */}
+            <details
+              open={
+                !!(group?.label || group?.capacity || group?.monthlyFeePiastres || group?.room) ||
+                !!(errors.label || errors.capacity || errors.monthlyFeePiastres)
+              }
+              className="group rounded-xl border bg-muted/40 px-3 py-2 [&[open]]:pb-3"
+            >
+              <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium">
+                {t('students.more')}
+                <ChevronDown
+                  aria-hidden
+                  className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
+                />
+              </summary>
+              <div className="grid gap-4 pt-2">
+                {rooms.length > 0 && (
+                  <SelectField
+                    label={`${t('groups.room')} ${t('form.optional')}`}
+                    // "none" is a real option, so a room can be taken off (the "" one is the placeholder).
+                    {...register('roomId', {
+                      setValueAs: (v: string | null) => (v && v !== 'none' ? v : null),
+                    })}
+                  >
+                    <option value="">{t('groups.noRoom')}</option>
+                    <option value="none">{t('groups.noRoom')}</option>
+                    {rooms.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </SelectField>
+                )}
+                <Field
+                  label={`${t('groups.label')} ${t('form.optional')}`}
+                  hint={t('groups.labelHint')}
+                  maxLength={40}
+                  error={errors.label && t('form.invalid.label')}
+                  {...register('label', { setValueAs: (v: string | null) => v?.trim() || null })}
+                />
+                <Field
+                  label={`${t('groups.capacity')} ${t('form.optional')}`}
+                  type="number"
+                  inputMode="numeric"
+                  dir="ltr"
+                  error={errors.capacity && t('form.invalid.capacity')}
+                  {...register('capacity', {
+                    // The form also passes the saved null through here; Number(null) would be 0.
+                    setValueAs: (v: string | null) => (v === '' || v === null ? null : Number(v)),
+                  })}
+                />
+                {overRoom && (
+                  <p role="note" className="text-sm text-amber">
+                    {t('groups.overRoom', { capacity: room.capacity!, room: room.name })}
+                  </p>
+                )}
+                <Field
+                  label={`${t('groups.monthlyFee')} ${t('form.optional')}`}
+                  inputMode="decimal"
+                  dir="ltr"
+                  defaultValue={group?.monthlyFeePiastres ? egpText(group.monthlyFeePiastres) : ''}
+                  error={errors.monthlyFeePiastres && t('form.invalid.amount')}
+                  // EGP typed, piastres sent; -1 fails validation for text that is not an amount.
+                  {...register('monthlyFeePiastres', {
+                    setValueAs: (v: string) => (v === '' ? null : (toPiastres(v) ?? -1)),
+                  })}
+                />
+              </div>
+            </details>
 
             <FormError message={errorText} />
             {busy && (
@@ -323,9 +343,11 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
               {t(id ? 'groups.save' : 'groups.create')}
             </Button>
             {group && (
+              // A quiet text button after a gap, not a second big button under Save (audit 3 G4).
               <Button
                 type="button"
-                variant={confirming ? 'destructive' : 'outline'}
+                variant={confirming ? 'destructive' : 'ghost'}
+                className={cn('mt-4 justify-self-center', !confirming && 'text-muted-foreground')}
                 disabled={saving}
                 onClick={() => void toggleArchive()}
               >

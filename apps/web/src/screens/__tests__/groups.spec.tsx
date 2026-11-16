@@ -39,7 +39,8 @@ describe('groups', () => {
     // Currency text keeps its no-break space, so compare it uncollapsed.
     const fee = tr('groups.perMonth', { fee: formatEgp(fx.group.monthlyFeePiastres!, 'ar') });
     const exact = { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) };
-    expect(screen.getAllByText(fee, exact)).toHaveLength(2);
+    // The fee sits in the row's second line, with the slots and the teacher (audit 3 G2).
+    expect(screen.getAllByText(new RegExp(fee), exact)).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: new RegExp(fx.group.subject.nameAr) })).toHaveLength(
       2,
     );
@@ -49,7 +50,7 @@ describe('groups', () => {
   it('shows assistants plain cards, in English', async () => {
     asRole('assistant');
     await renderAt('/groups', { lang: 'en' });
-    expect(await screen.findAllByRole('heading', { name: 'Arabic' })).toHaveLength(
+    expect(await screen.findAllByRole('heading', { name: /^Arabic/ })).toHaveLength(
       fx.groups.length,
     );
     expect(screen.queryByRole('link', { name: /Arabic/ })).not.toBeInTheDocument();

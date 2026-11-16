@@ -291,7 +291,13 @@ describe('enrolments', () => {
     expect(
       await within(card).findByText(tr('enrollments.discountShort', { pct: 20 })),
     ).toBeInTheDocument();
+    // Behind «⋯» and a second tap (audit 3 S7).
+    await user.click(within(card).getByRole('button', { name: tr('enrollments.actions') }));
     await user.click(within(card).getByRole('button', { name: tr('enrollments.leave') }));
+    expect(
+      call(`DELETE /api/v1/students/${student.id}/enrollments/${fx.enrollments[0]!.id}`),
+    ).toBeUndefined();
+    await user.click(within(card).getByRole('button', { name: tr('enrollments.confirmLeave') }));
     await expect
       .poll(() =>
         call(`DELETE /api/v1/students/${student.id}/enrollments/${fx.enrollments[0]!.id}`),
@@ -392,13 +398,15 @@ describe('fees', () => {
       ),
     );
     const { user } = await renderAt(page);
+    // The payment form opens in a sheet from the fees card (audit 3 S6).
+    await user.click(await screen.findByRole('button', { name: tr('fees.record') }));
     const amount = await screen.findByLabelText(tr('fees.amount'));
     expect(amount).toHaveValue('');
     await user.type(amount, 'abc');
     expect(screen.getByText(tr('form.invalid.amount'))).toBeInTheDocument();
     await user.clear(amount);
     await user.type(amount, '150.5');
-    const fees = screen.getByRole('group', { name: tr('fees.record') });
+    const fees = screen.getByRole('dialog', { name: tr('fees.record') });
     await pick(user, tr('fees.method'), tr('fees.methods.instapay'));
     const groupSelect = within(fees).getByRole('combobox', { name: tr('enrollments.group') });
     await user.click(groupSelect);
@@ -423,7 +431,8 @@ describe('fees', () => {
     );
     const { user, unmount } = await renderAt(page);
     expect(await screen.findByTestId('balance')).toHaveTextContent(tr('fees.settled'));
-    await user.type(screen.getByLabelText(tr('fees.amount')), '10');
+    await user.click(await screen.findByRole('button', { name: tr('fees.record') }));
+    await user.type(await screen.findByLabelText(tr('fees.amount')), '10');
     await user.click(screen.getByRole('button', { name: tr('fees.save') }));
     expect(await screen.findByText(tr('errors.IDEMPOTENCY_KEY_REUSED'))).toBeInTheDocument();
     unmount();

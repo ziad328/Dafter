@@ -42,6 +42,7 @@ test('owner adds a room, books a group in it, and a clashing group is refused', 
     await page.goto('/groups/new');
     await choose(page, t.groups.subject, PHYSICS[lang]);
     await choose(page, t.groups.gradeLevel, SEC3[lang]);
+    await page.getByText(t.students.more).click();
     await choose(page, `${t.groups.room} ${t.form.optional}`, room);
   };
   await newGroup();
