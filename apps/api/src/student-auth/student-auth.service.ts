@@ -37,8 +37,8 @@ export class StudentAuthService {
 
   async requestOtp(body: OtpRequest, ip: string) {
     const email = body.email.toLowerCase();
-    if (this.perEmail.isBlocked([email]) || this.perIp.isBlocked([ip]))
-      throw new AppError('RATE_LIMITED');
+    this.perEmail.check([email]);
+    this.perIp.check([ip]);
     this.perEmail.fail([email]);
     this.perIp.fail([ip]);
     const now = this.clock.now();

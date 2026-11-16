@@ -231,3 +231,14 @@ The token is 32 random bytes and only its hash is stored, so guessing one is hop
 
 **2. Why is revoking an invite "expire it now" instead of a delete or a new column?**
 Accept already refuses an expired invite in its single conditional UPDATE, so no new check is needed, the row stays for the audit log, and no migration has to reach Neon. The update is filtered by workspace, so another center's id answers 404.
+
+## Login rate limits per login and per IP
+
+**1. Why two limits (5 failures per login, 50 per IP) instead of one shared counter?**
+A center's staff share one Wi‑Fi address, so one shared counter let one person's typos lock everyone out. The per-login limit stops guessing one account's password; the high per-IP cap still stops one machine from spraying many accounts, which a login-only limit would allow.
+
+**2. Why return `retryAfterSeconds` instead of only RATE_LIMITED?**
+"Wait a little" makes people retry at once, and every retry is another failure. The limiter knows when the window ends, so the screen can say «حاول بعد 15 دقيقة». The number is the longest wait among the blocked keys, so it is never too short.
+
+**3. What is the weakness of these in-memory limits?**
+They live in one process: a restart clears them and each serverless instance counts on its own, so an attacker spread across instances gets more tries. The fix is a shared store (PostgreSQL or Redis) once the app runs on one long-lived server.

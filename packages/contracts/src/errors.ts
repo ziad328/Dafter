@@ -11,6 +11,7 @@ export const ERROR_STATUS = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
+  // details.retryAfterSeconds: how long until the caller may try again (audit 3 A3).
   RATE_LIMITED: 429,
   INVALID_CREDENTIALS: 401,
   PHONE_TAKEN: 409,

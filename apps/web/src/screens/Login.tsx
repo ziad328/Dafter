@@ -9,7 +9,7 @@ import { Field, FormError } from '@/components/Field';
 import { IconBadge } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { errorKey, safeNext } from '@/lib/session';
+import { errorText, safeNext } from '@/lib/session';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -49,7 +49,7 @@ export default function Login() {
             error={formState.errors.password && t('form.invalid.passwordRequired')}
             {...register('password')}
           />
-          <FormError message={error && t(errorKey(error))} />
+          <FormError message={error && errorText(t, error)} />
           <Button type="submit" disabled={isLoading}>
             {t('auth.login.submit')}
           </Button>

@@ -28,7 +28,7 @@ import {
   savedInvite,
   useInstallPrompt,
 } from '@/lib/pwa';
-import { errorKey } from '@/lib/session';
+import { errorKey, errorText } from '@/lib/session';
 
 const emailForm = otpRequest.pick({ email: true });
 const codeForm = otpVerifyRequest.pick({ code: true });
@@ -250,7 +250,7 @@ function EmailStep({
           error={formState.errors.email && t('form.invalid.email')}
           {...register('email', { setValueAs: (v: string) => v.trim() })}
         />
-        <FormError message={error && t(errorKey(error))} />
+        <FormError message={error && errorText(t, error)} />
         <Button type="submit" disabled={isLoading}>
           {t('studentApp.sendCode')}
         </Button>
@@ -321,9 +321,7 @@ function CodeStep({
             {t('studentApp.checkSpam')}
           </p>
         )}
-        <FormError
-          message={(error ?? resending.error) && t(errorKey((error ?? resending.error)!))}
-        />
+        <FormError message={(error ?? resending.error) && errorText(t, error ?? resending.error)} />
         <Button type="submit" disabled={isLoading}>
           {t('studentApp.verify')}
         </Button>

@@ -10,7 +10,7 @@ import { Field, FormError } from '@/components/Field';
 import { IconBadge } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { errorKey, safeNext } from '@/lib/session';
+import { errorText, safeNext } from '@/lib/session';
 
 // Empty optional inputs must be undefined, or the email/phone rules reject "".
 const optional = { setValueAs: (v: string) => v.trim() || undefined };
@@ -61,6 +61,8 @@ export default function Register() {
             type="email"
             dir="ltr"
             autoComplete="email"
+            // Password reset goes by email only, so say what it is for (audit 3 A5).
+            hint={t('auth.register.emailHint')}
             error={errors.email && t('form.invalid.email')}
             {...register('email', optional)}
           />
@@ -72,7 +74,7 @@ export default function Register() {
             error={errors.password && t('form.invalid.password')}
             {...register('password')}
           />
-          <FormError message={error && t(errorKey(error))} />
+          <FormError message={error && errorText(t, error)} />
           <Button type="submit" disabled={isLoading}>
             {t('auth.register.submit')}
           </Button>

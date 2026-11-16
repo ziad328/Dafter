@@ -8,7 +8,13 @@ import { createApp } from '../app.js';
 import { FakeClock } from '../clock.js';
 import { ConsoleMailer } from '../student-auth/mailer.js';
 import { REFRESH_COOKIE } from './auth.controller.js';
-import { hashToken, REGISTER_PER_HOUR, RESET_TTL_MS, RESETS_PER_HOUR } from './auth.service.js';
+import {
+  hashToken,
+  LOGIN_MAX_FAILURES_PER_IP,
+  REGISTER_PER_HOUR,
+  RESET_TTL_MS,
+  RESETS_PER_HOUR,
+} from './auth.service.js';
 
 const testDb = useTestDb();
 const clock = new FakeClock();
@@ -144,20 +150,36 @@ describe('login', () => {
       await post('login', { login: phone, password: 'nope' }, undefined, `10.1.0.${i}`);
     const blocked = await post('login', { login: phone, password }, undefined, '10.1.1.1');
     expect(blocked.statusCode).toBe(429);
-    expect(blocked.json()).toEqual({ code: 'RATE_LIMITED' });
+    // The wait comes with it, so the screen can say «حاول بعد 15 دقيقة» (audit 3 A3).
+    expect(blocked.json()).toEqual({
+      code: 'RATE_LIMITED',
+      details: { retryAfterSeconds: 15 * 60 },
+    });
     clock.advance(15 * 60 * 1000);
     expect(
       (await post('login', { login: phone, password }, undefined, '10.1.1.1')).statusCode,
     ).toBe(200);
   });
 
-  it('rate-limits per IP across different logins', async () => {
-    const { phone } = await registered();
-    for (let i = 0; i < 5; i++)
-      await post('login', { login: uniquePhone(), password }, undefined, '10.2.0.1');
+  it('keeps other staff signing in from a shared IP after one locks their own login', async () => {
+    const mistyped = await registered();
+    const colleague = await registered();
+    for (let i = 0; i < 6; i++)
+      await post('login', { login: mistyped.phone, password: 'nope' }, undefined, '10.3.0.1');
     expect(
-      (await post('login', { login: phone, password }, undefined, '10.2.0.1')).statusCode,
+      (await post('login', { login: mistyped.phone, password }, undefined, '10.3.0.1')).statusCode,
     ).toBe(429);
+    expect(
+      (await post('login', { login: colleague.phone, password }, undefined, '10.3.0.1')).statusCode,
+    ).toBe(200);
+  });
+
+  it('still caps failures per IP across many logins', async () => {
+    const { phone } = await registered();
+    for (let i = 0; i < LOGIN_MAX_FAILURES_PER_IP; i++)
+      await post('login', { login: uniquePhone(), password }, undefined, '10.2.0.1');
+    const blocked = await post('login', { login: phone, password }, undefined, '10.2.0.1');
+    expect([blocked.statusCode, blocked.json().details.retryAfterSeconds]).toEqual([429, 900]);
   });
 });
 

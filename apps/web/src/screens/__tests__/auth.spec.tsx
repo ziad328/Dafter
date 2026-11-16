@@ -28,6 +28,30 @@ describe('sign in', () => {
     expect(await screen.findByText(tr('errors.INVALID_CREDENTIALS'))).toBeInTheDocument();
   });
 
+  it('says how long to wait when sign-in is rate-limited (audit 3 A3)', async () => {
+    server.use(
+      http.post(route('auth/login'), () =>
+        Response.json(
+          { code: 'RATE_LIMITED', details: { retryAfterSeconds: 14 * 60 + 5 } },
+          { status: 429 },
+        ),
+      ),
+    );
+    const { user } = await renderAt('/login', { workspace: null });
+    await user.type(await screen.findByLabelText(tr('auth.login.login')), '01000000001');
+    await user.type(screen.getByLabelText(tr('auth.login.password')), 'wrong-password');
+    await user.click(screen.getByRole('button', { name: tr('auth.login.submit') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      tr('errors.retryIn', { minutes: 15 }),
+    );
+  });
+
+  it('says what the optional email is for on register (audit 3 A5)', async () => {
+    server.use(http.post(route('auth/refresh'), fail('UNAUTHENTICATED', 401)));
+    await renderAt('/register', { workspace: null, lang: 'en' });
+    expect(await screen.findByText(tr('auth.register.emailHint'))).toBeVisible();
+  });
+
   it('shows the password on demand', async () => {
     server.use(http.post(route('auth/refresh'), fail('UNAUTHENTICATED', 401)));
     const { user } = await renderAt('/login', { workspace: null, lang: 'en' });

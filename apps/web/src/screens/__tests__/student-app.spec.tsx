@@ -77,21 +77,33 @@ describe('student sign-in', () => {
   it('shows the spam hint and a resend after 60 s, and restarts the countdown', async () => {
     signedOut();
     installed();
-    vi.useFakeTimers({ toFake: ['setInterval'] });
+    // Advancing with real time too, so Testing Library's own polling (setInterval) still runs.
+    vi.useFakeTimers({ toFake: ['setInterval'], shouldAdvanceTime: true });
     try {
       const { user } = await renderAt('/s/login', { workspace: null, lang: 'en' });
       await user.type(await screen.findByLabelText(tr('studentApp.email')), 'sara@example.com');
       await user.click(screen.getByRole('button', { name: tr('studentApp.sendCode') }));
-      await screen.findByRole('button', { name: tr('studentApp.resendIn', { seconds: 60 }) });
+      const waiting = new RegExp(tr('studentApp.resendIn').split('{')[0]!);
+      expect(await screen.findByRole('button', { name: waiting })).toBeDisabled();
       act(() => vi.advanceTimersByTime(60_000));
       expect(screen.getByRole('note')).toHaveTextContent(tr('studentApp.checkSpam'));
       await user.click(screen.getByRole('button', { name: tr('studentApp.resend') }));
-      expect(
-        await screen.findByRole('button', { name: tr('studentApp.resendIn', { seconds: 60 }) }),
-      ).toBeDisabled();
+      expect(await screen.findByRole('button', { name: waiting })).toBeDisabled();
       expect(sent.filter((s) => s.call === 'POST /api/v1/auth/otp/request')).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
-      // A failed resend says why and keeps the button.
+  it('says why a resend failed and keeps the button', async () => {
+    signedOut();
+    installed();
+    vi.useFakeTimers({ toFake: ['setInterval'], shouldAdvanceTime: true });
+    try {
+      const { user } = await renderAt('/s/login', { workspace: null });
+      await user.type(await screen.findByLabelText(tr('studentApp.email')), 'sara@example.com');
+      await user.click(screen.getByRole('button', { name: tr('studentApp.sendCode') }));
+      await screen.findByLabelText(tr('studentApp.code'));
       server.use(http.post(route('auth/otp/request'), fail('RATE_LIMITED', 429)));
       act(() => vi.advanceTimersByTime(60_000));
       await user.click(screen.getByRole('button', { name: tr('studentApp.resend') }));

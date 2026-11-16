@@ -9,7 +9,7 @@ import { Field, FormError } from '@/components/Field';
 import { IconBadge } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { errorKey } from '@/lib/session';
+import { errorText } from '@/lib/session';
 
 export default function ForgotPassword() {
   const { t } = useTranslation();
@@ -44,7 +44,7 @@ export default function ForgotPassword() {
               error={formState.errors.email && t('form.invalid.email')}
               {...register('email')}
             />
-            <FormError message={error && t(errorKey(error))} />
+            <FormError message={error && errorText(t, error)} />
             <Button type="submit" disabled={isLoading}>
               {t('auth.forgot.submit')}
             </Button>

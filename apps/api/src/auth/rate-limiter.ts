@@ -1,4 +1,5 @@
 import type { Clock } from '../clock.js';
+import { AppError } from '../errors.js';
 
 /**
  * Fixed-window counter: after `max` hits for a key, that key is blocked until the window ends.
@@ -16,11 +17,30 @@ export class RateLimiter {
   ) {}
 
   isBlocked(keys: string[]) {
+    return this.retryAfterMs(keys) > 0;
+  }
+
+  /** Milliseconds until no key in `keys` is at its limit any more; 0 when none is. */
+  retryAfterMs(keys: string[]) {
     const now = this.clock.now().getTime();
-    return keys.some((k) => {
+    let wait = 0;
+    for (const k of keys) {
       const h = this.hits.get(k);
-      return h !== undefined && h.resetAt > now && h.count >= this.max;
+      if (h && h.resetAt > now && h.count >= this.max) wait = Math.max(wait, h.resetAt - now);
+    }
+    return wait;
+  }
+
+  /** RATE_LIMITED with the wait in whole seconds, so the screen can say «حاول بعد 15 دقيقة». */
+  error(keys: string[]) {
+    return new AppError('RATE_LIMITED', {
+      retryAfterSeconds: Math.ceil(this.retryAfterMs(keys) / 1000),
     });
+  }
+
+  /** Throws RATE_LIMITED (with the wait) when any key is at its limit. */
+  check(keys: string[]) {
+    if (this.isBlocked(keys)) throw this.error(keys);
   }
 
   fail(keys: string[]) {

@@ -136,7 +136,7 @@ export class AttendanceService {
    * shortcut: in-process like login's, so on serverless each instance counts on its own.
    */
   async checkIn(userId: string, body: CheckInRequest): Promise<CheckIn> {
-    if (this.perDevice.take([userId])) throw new AppError('RATE_LIMITED');
+    if (this.perDevice.take([userId])) throw this.perDevice.error([userId]);
     const qr = parseQr(body.code);
     if (!qr || !macMatches(sessionKey(this.secret, qr.sessionId), qr.sessionId, qr.window, qr.mac))
       throw new AppError('CHECKIN_CODE_INVALID');
@@ -149,7 +149,7 @@ export class AttendanceService {
     if (!device) throw new AppError('DEVICE_NOT_BOUND');
     if (!signedBy(device.publicKey, body.code, body.signature))
       throw new AppError('DEVICE_SIGNATURE_INVALID');
-    if (this.perSession.take([qr.sessionId])) throw new AppError('RATE_LIMITED');
+    if (this.perSession.take([qr.sessionId])) throw this.perSession.error([qr.sessionId]);
 
     const session = await this.repo.sessionForCheckIn(qr.sessionId);
     if (!session) throw new AppError('SESSION_NOT_FOUND');

@@ -1,4 +1,5 @@
 import { ERROR_CODES, type ErrorCode, type Workspace } from '@dafter/contracts';
+import type { TFunction } from 'i18next';
 import { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router';
@@ -17,6 +18,16 @@ export function errorDetails(error: unknown, code: ErrorCode): Record<string, st
     error as { data?: { code?: unknown; details?: Record<string, string> } } | undefined
   )?.data;
   return data?.code === code ? (data.details ?? {}) : undefined;
+}
+
+/**
+ * The translated message for an error. RATE_LIMITED says how long to wait, «حاول بعد 15 دقيقة»,
+ * from the API's retryAfterSeconds (audit 3 A3); other codes read as errorKey does.
+ */
+export function errorText(t: TFunction, error: unknown): string {
+  const wait = Number(errorDetails(error, 'RATE_LIMITED')?.retryAfterSeconds);
+  if (wait > 0) return t('errors.retryIn', { minutes: Math.ceil(wait / 60) });
+  return t(errorKey(error));
 }
 
 export const workspaceName = (ws: Pick<Workspace, 'nameAr' | 'nameEn'>, lang: string) =>

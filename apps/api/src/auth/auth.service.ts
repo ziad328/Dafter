@@ -18,7 +18,11 @@ import { RateLimiter } from './rate-limiter.js';
 
 export const ACCESS_TTL_S = 15 * 60;
 export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// Per login: stops guessing one account's password. Per IP, far higher: a center's shared Wi-Fi
+// must not lock every staff member out after one person's typos (audit 3 A3), yet one machine
+// still can't spray passwords across many accounts.
 const LOGIN_MAX_FAILURES = 5;
+export const LOGIN_MAX_FAILURES_PER_IP = 50;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export const REGISTER_PER_HOUR = 10;
 export const RESET_TTL_MS = 30 * 60 * 1000;
@@ -40,7 +44,8 @@ export interface Session extends AuthResponse {
 
 @Injectable()
 export class AuthService {
-  private readonly limiter: RateLimiter;
+  private readonly perLogin: RateLimiter;
+  private readonly perIp: RateLimiter;
   private readonly registrations: RateLimiter;
   private readonly resets: RateLimiter;
   private readonly logger = new Logger('Auth');
@@ -51,7 +56,8 @@ export class AuthService {
     @Inject(Clock) private readonly clock: Clock,
     @Inject(Mailer) private readonly mailer: Mailer,
   ) {
-    this.limiter = new RateLimiter(clock, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
+    this.perLogin = new RateLimiter(clock, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
+    this.perIp = new RateLimiter(clock, LOGIN_MAX_FAILURES_PER_IP, LOGIN_WINDOW_MS);
     this.registrations = new RateLimiter(clock, REGISTER_PER_HOUR, 60 * 60 * 1000);
     this.resets = new RateLimiter(clock, RESETS_PER_HOUR, 60 * 60 * 1000);
   }
@@ -60,7 +66,7 @@ export class AuthService {
     if (!LOOPBACK.has(ip)) {
       // Every attempt counts (not only failures): this limits sign-up spam per address.
       const keys = [`register:${ip}`];
-      if (this.registrations.isBlocked(keys)) throw new AppError('RATE_LIMITED');
+      this.registrations.check(keys);
       this.registrations.fail(keys);
     }
     const user = await this.repo
@@ -78,13 +84,16 @@ export class AuthService {
   }
 
   async login(input: LoginRequest, ip: string): Promise<Session> {
-    const keys = [`login:${input.login.toLowerCase()}`, `ip:${ip}`];
-    if (this.limiter.isBlocked(keys)) throw new AppError('RATE_LIMITED');
+    const login = [`login:${input.login.toLowerCase()}`];
+    const address = [`ip:${ip}`];
+    this.perLogin.check(login);
+    this.perIp.check(address);
     const user = await this.repo.findUserByLogin(input.login);
     // Students have no password and sign in with a one-time code instead.
     const ok = await verify(user?.passwordHash ?? (await DUMMY_HASH), input.password);
     if (!user?.passwordHash || !ok) {
-      this.limiter.fail(keys);
+      this.perLogin.fail(login);
+      this.perIp.fail(address);
       throw new AppError('INVALID_CREDENTIALS');
     }
     return this.startSession(user, randomUUID());
@@ -107,7 +116,7 @@ export class AuthService {
   /** Same answer for every email: the link goes out only if a staff account (with a password) has it. */
   async forgotPassword({ email }: ForgotPasswordRequest, ip: string, appUrl: string) {
     const keys = [`reset:${email.toLowerCase()}`, `reset-ip:${ip}`];
-    if (this.resets.isBlocked(keys)) throw new AppError('RATE_LIMITED');
+    this.resets.check(keys);
     this.resets.fail(keys);
     const user = await this.repo.findUserByLogin(email);
     if (!user?.passwordHash) return;

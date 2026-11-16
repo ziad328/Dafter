@@ -59,7 +59,8 @@
       "passwordHint": "At least 8 characters.",
       "submit": "Create account",
       "haveAccount": "Already have an account?",
-      "login": "Sign in"
+      "login": "Sign in",
+      "emailHint": "To get back in if you forget your password"
     },
     "forgot": {
       "title": "Reset password",
@@ -223,7 +224,8 @@
     "GROUP_FULL": "The group is full.",
     "TEACHER_BOOKED": "The teacher has another session at that time.",
     "LAST_OWNER": "The last owner can't be removed or change role. Make someone else an owner first.",
-    "MEMBER_TEACHES_GROUPS": "This person teaches active groups. Move them to another teacher first."
+    "MEMBER_TEACHES_GROUPS": "This person teaches active groups. Move them to another teacher first.",
+    "retryIn": "Too many tries. Try again in {minutes, plural, one {# minute} other {# minutes}}."
   },
   "timetable": {
     "title": "Timetable",
