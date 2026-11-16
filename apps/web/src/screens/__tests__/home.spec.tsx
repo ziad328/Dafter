@@ -62,6 +62,62 @@ describe('today', () => {
     expect(screen.getByRole('link', { name: tr('today.continue') })).toBeInTheDocument();
   });
 
+  it('shows a new center the setup checklist instead of zeros (audit 3 H7)', async () => {
+    withSessions([]);
+    server.use(
+      http.get(route('groups'), () => Response.json([])),
+      http.get(route('students'), () => Response.json([])),
+      http.get(route('members'), () => Response.json([fx.members[0]])),
+      http.get(route('invites'), () => Response.json([])),
+    );
+    const { user, router } = await renderAt('/');
+    expect(await screen.findByRole('heading', { name: tr('today.setup.title') })).toBeVisible();
+    expect(screen.getByText(tr('today.setup.progress', { done: 0, total: 3 }))).toBeVisible();
+    expect(screen.queryByText(tr('stats.checkedIn'))).toBeNull();
+    expect(screen.queryByText(tr('today.none'))).toBeNull();
+    await user.click(screen.getByRole('link', { name: tr('today.setup.group') }));
+    expect(router.state.location.pathname).toBe('/groups/new');
+  });
+
+  it('ticks done steps; an independent teacher has no assistant step', async () => {
+    withSessions([]);
+    server.use(
+      http.get(route('workspaces/current'), () =>
+        Response.json({ ...fx.currentWorkspace, type: 'independent' }),
+      ),
+      http.get(route('students'), () => Response.json([])),
+    );
+    await renderAt('/', { lang: 'en' });
+    expect(
+      await screen.findByText(tr('today.setup.progress', { done: 1, total: 2 })),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: tr('today.setup.group') })).toHaveTextContent(
+      tr('today.setup.done'),
+    );
+    expect(screen.queryByRole('link', { name: tr('today.setup.assistant') })).toBeNull();
+  });
+
+  it('counts a pending invite as the assistant step, and shows no checklist to a teacher', async () => {
+    withSessions([]);
+    server.use(
+      http.get(route('students'), () => Response.json([])),
+      http.get(route('members'), () => Response.json([fx.members[0]])),
+    );
+    const { unmount } = await renderAt('/');
+    expect(
+      await screen.findByText(tr('today.setup.progress', { done: 2, total: 3 })),
+    ).toBeVisible();
+    unmount();
+    server.use(
+      http.get(route('workspaces/current'), () =>
+        Response.json({ ...fx.currentWorkspace, role: 'teacher' }),
+      ),
+    );
+    await renderAt('/');
+    expect(await screen.findByText(tr('today.none'))).toBeVisible();
+    expect(screen.queryByRole('heading', { name: tr('today.setup.title') })).toBeNull();
+  });
+
   it('says when the day is done, or empty', async () => {
     withSessions([{ ...fx.sessions[2]! }]);
     const { unmount } = await renderAt('/');

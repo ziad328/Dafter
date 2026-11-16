@@ -605,7 +605,18 @@
     "findStudent": "البحث عن طالب",
     "recordPayment": "تسجيل دفعة",
     "quick": "اختصارات",
-    "opensAt": "تُفتح {time}"
+    "opensAt": "تُفتح {time}",
+    "setup": {
+      "title": "جهّز دفتر في خطوات قليلة",
+      "progress": "{done} من {total}",
+      "group": "أضف مجموعة",
+      "groupHint": "المادة والصف والمواعيد",
+      "student": "أضف طالبًا",
+      "studentHint": "ورقم ولي أمره لتصله الرسائل",
+      "assistant": "ادعُ مساعدًا",
+      "assistantHint": "يسجّل الحضور والمدفوعات معك",
+      "done": "تم"
+    }
   },
   "stats": {
     "sessions": "عدد الحصص",

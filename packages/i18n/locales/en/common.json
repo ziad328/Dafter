@@ -605,7 +605,18 @@
     "findStudent": "Find a student",
     "recordPayment": "Record a payment",
     "quick": "Quick actions",
-    "opensAt": "Opens at {time}"
+    "opensAt": "Opens at {time}",
+    "setup": {
+      "title": "Set up Dafter in a few steps",
+      "progress": "{done} of {total}",
+      "group": "Add a group",
+      "groupHint": "Subject, grade and weekly times",
+      "student": "Add a student",
+      "studentHint": "With a parent's phone for messages",
+      "assistant": "Invite an assistant",
+      "assistantHint": "They take attendance and payments with you",
+      "done": "Done"
+    }
   },
   "stats": {
     "sessions": "Sessions",

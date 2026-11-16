@@ -1,6 +1,12 @@
-import { type Session, SESSION_OPEN_EARLY_MINUTES, type StatsDay } from '@dafter/contracts';
+import {
+  type Session,
+  SESSION_OPEN_EARLY_MINUTES,
+  type StatsDay,
+  type Workspace,
+} from '@dafter/contracts';
 import {
   CalendarCheck,
+  Check,
   Clock,
   MessageSquareText,
   Play,
@@ -21,6 +27,10 @@ import {
   useGetSessionRosterQuery,
   useGetTodayStatsQuery,
   useListSessionsQuery,
+  useListGroupsQuery,
+  useListInvitesQuery,
+  useListMembersQuery,
+  useListStudentsQuery,
 } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { Avatar, Panel } from '@/components/Page';
@@ -79,11 +89,12 @@ export default function Home() {
   const today = localDate(new Date(), tz);
   const sessions = useListSessionsQuery({ from: today, to: today }, { skip: !current.data });
   const stats = useGetTodayStatsQuery(undefined, { skip: !current.data });
+  const setup = useSetupSteps(current.data);
 
   const code = (current.error as { data?: { code?: string } } | undefined)?.data?.code;
   if (code === 'WORKSPACE_NOT_FOUND') setWorkspaceId(null); // removed, or another user's choice
   if (!hasWorkspace || code === 'WORKSPACE_NOT_FOUND') return <Navigate to="/workspaces" replace />;
-  if (current.isLoading || sessions.isLoading) return <Skeleton />;
+  if (current.isLoading || sessions.isLoading || setup === undefined) return <Skeleton />;
 
   const list = sessions.data ?? [];
   const next = list.find(startable);
@@ -106,6 +117,9 @@ export default function Home() {
         <div className="contents xl:grid xl:content-start xl:gap-6">
           {next ? (
             <NextSession session={next} tz={tz} />
+          ) : setup.length ? (
+            // A new workspace: what to do first, instead of an empty day and zeros (audit 3 H7).
+            <SetupChecklist steps={setup} />
           ) : (
             <Panel className="grid justify-items-center gap-3 p-8 text-center">
               <span className="grid size-14 place-items-center rounded-full bg-ink-soft text-ink">
@@ -118,7 +132,7 @@ export default function Home() {
             </Panel>
           )}
 
-          {stats.data && (
+          {stats.data && !setup.length && (
             // One strip, not four big tiles (audit 3 H2).
             <ul className="order-3 grid grid-cols-4 rounded-2xl border bg-card shadow-card xl:order-none [&>li+li]:border-s">
               <Tile
@@ -156,7 +170,7 @@ export default function Home() {
         </div>
 
         <div className="contents xl:grid xl:content-start xl:gap-6">
-          {stats.data && (
+          {stats.data && !setup.length && (
             <div className="order-5 xl:order-none">
               <WeekChart week={stats.data.week} />
             </div>
@@ -167,6 +181,86 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+type SetupStep = { key: 'group' | 'student' | 'assistant'; to: string; done: boolean };
+
+/**
+ * The owner's first steps in a new workspace: a group, a student, and (a center) an assistant.
+ * [] once they are all done, or for other roles; undefined while loading.
+ */
+function useSetupSteps(ws?: Workspace): SetupStep[] | undefined {
+  const owner = ws?.role === 'owner';
+  const center = owner && ws.type === 'center';
+  const groups = useListGroupsQuery(undefined, { skip: !owner });
+  const students = useListStudentsQuery({}, { skip: !owner });
+  const members = useListMembersQuery(undefined, { skip: !center });
+  const invites = useListInvitesQuery(undefined, { skip: !center });
+  if (!owner) return [];
+  if (groups.isLoading || students.isLoading || members.isLoading || invites.isLoading)
+    return undefined;
+  const steps: SetupStep[] = [
+    { key: 'group', to: '/groups/new', done: !!groups.data?.length },
+    { key: 'student', to: '/students/new', done: !!students.data?.length },
+  ];
+  if (center)
+    steps.push({
+      key: 'assistant',
+      to: '/members',
+      done: (members.data?.length ?? 0) > 1 || !!invites.data?.length,
+    });
+  return steps.every((s) => s.done) ? [] : steps;
+}
+
+function SetupChecklist({ steps }: { steps: SetupStep[] }) {
+  const { t } = useTranslation();
+  const first = steps.find((s) => !s.done);
+  return (
+    <Panel className="grid gap-4 p-5">
+      <div className="grid gap-1">
+        <h2 className="text-lg font-semibold">{t('today.setup.title')}</h2>
+        <p className="text-sm text-muted-foreground">
+          {t('today.setup.progress', {
+            done: steps.filter((s) => s.done).length,
+            total: steps.length,
+          })}
+        </p>
+      </div>
+      <ol className="grid gap-2">
+        {steps.map((s, i) => (
+          <li key={s.key}>
+            <Link
+              to={s.to}
+              aria-label={t(`today.setup.${s.key}`)}
+              className={cn(
+                'flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-ink-soft/50 focus-visible:outline-2',
+                s === first && 'border-ink bg-ink-soft/60',
+                s.done && 'opacity-60',
+              )}
+            >
+              <span
+                className={cn(
+                  'grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold',
+                  s.done ? 'bg-present text-white' : 'bg-card text-ink ring-1 ring-ink/30',
+                )}
+              >
+                {s.done ? <Check className="size-4" aria-hidden /> : <bdi>{i + 1}</bdi>}
+              </span>
+              <span className="grid min-w-0 flex-1">
+                <span className={cn('font-semibold', s.done && 'line-through')}>
+                  {t(`today.setup.${s.key}`)}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {t(`today.setup.${s.key}Hint`)}
+                </span>
+              </span>
+              {s.done && <span className="sr-only">{t('today.setup.done')}</span>}
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </Panel>
   );
 }
 
