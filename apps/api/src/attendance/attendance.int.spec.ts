@@ -263,7 +263,10 @@ describe('closing a session', () => {
     const byStudent = new Map<string, { status: string; method: string }>(
       res
         .json()
-        .map((r: { studentId: string; status: string; method: string }) => [r.studentId, r]),
+        .records.map((r: { studentId: string; status: string; method: string }) => [
+          r.studentId,
+          r,
+        ]),
     );
     expect(byStudent.get(scanned.id)).toMatchObject({ status: 'present', method: 'student_scan' });
     expect(byStudent.get(missing.id)).toMatchObject({ status: 'absent', method: 'auto_close' });

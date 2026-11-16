@@ -1,11 +1,17 @@
-import type { AttendanceRecord, OpenSession, RosterEntry } from '@dafter/contracts';
-import { List, Maximize, X } from 'lucide-react';
+import type {
+  AttendanceRecord,
+  CloseSessionResult,
+  OpenSession,
+  RosterEntry,
+} from '@dafter/contracts';
+import { Clock, List, Maximize, X } from 'lucide-react';
 import QRCode from 'qrcode';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useWakeLock } from '@/lib/wake-lock';
 import { useDispatch } from 'react-redux';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import {
   useCloseSessionMutation,
   useGetCurrentWorkspaceQuery,
@@ -28,6 +34,10 @@ import type { AppDispatch } from '@/store';
 
 type Records = Map<string, AttendanceRecord>;
 
+/** Where the teacher opened the session from (Today or the timetable), for the way back (audit 3 LV4). */
+const useCameFrom = () =>
+  (useLocation().state as { from?: string } | null)?.from === '/timetable' ? '/timetable' : '/';
+
 /** Keeps the newest record per student (a snapshot row may arrive after a live one). */
 const merge = (records: Records, r: AttendanceRecord) => {
   const old = records.get(r.studentId);
@@ -43,11 +53,12 @@ export default function SessionLive() {
   const tz = useGetCurrentWorkspaceQuery().data?.timezone ?? 'Africa/Cairo';
   const roster = useGetSessionRosterQuery({ id: id! });
   const [records, setRecords] = useState<Records>(new Map());
-  const [closed, setClosed] = useState(false);
+  const [closed, setClosed] = useState<{ messagesQueued: number }>();
   const dispatch = useDispatch<AppDispatch>();
   const [session, setSession] = useState<{ open: OpenSession; offset: number }>();
   // Phones: the QR alone over the whole screen (no header or tab bar), for students to scan.
   const [full, setFull] = useState(false);
+  const exitFull = useCallback(() => setFull(false), []);
   // The QR must stay on screen for the whole check-in, so the phone or laptop never dims.
   useWakeLock(!!session && !closed);
 
@@ -73,21 +84,52 @@ export default function SessionLive() {
     return () => ctrl.abort();
   }, [session, closed, id, dispatch]);
 
-  if (opened.error) {
-    // More than 30 minutes ahead: say when it can be opened, in the center's time.
-    const early = errorDetails(opened.error, 'SESSION_TOO_EARLY');
-    const message = early
-      ? t('live.tooEarly', {
-          time: `⁨${displayTime(early.opensAt!, tz, i18n.language)}⁩`,
-        })
-      : t(errorKey(opened.error));
-    return <FormError message={message} />;
-  }
-  if (!session) return <Skeleton />;
-
   // Everyone expected (by name), then make-ups who checked in without being enrolled.
   const name = (r: { nameAr: string; nameEn: string | null }) =>
     i18n.language === 'en' && r.nameEn ? r.nameEn : r.nameAr;
+
+  if (opened.error) {
+    // More than 30 minutes ahead: keep the title and the list, say when it opens (audit 3 LV1).
+    const early = errorDetails(opened.error, 'SESSION_TOO_EARLY');
+    if (!early) return <FormError message={t(errorKey(opened.error))} />;
+    return (
+      <div className="grid gap-4">
+        <SessionTitle id={id!} />
+        <Card>
+          <CardContent className="grid justify-items-center gap-3 pt-6 text-center">
+            <Clock className="size-8 text-ink" aria-hidden />
+            <p role="status" className="text-lg font-semibold">
+              {t('today.opensAt', {
+                time: `⁨${displayTime(early.opensAt!, tz, i18n.language)}⁩`,
+              })}
+            </p>
+            <p className="text-sm text-muted-foreground">{t('live.tooEarlyHint')}</p>
+            <BackButton />
+          </CardContent>
+        </Card>
+        {!!roster.data?.length && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <h2>{t('today.enrolled', { count: roster.data.length })}</h2>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="grid divide-y text-sm">
+                {roster.data.map((r) => (
+                  <li key={r.studentId} className="flex items-center gap-3 py-2">
+                    <Avatar name={name(r)} className="size-8 text-xs" />
+                    {name(r)}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
+  if (!session) return <Skeleton />;
   const expected = roster.data ?? [];
   const extra = [...records.values()].filter(
     (r) => !expected.some((e) => e.studentId === r.studentId),
@@ -100,9 +142,7 @@ export default function SessionLive() {
       <div className="grid gap-4">
         <SessionTitle id={id!} />
         {closed ? (
-          <p role="status" className="text-center text-lg font-medium">
-            {t('live.closed')}
-          </p>
+          <ClosedSummary records={[...records.values()]} messagesQueued={closed.messagesQueued} />
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2 lg:hidden">
@@ -121,16 +161,12 @@ export default function SessionLive() {
               </Button>
             </div>
             {full ? (
-              <div className="fixed inset-0 z-50 grid content-center gap-4 overflow-y-auto bg-background p-4">
+              <FullScreen onExit={exitFull}>
                 <RotatingQr session={session.open} offset={session.offset} />
                 <p className="text-center text-2xl font-bold" aria-live="polite">
                   {t('live.count', { count: here })}
                 </p>
-                <Button variant="outline" className="mx-auto" onClick={() => setFull(false)}>
-                  <X aria-hidden />
-                  {t('live.exitFullScreen')}
-                </Button>
-              </div>
+              </FullScreen>
             ) : (
               <RotatingQr session={session.open} offset={session.offset} />
             )}
@@ -174,15 +210,13 @@ export default function SessionLive() {
           </CardContent>
         </Card>
         {closed ? (
-          <Button asChild variant="outline">
-            <Link to="/timetable">{t('live.back')}</Link>
-          </Button>
+          <BackButton />
         ) : (
           <CloseButton
             id={id!}
-            onClosed={(rows) => {
-              setRecords((m) => rows.reduce(merge, m));
-              setClosed(true);
+            onClosed={(result) => {
+              setRecords((m) => result.records.reduce(merge, m));
+              setClosed({ messagesQueued: result.messagesQueued });
             }}
           />
         )}
@@ -353,12 +387,90 @@ function RotatingQr({ session, offset }: { session: OpenSession; offset: number 
   );
 }
 
+/** Back to Today or the timetable, wherever the teacher came from. */
+function BackButton() {
+  const { t } = useTranslation();
+  const from = useCameFrom();
+  return (
+    <Button asChild variant="outline">
+      <Link to={from}>{t(from === '/' ? 'live.backToday' : 'live.back')}</Link>
+    </Button>
+  );
+}
+
+const SUMMARY = ['present', 'late', 'excused', 'absent'] as const;
+
+/** After the close: how many of each status, and how many parent messages are on their way. */
+function ClosedSummary({
+  records,
+  messagesQueued,
+}: {
+  records: AttendanceRecord[];
+  messagesQueued: number;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section role="status" className="grid gap-3 rounded-3xl border bg-card p-4 shadow-card">
+      <p className="text-center text-lg font-semibold">{t('live.closed')}</p>
+      <dl className="grid grid-cols-4 gap-2 text-center">
+        {SUMMARY.map((st) => (
+          <div key={st} className="grid gap-0.5 rounded-xl bg-muted/60 py-2">
+            <dd className="text-2xl font-bold">
+              <bdi>{records.filter((r) => r.status === st).length}</bdi>
+            </dd>
+            <dt className="text-xs text-muted-foreground">{t(`live.status.${st}`)}</dt>
+          </div>
+        ))}
+      </dl>
+      <p className="text-center text-sm text-muted-foreground">
+        {t('live.messagesQueued', { count: messagesQueued })}
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The QR alone over the whole screen, above the app's header and tab bar (audit 3 LV2): portalled
+ * to <body> so no animated parent traps the fixed layer, and in browser full screen where allowed.
+ */
+function FullScreen({ onExit, children }: { onExit: () => void; children: ReactNode }) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current!;
+    // iPhone Safari has no full screen for a page: the fixed layer is enough there.
+    el.requestFullscreen?.().catch(() => {});
+    // Leaving browser full screen (Esc, the back gesture) leaves this mode too.
+    const onChange = () => {
+      if (!document.fullscreenElement) onExit();
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      if (document.fullscreenElement) void document.exitFullscreen();
+    };
+  }, [onExit]);
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed inset-0 z-[100] grid content-center gap-4 overflow-y-auto bg-background p-4 text-foreground"
+    >
+      {children}
+      <Button variant="outline" className="mx-auto" onClick={onExit}>
+        <X aria-hidden />
+        {t('live.exitFullScreen')}
+      </Button>
+    </div>,
+    document.body,
+  );
+}
+
 function CloseButton({
   id,
   onClosed,
 }: {
   id: string;
-  onClosed: (rows: AttendanceRecord[]) => void;
+  onClosed: (result: CloseSessionResult) => void;
 }) {
   const { t } = useTranslation();
   const [close, closing] = useCloseSessionMutation();

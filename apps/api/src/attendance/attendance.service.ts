@@ -5,6 +5,7 @@ import type {
   AttendanceRecord,
   CheckIn,
   CheckInRequest,
+  CloseSessionResult,
   MarkAttendanceRequest,
   OpenSession,
   RosterEntry,
@@ -98,12 +99,12 @@ export class AttendanceService {
     return record;
   }
 
-  async close(ctx: Ctx, id: string, actorId: string): Promise<AttendanceRecord[]> {
+  async close(ctx: Ctx, id: string, actorId: string): Promise<CloseSessionResult> {
     await this.sessions.get(ctx, id);
-    const records = await this.repo.close(ctx.workspaceId, id, actorId, this.clock.now());
-    if (!records) throw new AppError('SESSION_NOT_OPEN');
+    const closed = await this.repo.close(ctx.workspaceId, id, actorId, this.clock.now());
+    if (!closed) throw new AppError('SESSION_NOT_OPEN');
     await this.outbox.afterCommit(ctx.workspaceId);
-    return records;
+    return closed;
   }
 
   /** Visibility is checked by the route's guard, before the stream starts. */

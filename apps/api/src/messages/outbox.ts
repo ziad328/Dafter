@@ -36,8 +36,8 @@ async function enqueue(
   students: SQL,
   dedupeSuffix: SQL = sql``,
   extra: SQL = sql`'{}'::jsonb`,
-) {
-  await tx.execute(sql`
+): Promise<number> {
+  const res = await tx.execute(sql`
     insert into outbox_messages (workspace_id, guardian_id, trigger, payload, dedupe_key, send_after)
     select ${workspaceId}, sg.guardian_id, ${trigger},
       ${extra} || jsonb_build_object(
@@ -63,6 +63,8 @@ async function enqueue(
       ${guardianFilter(workspaceId)}
     group by sg.guardian_id, s.id, s.starts_at, w.timezone, w.name_ar, w.name_en, sub.name_ar, sub.name_en
     on conflict (workspace_id, dedupe_key) do nothing`);
+  // New messages only: a repeat hits the dedupe key and counts 0.
+  return res.rowCount ?? 0;
 }
 
 /**

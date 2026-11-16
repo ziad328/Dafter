@@ -95,7 +95,9 @@ test("a teacher reads their own groups' messages with masked phones, and can't o
 
   // Tomorrow's session can't be opened yet; the screen says from when.
   await page.goto(`/sessions/${await sessionOf(mine.id, tomorrow)}/live`);
-  const [before] = t.live.tooEarly.split('{time}');
-  await expect(page.getByRole('alert')).toContainText(before!.trim());
+  // It keeps the title and a way back (audit 3 LV1).
+  const [before] = t.today.opensAt.split('{time}');
+  await expect(page.getByRole('status')).toContainText(before!.trim());
+  await expect(page.getByRole('link', { name: t.live.backToday })).toBeVisible();
   await expect(page.getByTestId('session-qr')).toHaveCount(0);
 });

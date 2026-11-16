@@ -344,7 +344,6 @@
     "noGrades": "No grades yet."
   },
   "live": {
-    "tooEarly": "The session opens 30 minutes before it starts, at {time}.",
     "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",
     "list": "Check-ins",
     "closed": "Session closed.",
@@ -365,7 +364,10 @@
     "fullScreen": "Full-screen code",
     "exitFullScreen": "Exit full screen",
     "toList": "Class list",
-    "change": "Change {name}'s status"
+    "change": "Change {name}'s status",
+    "backToday": "Back to Today",
+    "tooEarlyHint": "A class opens 30 minutes before it starts.",
+    "messagesQueued": "{count, plural, =0 {No messages to parents} one {# message to parents on its way} other {# messages to parents on their way}}"
   },
   "scan": {
     "open": "Check in",
@@ -588,7 +590,8 @@
     "startQr": "Start and show the attendance code",
     "findStudent": "Find a student",
     "recordPayment": "Record a payment",
-    "quick": "Quick actions"
+    "quick": "Quick actions",
+    "opensAt": "Opens at {time}"
   },
   "stats": {
     "sessions": "Sessions",

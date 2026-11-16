@@ -47,6 +47,14 @@ describe('today', () => {
     expect(screen.getByRole('link', { name: tr('today.startQr') })).toBeInTheDocument();
   });
 
+  it('shows when a class far ahead opens, instead of Start (audit 3 H4)', async () => {
+    withSessions([session('scheduled', 120)]);
+    await renderAt('/', { lang: 'en' });
+    const next = await screen.findByRole('region', { name: fx.sessions[1]!.subject.nameEn });
+    expect(within(next).getByText(new RegExp(tr('today.opensAt').split('{')[0]!))).toBeVisible();
+    expect(within(next).queryByRole('link', { name: tr('today.startQr') })).toBeNull();
+  });
+
   it('says a late session started, and counts hours when it is far', async () => {
     withSessions([session('scheduled', -150), session('open', 10)]);
     await renderAt('/', { lang: 'en' });

@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fail, fx, http, route, sent, server } from '@/test/server';
 import { renderAt, tr } from '@/test/render';
 
@@ -109,22 +109,77 @@ describe('live session', () => {
     await user.click(await screen.findByRole('button', { name: tr('live.toList') }));
     await user.click(screen.getByRole('button', { name: tr('live.fullScreen') }));
     // The page shows "0 / N"; the full-screen overlay keeps the sentence for the class.
-    expect(screen.getAllByText(tr('live.count', { count: 0 }))).toHaveLength(1);
+    const overlay = screen.getByText(tr('live.count', { count: 0 }));
+    // Portalled out of the app shell, so its header and tab bar can't sit on top (audit 3 LV2).
+    expect(overlay.parentElement!.parentElement).toBe(document.body);
     await user.click(screen.getByRole('button', { name: tr('live.exitFullScreen') }));
     expect(screen.queryAllByText(tr('live.count', { count: 0 }))).toHaveLength(0);
+  });
+
+  it('uses browser full screen where allowed, and leaves with it', async () => {
+    let fullElement: Element | null = null;
+    const request = vi.fn(() => {
+      fullElement = document.body;
+      return Promise.resolve();
+    });
+    const exit = vi.fn(() => {
+      fullElement = null;
+      return Promise.resolve();
+    });
+    Object.assign(HTMLElement.prototype, { requestFullscreen: request });
+    Object.assign(document, { exitFullscreen: exit });
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => fullElement,
+    });
+    try {
+      const { user } = await renderAt(page);
+      await user.click(await screen.findByRole('button', { name: tr('live.fullScreen') }));
+      expect(request).toHaveBeenCalledOnce();
+      // The overlay closes through the button: browser full screen ends with it.
+      await user.click(screen.getByRole('button', { name: tr('live.exitFullScreen') }));
+      expect(exit).toHaveBeenCalledOnce();
+
+      // Esc ends browser full screen first: the overlay follows.
+      await user.click(screen.getByRole('button', { name: tr('live.fullScreen') }));
+      fullElement = null;
+      document.dispatchEvent(new Event('fullscreenchange'));
+      expect(
+        await screen.findByRole('button', { name: tr('live.fullScreen') }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: tr('live.exitFullScreen') })).toBeNull();
+    } finally {
+      delete (HTMLElement.prototype as { requestFullscreen?: unknown }).requestFullscreen;
+      delete (document as { exitFullscreen?: unknown }).exitFullscreen;
+      delete (document as { fullscreenElement?: unknown }).fullscreenElement;
+    }
   });
 
   it('closes after a confirm and marks the rest absent', async () => {
     const { user } = await renderAt(page);
     await user.click(await screen.findByRole('button', { name: tr('live.close') }));
     await user.click(screen.getByRole('button', { name: tr('live.confirmClose') }));
-    expect(await screen.findByRole('status')).toHaveTextContent(tr('live.closed'));
-    expect(screen.getByText(new RegExp(tr('live.status.absent')))).toBeVisible();
-    expect(screen.getByRole('link', { name: tr('live.back') })).toHaveAttribute(
+    const summary = await screen.findByRole('status');
+    expect(summary).toHaveTextContent(tr('live.closed'));
+    // Counts per status and the parent messages on their way (audit 3 LV4).
+    expect(within(summary).getByText(tr('live.status.absent'))).toBeVisible();
+    expect(summary).toHaveTextContent(tr('live.messagesQueued', { count: 3 }));
+    // Opened without a "from": back to Today.
+    expect(screen.getByRole('link', { name: tr('live.backToday') })).toHaveAttribute('href', '/');
+    expect(screen.queryByTestId('session-qr')).toBeNull();
+  });
+
+  it('goes back to the timetable when opened from there, in English', async () => {
+    const { user, router } = await renderAt('/timetable', { lang: 'en' });
+    await router.navigate(page, { state: { from: '/timetable' } });
+    const crumbs = await screen.findByRole('navigation', { name: tr('nav.breadcrumbs') });
+    expect(within(crumbs).getByRole('link', { name: tr('nav.timetable') })).toBeVisible();
+    await user.click(await screen.findByRole('button', { name: tr('live.close') }));
+    await user.click(screen.getByRole('button', { name: tr('live.confirmClose') }));
+    expect(await screen.findByRole('link', { name: tr('live.back') })).toHaveAttribute(
       'href',
       '/timetable',
     );
-    expect(screen.queryByTestId('session-qr')).toBeNull();
   });
 
   it('shows a failed close, and a session that will not open', async () => {

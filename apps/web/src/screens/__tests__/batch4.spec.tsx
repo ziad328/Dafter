@@ -10,7 +10,7 @@ const asRole = (role: string) =>
   );
 
 describe('too early to open', () => {
-  it('says when the session can be opened, in the center time', async () => {
+  it('says when the session can be opened, in the center time, with the title and list', async () => {
     const opensAt = '2026-11-28T13:30:00.000Z';
     server.use(
       http.post(route('sessions/:id/open'), () =>
@@ -19,10 +19,18 @@ describe('too early to open', () => {
     );
     await renderAt(`/sessions/${fx.openSession.sessionId}/live`);
     const time = displayTime(opensAt, fx.currentWorkspace.timezone, 'ar');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      tr('live.tooEarly', { time: `⁨${time}⁩` }),
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      tr('today.opensAt', { time: `⁨${time}⁩` }),
     );
     expect(screen.queryByTestId('session-qr')).not.toBeInTheDocument();
+    // A way back and the class list stay (audit 3 LV1).
+    expect(screen.getByRole('link', { name: tr('live.backToday') })).toHaveAttribute('href', '/');
+    expect(
+      await screen.findByRole('heading', {
+        name: tr('today.enrolled', { count: fx.roster.length }),
+      }),
+    ).toBeVisible();
+    expect(screen.getByText(fx.roster[0]!.nameAr)).toBeVisible();
   });
 });
 

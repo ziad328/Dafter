@@ -311,7 +311,7 @@ export const handlers = [
       ),
     ),
   ),
-  http.post(api('sessions/:id/close'), log(fx.closeRecords)),
+  http.post(api('sessions/:id/close'), log({ records: fx.closeRecords, messagesQueued: 3 })),
   http.get(api('sessions/:id/live'), async () => {
     await delay('infinite');
     return new HttpResponse(null);

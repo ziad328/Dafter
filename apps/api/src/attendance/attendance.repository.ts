@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { and, asc, eq, isNull, lte, sql } from 'drizzle-orm';
-import type {
-  AttendanceRecord,
-  AttendanceSettings,
-  MarkAttendanceRequest,
-  RosterEntry,
+import {
+  type AttendanceRecord,
+  type AttendanceSettings,
+  type MarkAttendanceRequest,
+  type RosterEntry,
+  SESSION_OPEN_EARLY_MINUTES,
 } from '@dafter/contracts';
 import {
   attendanceRecords,
@@ -21,7 +22,7 @@ import { enqueueAbsences } from '../messages/outbox.js';
 type Status = MarkAttendanceRequest['status'];
 const DEFAULT_LATE_MINUTES = 15;
 /** A session opens at most this long before its start (the door opens before class). */
-export const OPEN_EARLY_MS = 30 * 60_000;
+export const OPEN_EARLY_MS = SESSION_OPEN_EARLY_MINUTES * 60_000;
 
 @Injectable()
 export class AttendanceRepository extends TenantRepository {
@@ -246,8 +247,8 @@ export class AttendanceRepository extends TenantRepository {
         where e.workspace_id = ${workspaceId} and e.group_id = ${closed.groupId}
           and e.status = 'active' and st.status = 'active'
         on conflict do nothing`);
-      await enqueueAbsences(tx, workspaceId, id, now);
-      return this.list(tx, workspaceId, id);
+      const messagesQueued = await enqueueAbsences(tx, workspaceId, id, now);
+      return { records: await this.list(tx, workspaceId, id), messagesQueued };
     });
   }
 

@@ -2025,11 +2025,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Final attendance",
+            "description": "Final attendance and the guardian messages queued",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AttendanceList"
+                  "$ref": "#/components/schemas/CloseSessionResult"
                 }
               }
             }
@@ -5302,6 +5302,21 @@
           }
         },
         "required": ["studentId", "nameAr", "nameEn"],
+        "additionalProperties": false
+      },
+      "CloseSessionResult": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "$ref": "#/components/schemas/AttendanceList"
+          },
+          "messagesQueued": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["records", "messagesQueued"],
         "additionalProperties": false
       },
       "StudentLedger": {

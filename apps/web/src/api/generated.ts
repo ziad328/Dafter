@@ -680,7 +680,8 @@ export type MarkAttendanceApiArg = {
   studentId: string;
   markAttendanceRequest: MarkAttendanceRequest;
 };
-export type CloseSessionApiResponse = /** status 200 Final attendance */ AttendanceList;
+export type CloseSessionApiResponse =
+  /** status 200 Final attendance and the guardian messages queued */ CloseSessionResult;
 export type CloseSessionApiArg = {
   id: string;
 };
@@ -1221,6 +1222,10 @@ export type RosterEntry = {
 export type Roster = RosterEntry[];
 export type MarkAttendanceRequest = {
   status: 'present' | 'late' | 'absent' | 'excused' | 'makeup';
+};
+export type CloseSessionResult = {
+  records: AttendanceList;
+  messagesQueued: number;
 };
 export type LedgerEntry = {
   id: string;

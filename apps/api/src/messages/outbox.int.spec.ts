@@ -77,12 +77,15 @@ describe('absence messages on session close', () => {
     await c.teacher('POST', `sessions/${id}/open`);
     await c.teacher('PUT', `sessions/${id}/attendance/${present}`, { status: 'present' });
 
-    await c.teacher('POST', `sessions/${id}/close`);
+    // The close says how many messages it queued: one per guardian, siblings merged.
+    expect((await c.teacher('POST', `sessions/${id}/close`)).json().messagesQueued).toBe(2);
     // A repeated close is refused, and replaying the insert itself is a no-op (dedupe_key).
     expect((await c.teacher('POST', `sessions/${id}/close`)).json().code).toBe('SESSION_NOT_OPEN');
-    await withTenant(testDb().db, c.workspaceId, (tx) =>
-      enqueueAbsences(tx, c.workspaceId, id, clock.now()),
-    );
+    expect(
+      await withTenant(testDb().db, c.workspaceId, (tx) =>
+        enqueueAbsences(tx, c.workspaceId, id, clock.now()),
+      ),
+    ).toBe(0);
 
     const queued = await rows(id);
     expect(queued).toHaveLength(2);

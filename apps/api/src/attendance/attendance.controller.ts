@@ -23,6 +23,7 @@ import {
   type CheckIn,
   type CheckInRequest,
   checkInRequest,
+  type CloseSessionResult,
   type MarkAttendanceRequest,
   markAttendanceRequest,
   type OpenSession,
@@ -72,7 +73,7 @@ export class SessionAttendanceController {
   close(
     @Req() req: TenantedRequest,
     @Param('id', new ZodPipe(z.uuid())) id: string,
-  ): Promise<AttendanceRecord[]> {
+  ): Promise<CloseSessionResult> {
     return this.attendance.close(req, id, req.userId);
   }
 

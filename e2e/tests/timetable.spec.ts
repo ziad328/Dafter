@@ -66,7 +66,8 @@ test('owner sees generated sessions, then moves and cancels one', async ({
   await page.getByLabel(t.groups.start).fill(start);
   await page.getByLabel(t.groups.end).fill(end);
   await submitGroup(page, t);
-  await expect(page).toHaveURL(/\/groups$/);
+  // A saved group opens its own page (audit 3 G1).
+  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}$/);
 
   await page.goto('/');
   await openNav(page, t, t.nav.timetable);

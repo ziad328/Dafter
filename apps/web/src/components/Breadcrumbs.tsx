@@ -24,7 +24,8 @@ function useName(kind: 'student' | 'group', id?: string) {
  */
 export function Breadcrumbs() {
   const { t } = useTranslation();
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
+  const from = (state as { from?: string } | null)?.from;
   const student = matchPath('/students/:id', pathname)?.params.id;
   const groupEdit = matchPath('/groups/:id/edit', pathname)?.params.id;
   const groupExams = matchPath('/groups/:id/exams', pathname)?.params.id;
@@ -51,7 +52,13 @@ export function Breadcrumbs() {
       { label: group === 'new' ? t('groups.new') : (groupName ?? '') },
     ];
   else if (matchPath('/sessions/:id/live', pathname))
-    crumbs = [{ label: t('nav.today'), to: '/' }, { label: t('nav.live') }];
+    // The live screen says where it was opened from: Today or the timetable (audit 3 LV4).
+    crumbs = [
+      from === '/timetable'
+        ? { label: t('nav.timetable'), to: '/timetable' }
+        : { label: t('nav.today'), to: '/' },
+      { label: t('nav.live') },
+    ];
   else if (pathname === '/messages/settings')
     crumbs = [
       { label: t('nav.messages'), to: '/messages' },

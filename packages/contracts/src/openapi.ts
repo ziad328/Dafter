@@ -19,6 +19,7 @@ import {
 import { createRoomRequest, room, roomList, updateRoomRequest } from './rooms.js';
 import {
   attendanceList,
+  closeSessionResult,
   roster,
   attendanceRecord,
   checkIn,
@@ -604,7 +605,10 @@ export function buildOpenApi() {
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           responses: {
-            200: { description: 'Final attendance', content: json(attendanceList) },
+            200: {
+              description: 'Final attendance and the guardian messages queued',
+              content: json(closeSessionResult),
+            },
             ...errors,
           },
         },

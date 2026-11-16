@@ -190,7 +190,9 @@ function SessionRow({
         </div>
         {startable(s, tz) && (
           <Button asChild size="sm">
-            <Link to={`/sessions/${s.id}/live`}>{t('timetable.start')}</Link>
+            <Link to={`/sessions/${s.id}/live`} state={{ from: '/timetable' }}>
+              {t('timetable.start')}
+            </Link>
           </Button>
         )}
         {/* Move and cancel wait behind one menu, so a busy row has no stray "cancel" tap. */}

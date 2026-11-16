@@ -41,7 +41,8 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await page.getByLabel(t.groups.start).fill('16:00');
   await page.getByLabel(t.groups.end).fill('17:30');
   await submitGroup(page, t);
-  await expect(page).toHaveURL(/\/groups$/);
+  // A saved group opens its own page (audit 3 G1).
+  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}$/);
 
   await page.goto('/students/new');
   await page.getByLabel(t.students.nameAr, { exact: true }).fill(name);

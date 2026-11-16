@@ -1,6 +1,7 @@
-import type { Session, StatsDay } from '@dafter/contracts';
+import { type Session, SESSION_OPEN_EARLY_MINUTES, type StatsDay } from '@dafter/contracts';
 import {
   CalendarCheck,
+  Clock,
   MessageSquareText,
   Play,
   ScanLine,
@@ -179,6 +180,9 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
   const now = useNow();
   const enrolled = useGetSessionRosterQuery({ id: s.id }).data?.length;
   const open = s.status === 'open';
+  // Opens SESSION_OPEN_EARLY_MINUTES before the start; until then, no big Start (audit 3 H4).
+  const opensAt = Date.parse(s.startsAt) - SESSION_OPEN_EARLY_MINUTES * 60_000;
+  const waiting = !open && now < opensAt;
   // An open session needs no countdown (it may have been opened early); otherwise say when.
   const timing = open
     ? undefined
@@ -189,7 +193,10 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
   return (
     <section
       aria-labelledby="next-session"
-      className="relative grid gap-5 overflow-hidden rounded-3xl bg-linear-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] p-6 text-white shadow-card sm:p-7"
+      className={cn(
+        'relative grid overflow-hidden rounded-3xl bg-linear-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] text-white shadow-card',
+        waiting ? 'gap-3 p-5' : 'gap-5 p-6 sm:p-7',
+      )}
     >
       <div
         aria-hidden
@@ -203,7 +210,7 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
         {timing && <span className="text-white/85">{timing}</span>}
       </div>
       <div className="relative grid gap-1">
-        <h2 id="next-session" className="text-3xl font-bold">
+        <h2 id="next-session" className={cn('font-bold', waiting ? 'text-2xl' : 'text-3xl')}>
           {itemName(s.subject, lang)}
         </h2>
         <p className="text-lg text-white/90">{itemName(s.gradeLevel, lang)}</p>
@@ -213,16 +220,23 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
           {enrolled !== undefined && <span>{t('today.enrolled', { count: enrolled })}</span>}
         </p>
       </div>
-      <Button
-        asChild
-        size="lg"
-        className="relative h-13 justify-self-start bg-white px-8 text-base font-semibold text-[#3a4024] shadow-lg transition-transform hover:scale-[1.02] hover:bg-white active:scale-[0.98]"
-      >
-        <Link to={`/sessions/${s.id}/live`}>
-          <Play aria-hidden className="fill-current" />
-          {t(open ? 'today.continue' : 'today.startQr')}
-        </Link>
-      </Button>
+      {waiting ? (
+        <p className="relative flex items-center gap-2 justify-self-start rounded-full bg-white/15 px-4 py-2 font-medium">
+          <Clock className="size-4" aria-hidden />
+          {t('today.opensAt', { time: `⁨${displayTime(new Date(opensAt), tz, lang)}⁩` })}
+        </p>
+      ) : (
+        <Button
+          asChild
+          size="lg"
+          className="relative h-13 justify-self-start bg-white px-8 text-base font-semibold text-[#3a4024] shadow-lg transition-transform hover:scale-[1.02] hover:bg-white active:scale-[0.98]"
+        >
+          <Link to={`/sessions/${s.id}/live`} state={{ from: '/' }}>
+            <Play aria-hidden className="fill-current" />
+            {t(open ? 'today.continue' : 'today.startQr')}
+          </Link>
+        </Button>
+      )}
     </section>
   );
 }
@@ -351,7 +365,9 @@ function DayList({ sessions, next, tz }: { sessions: Session[]; next?: Session; 
                 </span>
               ) : s.status === 'open' ? (
                 <Button asChild size="sm">
-                  <Link to={`/sessions/${s.id}/live`}>{t('today.continue')}</Link>
+                  <Link to={`/sessions/${s.id}/live`} state={{ from: '/' }}>
+                    {t('today.continue')}
+                  </Link>
                 </Button>
               ) : startable(s) ? (
                 // Later classes get no button of their own: one «ابدأ» per screen (audit 3 H5).

@@ -48,7 +48,9 @@ test('owner adds a room, books a group in it, and a clashing group is refused', 
   await newGroup();
   // The owner also teaches the seeded Saturday 16:00 group: saved anyway.
   await submitGroup(page, t);
-  await expect(page).toHaveURL(/\/groups$/);
+  // A saved group opens its own page (audit 3 G1).
+  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}$/);
+  await page.goto('/groups');
   await expect(page.getByRole('link').filter({ hasText: room })).toHaveCount(1);
 
   await newGroup();

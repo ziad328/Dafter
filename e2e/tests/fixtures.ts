@@ -57,7 +57,10 @@ export async function submitGroup(page: Page, t: typeof ar, button = t.groups.cr
   await page.getByRole('button', { name: button }).click();
   const anyway = page.getByRole('button', { name: t.groups.saveAnyway });
   await expect
-    .poll(async () => (await anyway.isVisible()) || new URL(page.url()).pathname === '/groups')
+    // Saved: the form leaves for the group's page, or the list after a restore.
+    .poll(
+      async () => (await anyway.isVisible()) || !/\/(new|edit)$/.test(new URL(page.url()).pathname),
+    )
     .toBe(true);
   if (await anyway.isVisible()) await anyway.click();
 }

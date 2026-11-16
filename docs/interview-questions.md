@@ -215,3 +215,11 @@ A room can't hold two classes, so ROOM_BOOKED is a fact. A teacher at two groups
 
 **2. How do two saves at the same moment not both take the teacher's free hour?**
 Both take `pg_advisory_xact_lock` on the teacher's membership id before checking, the same lock a session move takes. The second waits until the first commits, then its check sees the first group's slots and answers TEACHER_BOOKED.
+
+## Close summary: counting the queued parent messages
+
+**1. How does the close know how many parent messages it queued without a second query?**
+The outbox insert is one `insert … select … on conflict do nothing` in the close transaction, so its `rowCount` is exactly the new rows. Siblings merge into one message per guardian, so the count is guardians, not students.
+
+**2. Why can't a repeated close inflate that number?**
+A second close is refused (SESSION_NOT_OPEN), and even a replayed insert hits the unique `dedupe_key` and counts 0. The number shown is what the sender will really send, unless the workspace switched absence messages off, which makes it 0 too.

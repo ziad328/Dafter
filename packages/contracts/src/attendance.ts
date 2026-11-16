@@ -3,6 +3,9 @@ import * as z from 'zod';
 export const attendanceStatus = z.enum(['present', 'late', 'absent', 'excused', 'makeup']);
 export const attendanceMethod = z.enum(['student_scan', 'manual', 'auto_close']);
 
+/** A session can be opened from this many minutes before its start (Today shows «تُفتح 5:30 م»). */
+export const SESSION_OPEN_EARLY_MINUTES = 30;
+
 /** Returned to the teacher's screen, which draws a new QR every `windowMs` from it. */
 export const openSession = z
   .object({
@@ -54,6 +57,11 @@ export const attendanceRecord = z
 
 export const attendanceList = z.array(attendanceRecord).meta({ id: 'AttendanceList' });
 
+/** The final attendance, and how many guardian messages the close queued (0 when switched off). */
+export const closeSessionResult = z
+  .object({ records: attendanceList, messagesQueued: z.int().nonnegative() })
+  .meta({ id: 'CloseSessionResult' });
+
 /** The students expected in a session: active, non-archived enrollments of its group. */
 export const rosterEntry = z
   .object({ studentId: z.uuid(), nameAr: z.string(), nameEn: z.string().nullable() })
@@ -66,6 +74,7 @@ export type CheckIn = z.infer<typeof checkIn>;
 export type MarkAttendanceRequest = z.infer<typeof markAttendanceRequest>;
 export type RosterEntry = z.infer<typeof rosterEntry>;
 export type AttendanceRecord = z.infer<typeof attendanceRecord>;
+export type CloseSessionResult = z.infer<typeof closeSessionResult>;
 
 /** Per-workspace attendance rules. A check-in this many minutes after the start is "late". */
 export const attendanceSettings = z
