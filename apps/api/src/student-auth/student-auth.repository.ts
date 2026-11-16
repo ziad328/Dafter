@@ -8,6 +8,7 @@ import {
   students,
   type Tx,
   users,
+  workspaces,
   withTenant,
 } from '@dafter/db';
 import { DB } from '../db.js';
@@ -23,6 +24,38 @@ export const OTP_MAX_ATTEMPTS = 5;
 @Injectable()
 export class StudentAuthRepository {
   constructor(@Inject(DB) private readonly db: Db) {}
+
+  /** The activation page's preview: the same usable invite, with names for the greeting. */
+  async findInvitePreview(tokenHash: string, now: Date) {
+    const [row] = await this.db
+      .select({
+        nameAr: students.nameAr,
+        nameEn: students.nameEn,
+        workspaceNameAr: workspaces.nameAr,
+        workspaceNameEn: workspaces.nameEn,
+      })
+      .from(studentInvites)
+      .innerJoin(
+        students,
+        and(
+          eq(students.workspaceId, studentInvites.workspaceId),
+          eq(students.id, studentInvites.studentId),
+        ),
+      )
+      .innerJoin(workspaces, eq(workspaces.id, studentInvites.workspaceId))
+      .where(this.usable(tokenHash, now));
+    return row;
+  }
+
+  /** Unused, unexpired, and the student not yet activated. */
+  private usable(tokenHash: string, now: Date) {
+    return and(
+      eq(studentInvites.tokenHash, tokenHash),
+      isNull(studentInvites.usedAt),
+      gt(studentInvites.expiresAt, now),
+      isNull(students.userId),
+    );
+  }
 
   /** A usable invite (unused, unexpired, student not yet activated). */
   async findInvite(tokenHash: string, now: Date) {
@@ -40,14 +73,7 @@ export class StudentAuthRepository {
           eq(students.id, studentInvites.studentId),
         ),
       )
-      .where(
-        and(
-          eq(studentInvites.tokenHash, tokenHash),
-          isNull(studentInvites.usedAt),
-          gt(studentInvites.expiresAt, now),
-          isNull(students.userId),
-        ),
-      );
+      .where(this.usable(tokenHash, now));
     return row;
   }
 

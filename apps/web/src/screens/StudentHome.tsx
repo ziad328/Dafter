@@ -238,36 +238,30 @@ function History() {
   const { t, i18n } = useTranslation();
   const { data, isLoading } = useGetMyAttendanceQuery();
   if (isLoading) return <Skeleton />;
-  const counted = data?.filter((r) => r.status !== 'excused') ?? [];
+  // Nothing yet: no empty card (audit 3 SA3).
+  if (!data?.length) return null;
+  const counted = data.filter((r) => r.status !== 'excused');
   const attended = counted.filter((r) => r.status !== 'absent').length;
   return (
     <Panel className="grid gap-3 p-5">
       <h2 className="font-semibold">{t('studentApp.history')}</h2>
-      {!data?.length ? (
-        <p className="text-sm text-muted-foreground">{t('studentApp.noHistory')}</p>
-      ) : (
-        <>
-          {counted.length > 0 && (
-            <p className="text-2xl font-bold" data-testid="attendance-rate">
-              {t('studentApp.rate', { attended, total: counted.length })}
-            </p>
-          )}
-          <ul className="grid gap-2" data-testid="my-attendance">
-            {data.map((r) => (
-              <li key={r.sessionId} className="flex items-center justify-between gap-2 text-sm">
-                <span>
-                  {`${dayLabel(localDate(r.startsAt, r.timezone), i18n.language)} · ${itemName(r.subject, i18n.language)}`}
-                </span>
-                <span
-                  className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', PILL[r.status])}
-                >
-                  {t(`live.status.${r.status}`)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
+      {counted.length > 0 && (
+        <p className="text-2xl font-bold" data-testid="attendance-rate">
+          {t('studentApp.rate', { attended, total: counted.length })}
+        </p>
       )}
+      <ul className="grid gap-2" data-testid="my-attendance">
+        {data.map((r) => (
+          <li key={r.sessionId} className="flex items-center justify-between gap-2 text-sm">
+            <span>
+              {`${dayLabel(localDate(r.startsAt, r.timezone), i18n.language)} · ${itemName(r.subject, i18n.language)}`}
+            </span>
+            <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', PILL[r.status])}>
+              {t(`live.status.${r.status}`)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </Panel>
   );
 }
@@ -278,32 +272,29 @@ function Grades() {
   const lang = i18n.language;
   const { data, isLoading } = useGetMyGradesQuery();
   if (isLoading) return <Skeleton />;
+  if (!data?.length) return null;
   return (
     <Panel className="grid gap-3 p-5">
       <h2 className="font-semibold">{t('studentApp.grades')}</h2>
-      {!data?.length ? (
-        <p className="text-sm text-muted-foreground">{t('studentApp.noGrades')}</p>
-      ) : (
-        <ul className="grid gap-2" data-testid="my-grades">
-          {data.map((g) => (
-            <li key={g.examId} className="flex items-center justify-between gap-2 text-sm">
-              <span className="grid min-w-0">
-                <span className="truncate font-medium">{g.title}</span>
-                <span className="text-muted-foreground">
-                  {`${dayLabel(g.heldOn, lang)} · ${itemName(g.subject, lang)}`}
-                </span>
+      <ul className="grid gap-2" data-testid="my-grades">
+        {data.map((g) => (
+          <li key={g.examId} className="flex items-center justify-between gap-2 text-sm">
+            <span className="grid min-w-0">
+              <span className="truncate font-medium">{g.title}</span>
+              <span className="text-muted-foreground">
+                {`${dayLabel(g.heldOn, lang)} · ${itemName(g.subject, lang)}`}
               </span>
-              {g.absent ? (
-                <span className="rounded-full bg-absent-soft px-2.5 py-0.5 text-xs font-medium text-rose">
-                  {t('exams.absent')}
-                </span>
-              ) : (
-                <bdi className="shrink-0 text-base font-bold">{`${g.score}/${g.maxScore}`}</bdi>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+            </span>
+            {g.absent ? (
+              <span className="rounded-full bg-absent-soft px-2.5 py-0.5 text-xs font-medium text-rose">
+                {t('exams.absent')}
+              </span>
+            ) : (
+              <bdi className="shrink-0 text-base font-bold">{`${g.score}/${g.maxScore}`}</bdi>
+            )}
+          </li>
+        ))}
+      </ul>
     </Panel>
   );
 }

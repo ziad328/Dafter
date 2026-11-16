@@ -15,7 +15,11 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import * as z from 'zod';
-import { useRequestOtpMutation, useVerifyOtpMutation } from '@/api/generated';
+import {
+  useGetStudentInvitePreviewQuery,
+  useRequestOtpMutation,
+  useVerifyOtpMutation,
+} from '@/api/generated';
 import { Field, FormError } from '@/components/Field';
 import { IconBadge } from '@/components/Page';
 import { Button } from '@/components/ui/button';
@@ -49,6 +53,26 @@ export default function StudentLogin() {
   return <SignIn token={token} />;
 }
 
+/**
+ * «أهلًا يا سارة — سنتر النور»: the link names who it is for and who sent it, so it doesn't read
+ * like a generic login (audit 3 SA4). Nothing while loading or for a used or expired link: the
+ * code request says that.
+ */
+function InviteGreeting({ token }: { token: string }) {
+  const { t, i18n } = useTranslation();
+  const { data } = useGetStudentInvitePreviewQuery({ token });
+  if (!data) return null;
+  const en = i18n.language === 'en';
+  return (
+    <p className="text-base font-semibold text-ink" data-testid="invite-greeting">
+      {t('studentApp.inviteGreeting', {
+        name: (en && data.studentFirstNameEn) || data.studentFirstNameAr,
+        center: (en && data.workspaceNameEn) || data.workspaceNameAr,
+      })}
+    </p>
+  );
+}
+
 function SignIn({ token }: { token?: string }) {
   const { t } = useTranslation();
   const [email, setEmail] = useState<string>();
@@ -57,6 +81,7 @@ function SignIn({ token }: { token?: string }) {
     <Card>
       <CardHeader>
         <IconBadge icon={Smartphone} />
+        {token && <InviteGreeting token={token} />}
         <CardTitle>
           <h1>{t(token ? 'studentApp.activateTitle' : 'studentApp.loginTitle')}</h1>
         </CardTitle>
@@ -144,6 +169,7 @@ function InstallGate() {
     <Card>
       <CardHeader>
         <IconBadge icon={Download} />
+        {token && <InviteGreeting token={token} />}
         <CardTitle>
           <h1>{t('install.title')}</h1>
         </CardTitle>

@@ -2,7 +2,9 @@ import { act, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { idb } from '@/test/idb';
 import { fail, fx, http, route, sent, server } from '@/test/server';
+import { itemName } from '@/lib/groups';
 import { dayLabel, localDate } from '@/lib/time';
+import { DONE_MS } from '@/screens/StudentScan';
 import { renderAt, tr } from '@/test/render';
 
 // The camera library: the test plays the scanner, handing over decoded text.
@@ -53,6 +55,10 @@ describe('student sign-in', () => {
     const { user } = await renderAt(`/s/activate/${token}`, { workspace: null });
     expect(await screen.findByText(tr('install.title'))).toBeVisible();
     expect(screen.getByTestId('install-steps')).toHaveTextContent(tr('install.steps.menu'));
+    // Signed out, the link still says who it is for and which center sent it (audit 3 SA4).
+    expect(await screen.findByTestId('invite-greeting')).toHaveTextContent(
+      tr('studentApp.inviteGreeting', { name: 'سارة', center: 'سنتر النور' }),
+    );
     // Saved in an effect after the first render: wait for it (flaky on a slow CI runner).
     await expect.poll(() => localStorage.getItem('dafter.invite')).toBe(token);
     const prompt = vi.fn(async () => {});
@@ -159,9 +165,11 @@ describe('student sign-in', () => {
     server.use(
       http.post(route('auth/otp/request'), fail('INVITE_INVALID', 400)),
       http.post(route('auth/otp/verify'), fail('OTP_INVALID', 400)),
+      http.get(route('student-invites/:token'), fail('INVITE_INVALID', 410)),
     );
     const { user } = await renderAt(`/s/activate/${token}`, { workspace: null });
     await user.type(await screen.findByLabelText(tr('studentApp.email')), 'sara@example.com');
+    expect(screen.queryByTestId('invite-greeting')).toBeNull();
     await user.click(screen.getByRole('button', { name: tr('studentApp.sendCode') }));
     expect(await screen.findByRole('alert')).toBeVisible();
     await expect.poll(() => localStorage.getItem('dafter.invite')).toBeNull();
@@ -246,17 +254,27 @@ describe('student home', () => {
   });
 
   it('says binding failed, and shows empty lists', async () => {
+    const asked: string[] = [];
     server.use(
       http.post(route('devices/bind'), fail('INTERNAL', 500)),
       http.get(route('me/schedule'), () => Response.json([])),
-      http.get(route('me/attendance'), () => Response.json([])),
-      http.get(route('me/grades'), () => Response.json([])),
+      http.get(route('me/attendance'), () => {
+        asked.push('attendance');
+        return Response.json([]);
+      }),
+      http.get(route('me/grades'), () => {
+        asked.push('grades');
+        return Response.json([]);
+      }),
     );
     await renderAt('/s', { workspace: null });
     expect(await screen.findByText(tr('studentApp.bindErrors.failed'))).toBeVisible();
     expect(screen.getByText(tr('studentApp.noSessions'))).toBeVisible();
-    expect(screen.getByText(tr('studentApp.noHistory'))).toBeVisible();
-    expect(await screen.findByText(tr('studentApp.noGrades'))).toBeVisible();
+    // Nothing to show: no empty History or Grades card (audit 3 SA3).
+    await expect.poll(() => asked.length).toBe(2);
+    await act(() => new Promise((r) => setTimeout(r, 50)));
+    expect(screen.queryByRole('heading', { name: tr('studentApp.history') })).toBeNull();
+    expect(screen.queryByRole('heading', { name: tr('studentApp.grades') })).toBeNull();
   });
 
   it('shows my grades: a score out of the max, or absent', async () => {
@@ -318,6 +336,16 @@ describe('scan', () => {
     expect(router.state.location.pathname).toBe('/s');
   });
 
+  it('names the class and its time, then goes home by itself', async () => {
+    const mine = { ...fx.mySchedule[0]!, id: fx.openSession.sessionId };
+    server.use(http.get(route('me/schedule'), () => Response.json([mine])));
+    const { router } = await renderAt('/s/scan', { workspace: null, lang: 'en' });
+    await expect.poll(() => scanner.onResult).toBeDefined();
+    act(() => scanner.onResult!({ getText: () => code }));
+    expect(await screen.findByTestId('scan-class')).toHaveTextContent(itemName(mine.subject, 'en'));
+    await expect.poll(() => router.state.location.pathname, { timeout: DONE_MS + 2000 }).toBe('/s');
+  });
+
   it('asks to scan again when the code expired, and shows other errors', async () => {
     server.use(http.post(route('check-ins'), fail('CHECKIN_CODE_EXPIRED', 409)));
     await renderAt('/s/scan', { workspace: null });
@@ -333,8 +361,12 @@ describe('scan', () => {
     getUserMedia = vi.fn(async () => {
       throw new Error('denied');
     });
-    await renderAt('/s/scan', { workspace: null, lang: 'en' });
+    const { user } = await renderAt('/s/scan', { workspace: null, lang: 'en' });
     expect(await screen.findByText(tr('scan.cameraBlocked'))).toBeVisible();
+    // Allowed in the phone's settings: «Try again» opens the camera again (audit 3 SA8).
+    const calls = getUserMedia.mock.calls.length;
+    await user.click(screen.getByRole('button', { name: tr('scan.retry') }));
+    await expect.poll(() => getUserMedia.mock.calls.length).toBeGreaterThan(calls);
   });
 
   it('switches between cameras and remembers the choice', async () => {

@@ -3,13 +3,15 @@ import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
 import { SwitchCamera } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
-import { useCheckInMutation } from '@/api/generated';
+import { Link, useNavigate } from 'react-router';
+import { useCheckInMutation, useGetMyScheduleQuery } from '@/api/generated';
 import { FormError } from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { deviceKey, signWithDevice } from '@/lib/device-key';
+import { itemName } from '@/lib/groups';
 import { errorKey } from '@/lib/session';
+import { displayTime } from '@/lib/time';
 
 declare global {
   interface Window {
@@ -34,6 +36,8 @@ export default function StudentScan() {
   const [checkIn, { error }] = useCheckInMutation();
   const [done, setDone] = useState<CheckIn>();
   const [cameraBlocked, setCameraBlocked] = useState(false);
+  // «حاول مرة أخرى» after allowing the camera in the phone's settings (audit 3 SA8).
+  const [tries, setTries] = useState(0);
   // The camera the student picked last time (kept for the next class); none = the back camera.
   const [cameraId, setCameraId] = useState(savedCamera);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
@@ -95,25 +99,9 @@ export default function StudentScan() {
       stream?.getTracks().forEach((track) => track.stop());
       if (import.meta.env.DEV) delete window.__dafterScan;
     };
-  }, [done, submit, cameraId]);
+  }, [done, submit, cameraId, tries]);
 
-  if (done)
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h1 role="status" className="text-center text-3xl">
-              {t(`scan.done.${done.status}`)}
-            </h1>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          <Button asChild>
-            <Link to="/s">{t('scan.back')}</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
+  if (done) return <Done done={done} />;
 
   const switchCamera = () => {
     const at = cameras.findIndex((c) => c.deviceId === active.current);
@@ -152,11 +140,59 @@ export default function StudentScan() {
           </Button>
         )}
         <p className="text-sm text-muted-foreground">{t('scan.hint')}</p>
-        {cameraBlocked && <FormError message={t('scan.cameraBlocked')} />}
+        {cameraBlocked && (
+          <>
+            <FormError message={t('scan.cameraBlocked')} />
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCameraBlocked(false);
+                setTries((n) => n + 1);
+              }}
+            >
+              {t('scan.retry')}
+            </Button>
+          </>
+        )}
         {/* An expired code just means "scan again": the camera is still running. */}
         <FormError
           message={code && t(code === 'errors.CHECKIN_CODE_EXPIRED' ? 'scan.again' : code)}
         />
+      </CardContent>
+    </Card>
+  );
+}
+
+/** How long the confirmation stays before going home on its own (audit 3 SA9). */
+export const DONE_MS = 3000;
+
+/** Checked in: the status, which class and when (from the cached schedule), then home. */
+function Done({ done }: { done: CheckIn }) {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const session = useGetMyScheduleQuery().data?.find((s) => s.id === done.sessionId);
+  useEffect(() => {
+    const timer = setTimeout(() => void navigate('/s', { replace: true }), DONE_MS);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h1 role="status" className="text-center text-3xl">
+            {t(`scan.done.${done.status}`)}
+          </h1>
+        </CardTitle>
+        {session && (
+          <p className="text-center text-muted-foreground" data-testid="scan-class">
+            {`${itemName(session.subject, i18n.language)} · ${displayTime(session.startsAt, session.timezone, i18n.language)}`}
+          </p>
+        )}
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <Button asChild>
+          <Link to="/s">{t('scan.back')}</Link>
+        </Button>
       </CardContent>
     </Card>
   );

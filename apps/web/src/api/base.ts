@@ -10,7 +10,8 @@ import {
 const AUTH_PREFIX = '/api/v1/auth/';
 const REFRESH_URL = `${AUTH_PREFIX}refresh`;
 // GET /api/v1/invites/<token>: the invite page reads it before sign-in.
-const PUBLIC_READ = /^\/api\/v1\/invites\/[^/]+$/;
+// The staff and student invite previews: read before any sign-in.
+const PUBLIC_READ = /^\/api\/v1\/(student-)?invites\/[^/]+$/;
 const WORKSPACE_KEY = 'dafter.workspace';
 
 // Memory only: a reload loses it and the refresh cookie gets a new one.

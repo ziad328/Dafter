@@ -1,4 +1,15 @@
-import { Body, Controller, HttpCode, Inject, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   type BindDeviceRequest,
@@ -8,6 +19,7 @@ import {
   otpRequest,
   type OtpVerifyRequest,
   otpVerifyRequest,
+  type StudentInvitePreview,
 } from '@dafter/contracts';
 import { withCookie } from '../auth/auth.controller.js';
 import { AuthGuard, type AuthedRequest } from '../auth/auth.guard.js';
@@ -31,6 +43,23 @@ export class OtpController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     return withCookie(reply, await this.service.verifyOtp(body));
+  }
+}
+
+/**
+ * The activation page before sign-in: no AuthGuard, since the student has no login yet. The token
+ * (32 random bytes) is the secret; it reveals only first names and the center.
+ */
+@Controller('student-invites')
+export class StudentInvitePreviewController {
+  constructor(@Inject(StudentAuthService) private readonly service: StudentAuthService) {}
+
+  @Get(':token')
+  preview(
+    @Param('token') token: string,
+    @Req() req: FastifyRequest,
+  ): Promise<StudentInvitePreview> {
+    return this.service.previewInvite(token, req.ip);
   }
 }
 

@@ -156,8 +156,10 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   const shown = (await qr.getAttribute('data-code'))!;
   await s.evaluate((text) => (window as Hook).__dafterScan!(text), shown);
   await expect(s.getByText(t.scan.done.present)).toBeVisible();
+  // It names the class, then goes home by itself (audit 3 SA9).
+  await expect(s.getByTestId('scan-class')).toContainText(subjectName);
+  await expect(s).toHaveURL(/\/s$/);
   // The student's home lists today's session and the check-in.
-  await s.getByRole('link', { name: t.scan.back }).click();
   await expect(s.getByTestId('my-schedule')).toContainText(subjectName);
   await expect(s.getByTestId('my-attendance')).toContainText(t.live.status.present);
   await expect(s.getByTestId('attendance-rate')).toHaveText(

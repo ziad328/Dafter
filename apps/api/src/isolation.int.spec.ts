@@ -30,6 +30,8 @@ const NON_TENANT_ROUTES = new Set([
   // Student login spans every workspace the student belongs to; the invite names the record.
   'POST /api/v1/auth/otp/request',
   'POST /api/v1/auth/otp/verify',
+  // Before sign-in: the token alone names one student's link; first names and the center only.
+  'GET /api/v1/student-invites/:token',
   'POST /api/v1/devices/bind',
   // The MAC-checked code names the session; the student's record in its workspace is required.
   'POST /api/v1/check-ins',

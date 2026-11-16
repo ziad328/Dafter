@@ -346,17 +346,16 @@
     "schedule": "My schedule",
     "noSessions": "No sessions in the next two weeks.",
     "history": "My attendance",
-    "noHistory": "No attendance yet.",
     "checkSpam": "No email after a minute? Check your spam (junk) folder, and move the Dafter email to your inbox.",
     "today": "Today",
     "rate": "Attended {attended} of {total}",
     "settings": "Settings",
     "confirmLogout": "Tap again to sign out",
     "grades": "My grades",
-    "noGrades": "No grades yet.",
     "resend": "Resend the code",
     "resendIn": "Resend in {seconds}s",
-    "attended": "Attended"
+    "attended": "Attended",
+    "inviteGreeting": "Hi {name} — {center}"
   },
   "live": {
     "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",
@@ -388,7 +387,7 @@
     "open": "Check in",
     "title": "Check in",
     "hint": "Point the camera at the attendance code on the teacher's screen.",
-    "cameraBlocked": "The camera is blocked. Allow it in the browser settings.",
+    "cameraBlocked": "The camera is blocked. Allow it in your phone's settings, then tap «Try again».",
     "again": "The code changed. Keep the camera on the screen.",
     "back": "Back",
     "done": {
@@ -398,11 +397,12 @@
       "excused": "Marked as excused",
       "absent": "Marked absent"
     },
-    "switchCamera": "Switch camera"
+    "switchCamera": "Switch camera",
+    "retry": "Try again"
   },
   "install": {
     "title": "Install the Dafter app first",
-    "why": "Your login and attendance key live inside the installed app, so sign in there, not in the browser.",
+    "why": "Install the app, then sign in from it.",
     "button": "Install the app",
     "firstTime": "First time? Activate with your invite link",
     "paste": "Paste your invite link",

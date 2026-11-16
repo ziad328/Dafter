@@ -490,6 +490,13 @@ const injectedRtkApi = api
         query: (queryArg) => ({ url: `/api/v1/students/${queryArg.id}/device`, method: 'DELETE' }),
         invalidatesTags: ['students'],
       }),
+      getStudentInvitePreview: build.query<
+        GetStudentInvitePreviewApiResponse,
+        GetStudentInvitePreviewApiArg
+      >({
+        query: (queryArg) => ({ url: `/api/v1/student-invites/${queryArg.token}` }),
+        providesTags: ['student-auth'],
+      }),
       requestOtp: build.mutation<RequestOtpApiResponse, RequestOtpApiArg>({
         query: (queryArg) => ({
           url: `/api/v1/auth/otp/request`,
@@ -801,6 +808,11 @@ export type CreateStudentInviteApiArg = {
 export type ResetStudentDeviceApiResponse = unknown;
 export type ResetStudentDeviceApiArg = {
   id: string;
+};
+export type GetStudentInvitePreviewApiResponse =
+  /** status 200 The student and the center */ StudentInvitePreview;
+export type GetStudentInvitePreviewApiArg = {
+  token: string;
 };
 export type RequestOtpApiResponse = unknown;
 export type RequestOtpApiArg = {
@@ -1440,6 +1452,12 @@ export type StudentInvite = {
   token: string;
   expiresAt: string;
 };
+export type StudentInvitePreview = {
+  studentFirstNameAr: string;
+  studentFirstNameEn: string | null;
+  workspaceNameAr: string;
+  workspaceNameEn: string | null;
+};
 export type OtpRequest = {
   email: string;
   inviteToken?: string;
@@ -1533,6 +1551,7 @@ export const {
   useLeaveEnrollmentMutation,
   useCreateStudentInviteMutation,
   useResetStudentDeviceMutation,
+  useGetStudentInvitePreviewQuery,
   useRequestOtpMutation,
   useVerifyOtpMutation,
   useBindDeviceMutation,

@@ -1,6 +1,8 @@
 import { expect, test } from './fixtures';
 
 const token = 'x'.repeat(43);
+// A made-up token: the activation page's greeting lookup answers 410 INVITE_INVALID (audit 3 SA4).
+test.use({ expectedErrors: ['/api/v1/student-invites/', 'status of 410 (Gone)'] });
 
 test('in a browser tab the student app asks to install first (rule 13)', async ({ page, t }) => {
   await page.goto(`/s/activate/${token}`);

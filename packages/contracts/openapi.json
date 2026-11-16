@@ -3227,6 +3227,45 @@
         }
       }
     },
+    "/api/v1/student-invites/{token}": {
+      "get": {
+        "operationId": "getStudentInvitePreview",
+        "tags": ["student-auth"],
+        "description": "No sign-in needed: the token is the secret. First names and the center of a usable activation link; INVITE_INVALID otherwise.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The student and the center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentInvitePreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/otp/request": {
       "post": {
         "operationId": "requestOtp",
@@ -6043,6 +6082,30 @@
           }
         },
         "required": ["token", "expiresAt"],
+        "additionalProperties": false
+      },
+      "StudentInvitePreview": {
+        "type": "object",
+        "properties": {
+          "studentFirstNameAr": {
+            "type": "string"
+          },
+          "studentFirstNameEn": {
+            "type": ["string", "null"]
+          },
+          "workspaceNameAr": {
+            "type": "string"
+          },
+          "workspaceNameEn": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": [
+          "studentFirstNameAr",
+          "studentFirstNameEn",
+          "workspaceNameAr",
+          "workspaceNameEn"
+        ],
         "additionalProperties": false
       },
       "Device": {

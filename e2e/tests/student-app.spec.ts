@@ -77,6 +77,8 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   }, lang);
   const student = await phone.newPage();
   await student.goto(link);
+  // The link says who it is for (audit 3 SA4); the API answers before any sign-in.
+  await expect(student.getByTestId('invite-greeting')).toBeVisible();
   await student.getByLabel(t.studentApp.email).fill(email);
   await student.getByRole('button', { name: t.studentApp.sendCode }).click();
   await expect(student.getByText(email)).toBeVisible();

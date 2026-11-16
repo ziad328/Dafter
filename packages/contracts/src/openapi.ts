@@ -56,6 +56,7 @@ import {
   otpRequest,
   otpVerifyRequest,
   studentInvite,
+  studentInvitePreview,
 } from './student-auth.js';
 import {
   createStudentRequest,
@@ -912,6 +913,22 @@ export function buildOpenApi() {
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           responses: { 204: { description: 'No active phone' }, ...errors },
+        },
+      },
+      '/api/v1/student-invites/{token}': {
+        get: {
+          operationId: 'getStudentInvitePreview',
+          tags: ['student-auth'],
+          description:
+            'No sign-in needed: the token is the secret. First names and the center of a usable activation link; INVITE_INVALID otherwise.',
+          requestParams: { path: z.object({ token: z.string() }) },
+          responses: {
+            200: {
+              description: 'The student and the center',
+              content: json(studentInvitePreview),
+            },
+            ...errors,
+          },
         },
       },
       '/api/v1/auth/otp/request': {

@@ -1,6 +1,12 @@
 import { createPublicKey, randomInt, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import type { BindDeviceRequest, Device, OtpRequest, OtpVerifyRequest } from '@dafter/contracts';
+import type {
+  BindDeviceRequest,
+  Device,
+  OtpRequest,
+  OtpVerifyRequest,
+  StudentInvitePreview,
+} from '@dafter/contracts';
 import { AuthService, hashToken, type Session } from '../auth/auth.service.js';
 import { RateLimiter } from '../auth/rate-limiter.js';
 import { Clock } from '../clock.js';
@@ -24,6 +30,9 @@ export class StudentAuthService {
   // Per email: 5 codes per 15 minutes. Per IP: 30, since a whole class may share a center's Wi-Fi.
   private readonly perEmail: RateLimiter;
   private readonly perIp: RateLimiter;
+  // Activation-page lookups: 60 per IP per 15 minutes. The token can't be guessed; this only
+  // stops a script from hammering the table.
+  private readonly previewPerIp: RateLimiter;
 
   constructor(
     @Inject(StudentAuthRepository) private readonly repo: StudentAuthRepository,
@@ -33,6 +42,21 @@ export class StudentAuthService {
   ) {
     this.perEmail = new RateLimiter(clock, 5, WINDOW_MS);
     this.perIp = new RateLimiter(clock, 30, WINDOW_MS);
+    this.previewPerIp = new RateLimiter(clock, 60, WINDOW_MS);
+  }
+
+  /** «أهلًا يا سارة — سنتر النور» on the activation page, before any sign-in (audit 3 SA4). */
+  async previewInvite(token: string, ip: string): Promise<StudentInvitePreview> {
+    if (this.previewPerIp.take([ip])) throw this.previewPerIp.error([ip]);
+    const row = await this.repo.findInvitePreview(hashToken(token), this.clock.now());
+    if (!row) throw new AppError('INVITE_INVALID');
+    const first = (name: string) => name.trim().split(/\s+/)[0]!;
+    return {
+      studentFirstNameAr: first(row.nameAr),
+      studentFirstNameEn: row.nameEn ? first(row.nameEn) : null,
+      workspaceNameAr: row.workspaceNameAr,
+      workspaceNameEn: row.workspaceNameEn,
+    };
   }
 
   async requestOtp(body: OtpRequest, ip: string) {

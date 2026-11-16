@@ -242,3 +242,14 @@ A center's staff share one Wi‑Fi address, so one shared counter let one person
 
 **3. What is the weakness of these in-memory limits?**
 They live in one process: a restart clears them and each serverless instance counts on its own, so an attacker spread across instances gets more tries. The fix is a shared store (PostgreSQL or Redis) once the app runs on one long-lived server.
+
+## Student activation link preview
+
+**1. Why may `GET /student-invites/:token` answer without any sign-in?**
+The student has no login yet, and the token (32 random bytes, only its hash stored) is already the secret that lets them create one. The answer is small on purpose: first names and the center, and only while the link is unused, unexpired and the student not yet activated (the same query the code request uses).
+
+**2. Why does a used, an expired and an unknown token give the same `INVITE_INVALID`?**
+Different answers would tell someone holding an old link that it once was real. One answer leaks nothing, and the screen only needs "no greeting" plus the code request's own error.
+
+**3. Why a per-IP limit when the token can't be guessed?**
+Guessing is hopeless, but each call is still a database read anyone can trigger. Sixty lookups per IP in 15 minutes is far above a real student and stops a script from turning the endpoint into free load.

@@ -113,6 +113,41 @@ describe('enrollments', () => {
   });
 });
 
+describe('activation link preview', () => {
+  const preview = (token: string) =>
+    app.inject({ method: 'GET', url: `/api/v1/student-invites/${token}` });
+
+  it('names the student and the center, without sign-in, until the link is used', async () => {
+    const id = await c.newStudent();
+    await c.owner('PATCH', `students/${id}`, { nameEn: 'Sara Ali' });
+    const inviteToken = (await c.owner('POST', `students/${id}/invite`)).json().token as string;
+    const res = await preview(inviteToken);
+    expect(res.statusCode).toBe(200);
+    const ws = (await c.owner('GET', 'workspaces/current')).json();
+    expect(res.json()).toEqual({
+      studentFirstNameAr: 'طالب',
+      studentFirstNameEn: 'Sara',
+      workspaceNameAr: ws.nameAr,
+      workspaceNameEn: ws.nameEn,
+    });
+
+    // Used: the same answer as a token that never existed.
+    const email = 'preview@example.com';
+    await post('auth/otp/request', { email, inviteToken });
+    await post('auth/otp/verify', { email, code: codeFor(email), inviteToken });
+    const used = await preview(inviteToken);
+    expect([used.statusCode, used.json().code]).toEqual([410, 'INVITE_INVALID']);
+  });
+
+  it('refuses an unknown token, with no English name as null', async () => {
+    const res = await preview('x'.repeat(43));
+    expect([res.statusCode, res.json().code]).toEqual([410, 'INVITE_INVALID']);
+    const inviteToken = (await c.owner('POST', `students/${await c.newStudent()}/invite`)).json()
+      .token as string;
+    expect((await preview(inviteToken)).json().studentFirstNameEn).toBeNull();
+  });
+});
+
 describe('student activation and login', () => {
   it('activates with an invite and a code; the invite is single use', async () => {
     const id = await c.newStudent();
@@ -263,5 +298,17 @@ describe('expiry', () => {
     clock.advance(72 * 60 * 60 * 1000 + 1);
     const res = await post('auth/otp/request', { email: 'late@example.com', inviteToken });
     expect(res.json().code).toBe('INVITE_INVALID');
+    // The activation page says the same, before any sign-in.
+    const page = await app.inject({ method: 'GET', url: `/api/v1/student-invites/${inviteToken}` });
+    expect([page.statusCode, page.json().code]).toEqual([410, 'INVITE_INVALID']);
+  });
+
+  it('limits activation-page lookups per IP', async () => {
+    const hit = () =>
+      app.inject({ method: 'GET', url: '/api/v1/student-invites/nope', remoteAddress: '10.9.9.9' });
+    for (let i = 0; i < 60; i++) expect((await hit()).statusCode).toBe(410);
+    const blocked = await hit();
+    expect(blocked.statusCode).toBe(429);
+    expect(blocked.json().details.retryAfterSeconds).toBeGreaterThan(0);
   });
 });

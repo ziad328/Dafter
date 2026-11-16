@@ -8,6 +8,19 @@ export const studentInvite = z
   .object({ token: z.string(), expiresAt: z.iso.datetime() })
   .meta({ id: 'StudentInvite' });
 
+/**
+ * The activation page before sign-in (audit 3 SA4): who the link is for and which center sent it.
+ * First names only, so a leaked link says little.
+ */
+export const studentInvitePreview = z
+  .object({
+    studentFirstNameAr: z.string(),
+    studentFirstNameEn: z.string().nullable(),
+    workspaceNameAr: z.string(),
+    workspaceNameEn: z.string().nullable(),
+  })
+  .meta({ id: 'StudentInvitePreview' });
+
 export const otpRequest = z
   .object({ email, inviteToken: inviteToken.optional() })
   .meta({ id: 'OtpRequest' });
@@ -30,6 +43,7 @@ export const bindDeviceRequest = z
 export const device = z.object({ id: z.uuid(), boundAt: z.iso.datetime() }).meta({ id: 'Device' });
 
 export type StudentInvite = z.infer<typeof studentInvite>;
+export type StudentInvitePreview = z.infer<typeof studentInvitePreview>;
 export type OtpRequest = z.infer<typeof otpRequest>;
 export type OtpVerifyRequest = z.infer<typeof otpVerifyRequest>;
 export type BindDeviceRequest = z.infer<typeof bindDeviceRequest>;

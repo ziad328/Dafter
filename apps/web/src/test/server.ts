@@ -241,6 +241,15 @@ export const handlers = [
       role: 'assistant',
     }),
   ),
+  http.get(
+    api('student-invites/:token'),
+    log({
+      studentFirstNameAr: 'سارة',
+      studentFirstNameEn: null,
+      workspaceNameAr: 'سنتر النور',
+      workspaceNameEn: 'Al-Nour Center',
+    }),
+  ),
   http.get(api('members'), log(fx.members)),
   http.post(
     api('members/:id/password-reset'),
