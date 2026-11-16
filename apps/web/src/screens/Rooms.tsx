@@ -42,8 +42,9 @@ export default function Rooms() {
         }
       />
       <Sheet open={adding} onClose={() => setAdding(false)} title={t('rooms.add')}>
-        <p className="mb-3 text-sm text-muted-foreground">{t('rooms.subtitle')}</p>
         <RoomForm bare onDone={() => setAdding(false)} />
+        {/* The rule is a hint under the form, where it matters (audit 3 R4). */}
+        <p className="mt-3 text-xs text-muted-foreground">{t('rooms.subtitle')}</p>
       </Sheet>
       <Card>
         <CardContent className="p-0">

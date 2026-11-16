@@ -13,6 +13,8 @@ import { PageHeader, Panel } from '@/components/Page';
 import { errorKey } from '@/lib/session';
 
 const TOGGLES: (keyof Settings)[] = ['absence', 'sessionChange', 'examResult', 'feeOverdue'];
+// Short labels; the details sit in a hint line under them (audit 3 M3).
+const HINTS: (keyof Settings)[] = ['absence', 'feeOverdue', 'primaryOnly'];
 
 /**
  * When parent messages go out, to whom, and their wording: the owner's page, one tap away from
@@ -37,15 +39,23 @@ export default function MessageSettings() {
   };
   const switchFor = (key: keyof Settings) =>
     shown && (
-      <label key={key} className="flex min-h-10 items-center gap-3 text-sm">
-        <input
-          type="checkbox"
-          className="size-5 accent-ink"
-          checked={shown[key]}
-          onChange={(e) => toggle({ ...shown, [key]: e.target.checked })}
-        />
-        {t(`messages.toggles.${key}`)}
-      </label>
+      <div key={key} className="grid">
+        <label className="flex min-h-10 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="size-5 shrink-0 accent-ink"
+            checked={shown[key]}
+            aria-describedby={HINTS.includes(key) ? `hint-${key}` : undefined}
+            onChange={(e) => toggle({ ...shown, [key]: e.target.checked })}
+          />
+          {t(`messages.toggles.${key}`)}
+        </label>
+        {HINTS.includes(key) && (
+          <p id={`hint-${key}`} className="-mt-2 ps-8 text-xs text-muted-foreground">
+            {t(`messages.toggleHints.${key}` as never)}
+          </p>
+        )}
+      </div>
     );
 
   return (

@@ -27,7 +27,8 @@ test('owner makes a password link for a phone-only assistant', async ({
   await enterWorkspace(page, t, CENTER[lang]);
   await openNav(page, t, t.nav.staff);
   const title = t.members.resetFor.replace('{name}', name);
-  await page.getByRole('button', { name: title }).click();
+  await page.getByRole('button', { name: t.members.actions.replace('{name}', name) }).click();
+  await page.getByRole('button', { name: t.members.menu.reset }).click();
   const sheet = page.getByRole('dialog', { name: title });
   await sheet.getByRole('button', { name: t.members.createResetLink }).click();
   const link = (await sheet.getByTestId('staff-reset-link').textContent())!;

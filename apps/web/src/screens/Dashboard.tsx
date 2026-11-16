@@ -34,21 +34,20 @@ export default function Dashboard() {
   if (isLoading) return <Skeleton />;
   if (error) return <FormError message={t(errorKey(error))} />;
   const { weeks, groups, money } = data!;
-  const week = (date: string) =>
-    new Intl.DateTimeFormat(intlLocale(lang), {
-      day: 'numeric',
-      month: 'short',
-      timeZone: 'UTC',
-    }).format(Date.parse(date));
+  // «14/11»: «14 نوفمبر» was cut on a phone (audit 3 D2).
+  const week = (date: string) => `${Number(date.slice(8, 10))}/${Number(date.slice(5, 7))}`;
+  // The value above each money bar, short: «12.5 ألف» / «12.5K».
+  const short = new Intl.NumberFormat(intlLocale(lang), {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  });
   const overall = weeks.map((_, i) => sum(groups.map((g) => g.attendance[i]!)));
   const total = rate(sum(overall));
 
   return (
     <div className="grid gap-5">
-      <PageHeader
-        title={t('dashboard.title')}
-        subtitle={t('dashboard.subtitle', { count: weeks.length })}
-      />
+      {/* No subtitle: the pressed chip already says how many weeks (audit 3 D3). */}
+      <PageHeader title={t('dashboard.title')} />
       <div
         role="group"
         aria-label={t('dashboard.range')}
@@ -101,6 +100,7 @@ export default function Dashboard() {
                 label: monthLabel(m.month, lang).split(' ')[0]!,
                 value: m.total,
                 text: formatEgp(m.total, lang),
+                above: short.format(m.total / 100),
               }))}
             />
           </Panel>
@@ -191,7 +191,7 @@ function GroupRow({ group: g }: { group: GroupTrend }) {
   );
 }
 
-type Bar = { key: string; label: string; value: number | null; text: string };
+type Bar = { key: string; label: string; value: number | null; text: string; above?: string };
 
 /** A row of bars scaled to the largest value; the text of each bar is read by screen readers. */
 function Bars({
@@ -219,7 +219,18 @@ function Bars({
     <ol className={cn('flex items-end', axis ? 'gap-0.5' : 'gap-1.5')} aria-label={label}>
       {items.map((b, i) => (
         <li key={b.key} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-          <div className={cn('flex w-full items-end', small ? 'h-12' : 'h-28')} title={b.text}>
+          <div
+            className={cn('flex w-full flex-col justify-end', small ? 'h-12' : 'h-28')}
+            title={b.text}
+          >
+            {b.above !== undefined && (
+              <bdi
+                aria-hidden="true"
+                className="h-4 shrink-0 truncate text-center text-[10px] leading-4 text-muted-foreground"
+              >
+                {b.above}
+              </bdi>
+            )}
             <div
               className={cn(
                 'w-full rounded-t-md',
@@ -227,7 +238,10 @@ function Bars({
                 i === items.length - 1 ? 'bg-ink' : 'bg-ink/30',
                 b.value === null && 'bg-muted',
               )}
-              style={{ height: `${Math.max(((b.value ?? 0) / top) * 100, 4)}%` }}
+              // A value above the bar takes 1rem of the column's height.
+              style={{
+                height: `calc((100% - ${b.above === undefined ? '0rem' : '1rem'}) * ${Math.max((b.value ?? 0) / top, 0.04)})`,
+              }}
             />
           </div>
           {!small && !axis && (

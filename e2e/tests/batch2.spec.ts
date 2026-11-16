@@ -114,7 +114,7 @@ test('a corrected absence is not sent, a move names the old time, and primary on
   // The log says why the corrected one never went out.
   await page.goto('/');
   await openNav(page, t, t.nav.messages);
-  await page.getByRole('button', { name: t.messages.status.skipped }).click();
+  await page.getByRole('button', { name: t.messages.status.skipped, exact: true }).click();
   const log = page.getByTestId('message-log');
   await expect(log.getByText(t.messages.skipReason.not_absent)).toBeVisible();
   await expect(log.getByRole('listitem')).toHaveCount(1);

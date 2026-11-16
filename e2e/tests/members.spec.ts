@@ -61,7 +61,8 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
   const row = page.getByRole('listitem').filter({ hasText: name });
   await expect(row.getByText(t.roles.assistant)).toBeVisible();
   const edit = t.members.editScopes.replace('{name}', name);
-  await row.getByRole('button', { name: edit }).click();
+  await row.getByRole('button', { name: t.members.actions.replace('{name}', name) }).click();
+  await row.getByRole('button', { name: t.members.menu.scopes }).click();
   const teacher = page
     .getByRole('dialog', { name: edit })
     .getByRole('checkbox', { name: 'منى حسن' });
@@ -69,6 +70,7 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
   await expect(teacher).toBeChecked();
   await page.reload();
   await expect(row).toContainText('منى حسن');
-  await row.getByRole('button', { name: edit }).click();
+  await row.getByRole('button', { name: t.members.actions.replace('{name}', name) }).click();
+  await row.getByRole('button', { name: t.members.menu.scopes }).click();
   await expect(teacher).toBeChecked();
 });

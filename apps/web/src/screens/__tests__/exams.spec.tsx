@@ -19,6 +19,11 @@ describe('exams', () => {
     expect(screen.getByText(tr('exams.notGraded'))).toBeVisible();
     expect(screen.getByText(tr('exams.averageOf', { average: 18, max: 20 }))).toBeVisible();
 
+    // The form waits in a sheet (audit 3 E2): it opens, closes, and opens again.
+    await user.click(screen.getByRole('button', { name: tr('exams.new') }));
+    await user.click(screen.getByRole('button', { name: tr('payments.close') }));
+    expect(screen.queryByLabelText(tr('exams.examTitle'))).toBeNull();
+    await user.click(screen.getByRole('button', { name: tr('exams.new') }));
     await user.click(screen.getByRole('button', { name: tr('exams.create') }));
     expect(await screen.findByText(tr('form.invalid.examTitle'))).toBeVisible();
     await user.type(screen.getByLabelText(tr('exams.examTitle')), 'امتحان الشهر');

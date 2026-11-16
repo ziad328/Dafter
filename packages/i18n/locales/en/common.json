@@ -462,11 +462,11 @@
     "title": "Parent messages",
     "settings": "When do we message parents?",
     "toggles": {
-      "absence": "When a student is absent (on session close)",
-      "sessionChange": "When a session is cancelled or moved",
-      "examResult": "When exam results are sent",
-      "feeOverdue": "Reminder of unpaid fees (from the 7th of the month)",
-      "primaryOnly": "Only the main guardian of each student (not every guardian)"
+      "absence": "Student absent",
+      "sessionChange": "Session cancelled or moved",
+      "examResult": "Exam result",
+      "feeOverdue": "Unpaid fees",
+      "primaryOnly": "Main guardian only"
     },
     "teacherView": "Messages about your own groups only; parent phones are hidden except the last 3 digits.",
     "ownerOnly": "Only the workspace owner can change these settings.",
@@ -536,7 +536,12 @@
       "not_absent": "Not sent: attendance was corrected after the session closed."
     },
     "recipients": "Who gets them?",
-    "settingsTitle": "Message settings"
+    "settingsTitle": "Message settings",
+    "toggleHints": {
+      "absence": "Sent when the session is closed.",
+      "feeOverdue": "A reminder from the 7th of the month.",
+      "primaryOnly": "Instead of every guardian on file."
+    }
   },
   "members": {
     "title": "Staff",
@@ -564,7 +569,13 @@
     "inviteShort": "Invite",
     "pending": "Invites not accepted yet",
     "expires": "Expires {when}",
-    "revoke": "Revoke"
+    "revoke": "Revoke",
+    "actions": "{name} options",
+    "menu": {
+      "scopes": "Choose teachers",
+      "reset": "Password link",
+      "manage": "Role or remove"
+    }
   },
   "nav": {
     "label": "Main",
@@ -678,7 +689,6 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "The last {count} weeks",
     "attendance": "Attendance per week",
     "money": "Collected per month",
     "groups": "Groups",

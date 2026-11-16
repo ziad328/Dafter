@@ -1,5 +1,5 @@
 import { type Member, normalizeArabic } from '@dafter/contracts';
-import { KeyRound, UserCog, UserPlus } from 'lucide-react';
+import { MoreHorizontal, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -194,49 +194,36 @@ function InviteForm({ teachers }: { teachers: Member[] }) {
  * The owner makes a one-time password link for someone who forgot theirs (no email needed). The
  * API refuses accounts used in another workspace, and the sheet shows that error.
  */
-function ResetLink({ member: m }: { member: Member }) {
+function ResetLink({ member: m, onClose }: { member: Member; onClose: () => void }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
   const [create, created] = useCreateStaffResetLinkMutation();
   const link = created.data && `${location.origin}/reset/${created.data.token}`;
   return (
-    <>
-      <Button
-        size="icon"
-        variant="outline"
-        aria-label={t('members.resetFor', { name: m.name })}
-        onClick={() => setOpen(true)}
-      >
-        <KeyRound className="size-4" aria-hidden />
-      </Button>
-      <Sheet
-        open={open}
-        onClose={() => setOpen(false)}
-        title={t('members.resetFor', { name: m.name })}
-      >
-        <div className="grid gap-3 text-sm">
-          <p className="text-muted-foreground">{t('members.resetHint')}</p>
-          <Button
-            type="button"
-            disabled={created.isLoading}
-            onClick={() => void create({ id: m.id })}
-          >
-            {t('members.createResetLink')}
-          </Button>
-          <FormError message={created.error && t(errorKey(created.error))} />
-          {link && (
-            <div className="grid gap-2 rounded-md border p-3">
-              <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="staff-reset-link">
-                {link}
-              </bdi>
-              <ShareButton text={t('share.staffReset')} url={link} />
-            </div>
-          )}
-        </div>
-      </Sheet>
-    </>
+    <Sheet open onClose={onClose} title={t('members.resetFor', { name: m.name })}>
+      <div className="grid gap-3 text-sm">
+        <p className="text-muted-foreground">{t('members.resetHint')}</p>
+        <Button
+          type="button"
+          disabled={created.isLoading}
+          onClick={() => void create({ id: m.id })}
+        >
+          {t('members.createResetLink')}
+        </Button>
+        <FormError message={created.error && t(errorKey(created.error))} />
+        {link && (
+          <div className="grid gap-2 rounded-md border p-3">
+            <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="staff-reset-link">
+              {link}
+            </bdi>
+            <ShareButton text={t('share.staffReset')} url={link} />
+          </div>
+        )}
+      </div>
+    </Sheet>
   );
 }
+
+type Item = 'scopes' | 'reset' | 'manage';
 
 /** One line per person; an assistant's teachers are named here and edited in a sheet. */
 function MemberRow({
@@ -250,7 +237,14 @@ function MemberRow({
 }) {
   const { t, i18n } = useTranslation();
   const [setScopes, saving] = useSetAssistantScopesMutation();
-  const [editing, setEditing] = useState(false);
+  // The row's actions wait behind «⋯» as words, not bare icons (audit 3 R2).
+  const [menu, setMenu] = useState(false);
+  const [sheet, setSheet] = useState<Item>();
+  const items = [
+    m.role === 'assistant' && 'scopes',
+    m.role !== 'owner' && 'reset',
+    'manage',
+  ].filter(Boolean) as Item[];
   // Optimistic, so the box ticks at once; a failed save puts it back.
   const [ids, setIds] = useState(m.teacherMembershipIds);
   const toggle = async (teacherId: string, on: boolean) => {
@@ -261,7 +255,7 @@ function MemberRow({
   };
   const worksFor = teachers.filter((x) => ids.includes(x.id)).map((x) => x.name);
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
       <Avatar name={m.name} />
       <div className="grid min-w-0 flex-1">
         <h3 className="truncate font-semibold">{m.name}</h3>
@@ -284,21 +278,39 @@ function MemberRow({
           </p>
         )}
       </div>
-      {m.role === 'assistant' && canEdit && (
+      {canEdit && (
         <Button
-          size="sm"
-          variant="outline"
-          aria-label={t('members.editScopes', { name: m.name })}
-          onClick={() => setEditing(true)}
+          size="icon-sm"
+          variant="ghost"
+          aria-label={t('members.actions', { name: m.name })}
+          aria-expanded={menu}
+          onClick={() => setMenu(!menu)}
         >
-          {t('members.edit')}
+          <MoreHorizontal aria-hidden />
         </Button>
       )}
-      {m.role !== 'owner' && canEdit && <ResetLink member={m} />}
-      {canEdit && <ManageMember member={m} />}
+      {menu && (
+        <div className="flex basis-full flex-wrap justify-end gap-1">
+          {items.map((item) => (
+            <Button
+              key={item}
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setMenu(false);
+                setSheet(item);
+              }}
+            >
+              {t(`members.menu.${item}`)}
+            </Button>
+          ))}
+        </div>
+      )}
+      {sheet === 'reset' && <ResetLink member={m} onClose={() => setSheet(undefined)} />}
+      {sheet === 'manage' && <ManageMember member={m} onClose={() => setSheet(undefined)} />}
       <Sheet
-        open={editing}
-        onClose={() => setEditing(false)}
+        open={sheet === 'scopes'}
+        onClose={() => setSheet(undefined)}
         title={t('members.editScopes', { name: m.name })}
       >
         <div className="grid gap-2">
@@ -325,9 +337,8 @@ function MemberRow({
  * The owner changes someone's role or removes them (a second tap confirms). Removing keeps their
  * groups, flagged on the groups screen until another teacher takes them.
  */
-function ManageMember({ member: m }: { member: Member }) {
+function ManageMember({ member: m, onClose }: { member: Member; onClose: () => void }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
   const [role, setRole] = useState(m.role);
   const [confirm, setConfirm] = useState(false);
   const [update, updated] = useUpdateMemberMutation();
@@ -337,76 +348,58 @@ function ManageMember({ member: m }: { member: Member }) {
   const save = async (body: { role: Member['role'] } | { status: 'removed' }) => {
     const res = await update({ id: m.id, updateMemberRequest: body });
     if (!res.data) return;
-    setOpen(false);
+    onClose();
     // Removed themselves (another owner stays): this center is gone for them.
     if (isMe && 'status' in body) {
       setWorkspaceId(null);
       void navigate('/workspaces', { replace: true });
     }
   };
+  // Mounted while open, so each opening starts from the saved role.
   return (
-    <>
-      <Button
-        size="icon"
-        variant="outline"
-        aria-label={t('members.manage', { name: m.name })}
-        onClick={() => {
-          setRole(m.role);
-          setConfirm(false);
-          updated.reset();
-          setOpen(true);
-        }}
-      >
-        <UserCog className="size-4" aria-hidden />
-      </Button>
-      <Sheet
-        open={open}
-        onClose={() => setOpen(false)}
-        title={t('members.manage', { name: m.name })}
-      >
-        <div className="grid gap-3 text-sm">
-          <SelectField
-            label={t('members.role')}
-            value={role}
-            onChange={(e) => setRole(e.target.value as Member['role'])}
-          >
-            <option value="owner">{t('roles.owner')}</option>
-            <option value="teacher">{t('roles.teacher')}</option>
-            <option value="assistant">{t('roles.assistant')}</option>
-          </SelectField>
-          <Button
-            type="button"
-            disabled={role === m.role || updated.isLoading}
-            onClick={() => void save({ role })}
-          >
-            {t('members.saveRole')}
-          </Button>
-          {confirm ? (
-            <div className="grid gap-2 rounded-md border border-rose/40 bg-rose-soft p-3">
-              <p>{t('members.removeHint', { name: m.name })}</p>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={updated.isLoading}
-                onClick={() => void save({ status: 'removed' })}
-              >
-                {t('members.confirmRemove')}
-              </Button>
-            </div>
-          ) : (
-            <Button type="button" variant="outline" onClick={() => setConfirm(true)}>
-              {t('members.remove')}
+    <Sheet open onClose={onClose} title={t('members.manage', { name: m.name })}>
+      <div className="grid gap-3 text-sm">
+        <SelectField
+          label={t('members.role')}
+          value={role}
+          onChange={(e) => setRole(e.target.value as Member['role'])}
+        >
+          <option value="owner">{t('roles.owner')}</option>
+          <option value="teacher">{t('roles.teacher')}</option>
+          <option value="assistant">{t('roles.assistant')}</option>
+        </SelectField>
+        <Button
+          type="button"
+          disabled={role === m.role || updated.isLoading}
+          onClick={() => void save({ role })}
+        >
+          {t('members.saveRole')}
+        </Button>
+        {confirm ? (
+          <div className="grid gap-2 rounded-md border border-rose/40 bg-rose-soft p-3">
+            <p>{t('members.removeHint', { name: m.name })}</p>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={updated.isLoading}
+              onClick={() => void save({ status: 'removed' })}
+            >
+              {t('members.confirmRemove')}
             </Button>
-          )}
-          <FormError
-            message={
-              teaching
-                ? t('members.teachesGroups', { count: Number(teaching.count) })
-                : updated.error && t(errorKey(updated.error))
-            }
-          />
-        </div>
-      </Sheet>
-    </>
+          </div>
+        ) : (
+          <Button type="button" variant="outline" onClick={() => setConfirm(true)}>
+            {t('members.remove')}
+          </Button>
+        )}
+        <FormError
+          message={
+            teaching
+              ? t('members.teachesGroups', { count: Number(teaching.count) })
+              : updated.error && t(errorKey(updated.error))
+          }
+        />
+      </div>
+    </Sheet>
   );
 }

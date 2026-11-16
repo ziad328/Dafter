@@ -11,7 +11,10 @@ import { PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { errorKey } from '@/lib/session';
 
-/** Workspace rules (the owner edits): for now, when a check-in counts as late. */
+/**
+ * Workspace rules (the owner edits), one titled section each (audit 3 R5): for now, when a
+ * check-in counts as late; the center's name, logo and quiet hours would join as sections.
+ */
 export default function Settings() {
   const { t } = useTranslation();
   const settings = useGetAttendanceSettingsQuery();
@@ -44,37 +47,41 @@ function LateForm({ saved }: { saved: AttendanceSettings }) {
   };
 
   return (
-    <Panel className="p-5">
-      <form onSubmit={submit} noValidate className="grid gap-3">
-        <h2 className="font-semibold">{t('settings.attendance')}</h2>
-        <Field
-          label={t('settings.late')}
-          hint={t('settings.lateHint')}
-          type="number"
-          inputMode="numeric"
-          dir="ltr"
-          readOnly={!isOwner}
-          value={minutes}
-          error={invalid ? t('settings.invalid') : undefined}
-          onChange={(e) => {
-            setMinutes(e.target.value);
-            setDirty(true);
-          }}
-        />
-        <FormError message={saving.error && t(errorKey(saving.error))} />
-        {saving.isSuccess && !dirty && (
-          <p role="status" className="text-sm text-present">
-            {t('settings.saved')}
-          </p>
-        )}
-        {isOwner ? (
-          <Button type="submit" disabled={saving.isLoading}>
-            {t('settings.save')}
-          </Button>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t('messages.ownerOnly')}</p>
-        )}
-      </form>
-    </Panel>
+    <section aria-labelledby="settings-attendance">
+      <Panel className="p-5">
+        <form onSubmit={submit} noValidate className="grid gap-3">
+          <h2 id="settings-attendance" className="font-semibold">
+            {t('settings.attendance')}
+          </h2>
+          <Field
+            label={t('settings.late')}
+            hint={t('settings.lateHint')}
+            type="number"
+            inputMode="numeric"
+            dir="ltr"
+            readOnly={!isOwner}
+            value={minutes}
+            error={invalid ? t('settings.invalid') : undefined}
+            onChange={(e) => {
+              setMinutes(e.target.value);
+              setDirty(true);
+            }}
+          />
+          <FormError message={saving.error && t(errorKey(saving.error))} />
+          {saving.isSuccess && !dirty && (
+            <p role="status" className="text-sm text-present">
+              {t('settings.saved')}
+            </p>
+          )}
+          {isOwner ? (
+            <Button type="submit" disabled={saving.isLoading}>
+              {t('settings.save')}
+            </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('messages.ownerOnly')}</p>
+          )}
+        </form>
+      </Panel>
+    </section>
   );
 }

@@ -1,6 +1,7 @@
 import { createExamRequest, type CreateExamRequest } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -11,13 +12,13 @@ import {
   useListExamsQuery,
 } from '@/api/generated';
 import { Field, FormError, Skeleton } from '@/components/Field';
-import { PageHeader, Panel } from '@/components/Page';
+import { PageHeader, Panel, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
 import { errorKey } from '@/lib/session';
 import { dayLabel, localDate } from '@/lib/time';
 
-/** A group's exams, newest first, and the form for a new one (/groups/:id/exams). */
+/** A group's exams, newest first; «+» opens the form for a new one (/groups/:id/exams). */
 export default function GroupExams() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
@@ -32,6 +33,8 @@ export default function GroupExams() {
     defaultValues: { title: '', heldOn: localDate(new Date(), tz), maxScore: 20 },
   });
   const { errors } = formState;
+  // The form waits in a sheet, so the list comes first (audit 3 E2).
+  const [adding, setAdding] = useState(false);
 
   if (group.isLoading || exams.isLoading) return <Skeleton />;
   if (group.error) return <FormError message={t(errorKey(group.error))} />;
@@ -46,10 +49,15 @@ export default function GroupExams() {
       <PageHeader
         title={t('exams.title')}
         subtitle={`${itemName(g.subject, lang)} · ${itemName(g.gradeLevel, lang)}${g.label ? ` · ${g.label}` : ''}`}
+        action={
+          <Button onClick={() => setAdding(true)}>
+            <Plus aria-hidden />
+            {t('exams.new')}
+          </Button>
+        }
       />
-      <Panel className="p-5">
+      <Sheet open={adding} onClose={() => setAdding(false)} title={t('exams.new')}>
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
-          <h2 className="font-semibold">{t('exams.new')}</h2>
           <Field
             label={t('exams.examTitle')}
             maxLength={100}
@@ -78,7 +86,7 @@ export default function GroupExams() {
             {t('exams.create')}
           </Button>
         </form>
-      </Panel>
+      </Sheet>
       <FormError message={exams.error && t(errorKey(exams.error))} />
       {exams.data?.length === 0 && (
         <Panel className="p-8 text-center text-muted-foreground">{t('exams.empty')}</Panel>

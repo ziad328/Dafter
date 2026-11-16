@@ -21,6 +21,12 @@ async function pickIn(user: UserEvent, scope: HTMLElement, option: string) {
   await user.click((await screen.findAllByRole('option', { name: option }))[0]!);
 }
 
+/** A staff row's actions wait behind «⋯» (audit 3 R2): open it, then the item. */
+async function openItem(user: UserEvent, name: string, item: 'scopes' | 'reset' | 'manage') {
+  await user.click(await screen.findByRole('button', { name: tr('members.actions', { name }) }));
+  await user.click(screen.getByRole('button', { name: tr(`members.menu.${item}`) }));
+}
+
 describe('staff', () => {
   it('invites a teacher with a link to share', async () => {
     const { user } = await renderAt('/members');
@@ -66,7 +72,7 @@ describe('staff', () => {
       await screen.findAllByText(tr('members.worksForList', { names: 'منى حسن' })),
     ).toHaveLength(2);
     expect(screen.queryByRole('dialog')).toBeNull();
-    await user.click(screen.getByRole('button', { name: title }));
+    await openItem(user, assistant.name, 'scopes');
     const sheet = screen.getByRole('dialog', { name: title });
     const box = within(sheet).getByRole('checkbox', { name: owner.name });
     await user.click(box);
@@ -102,7 +108,7 @@ describe('staff', () => {
   it('the owner changes a role and removes a member after a second tap', async () => {
     const { user } = await renderAt('/members', { lang: 'en' });
     const title = tr('members.manage', { name: assistant.name });
-    await user.click(await screen.findByRole('button', { name: title }));
+    await openItem(user, assistant.name, 'manage');
     const sheet = screen.getByRole('dialog', { name: title });
     const save = within(sheet).getByRole('button', { name: tr('members.saveRole') });
     expect(save).toBeDisabled();
@@ -112,7 +118,7 @@ describe('staff', () => {
       .poll(() => call(`PATCH /api/v1/members/${assistant.id}`)?.body)
       .toEqual({ role: 'teacher' });
 
-    await user.click(screen.getByRole('button', { name: title }));
+    await openItem(user, assistant.name, 'manage');
     const again = screen.getByRole('dialog', { name: title });
     await user.click(within(again).getByRole('button', { name: tr('members.remove') }));
     expect(
@@ -140,7 +146,7 @@ describe('staff', () => {
     const { user } = await renderAt('/members');
     const teacher = fx.members.find((m) => m.role === 'teacher')!;
     const title = tr('members.manage', { name: teacher.name });
-    await user.click(await screen.findByRole('button', { name: title }));
+    await openItem(user, teacher.name, 'manage');
     const sheet = screen.getByRole('dialog', { name: title });
     await pickIn(user, sheet, tr('roles.assistant'));
     await user.click(within(sheet).getByRole('button', { name: tr('members.saveRole') }));
@@ -150,7 +156,7 @@ describe('staff', () => {
     await user.click(within(sheet).getByRole('button', { name: tr('payments.close') }));
 
     const ownerTitle = tr('members.manage', { name: owner.name });
-    await user.click(screen.getByRole('button', { name: ownerTitle }));
+    await openItem(user, owner.name, 'manage');
     const own = screen.getByRole('dialog', { name: ownerTitle });
     await user.click(within(own).getByRole('button', { name: tr('members.remove') }));
     await user.click(within(own).getByRole('button', { name: tr('members.confirmRemove') }));
@@ -160,7 +166,7 @@ describe('staff', () => {
   it('an owner who removes themselves goes to the workspace list', async () => {
     const { user, router } = await renderAt('/members');
     const title = tr('members.manage', { name: owner.name });
-    await user.click(await screen.findByRole('button', { name: title }));
+    await openItem(user, owner.name, 'manage');
     const sheet = screen.getByRole('dialog', { name: title });
     await user.click(within(sheet).getByRole('button', { name: tr('members.remove') }));
     await user.click(within(sheet).getByRole('button', { name: tr('members.confirmRemove') }));
@@ -175,7 +181,7 @@ describe('staff', () => {
     expect(await screen.findByRole('heading', { name: assistant.name })).toBeVisible();
     expect(screen.queryByRole('button', { name: tr('members.createLink') })).toBeNull();
     expect(
-      screen.queryByRole('button', { name: tr('members.editScopes', { name: assistant.name }) }),
+      screen.queryByRole('button', { name: tr('members.actions', { name: assistant.name }) }),
     ).toBeNull();
     unmount();
     server.use(http.get(route('members'), fail('FORBIDDEN', 403)));
@@ -201,23 +207,25 @@ describe('staff', () => {
   it('makes a one-time password link for a staff member, but not for the owner', async () => {
     const { user } = await renderAt('/members');
     const name = tr('members.resetFor', { name: assistant.name });
-    await user.click(await screen.findByRole('button', { name }));
+    await openItem(user, assistant.name, 'reset');
     const sheet = screen.getByRole('dialog', { name });
     await user.click(within(sheet).getByRole('button', { name: tr('members.createResetLink') }));
     expect(await within(sheet).findByTestId('staff-reset-link')).toHaveTextContent(
       '/reset/staff-reset-token',
     );
     expect(call(`POST /api/v1/members/${assistant.id}/password-reset`)).toBeDefined();
-    expect(
-      screen.queryByRole('button', { name: tr('members.resetFor', { name: owner.name }) }),
-    ).toBeNull();
+    // The owner's menu has no password link.
+    await user.click(
+      screen.getByRole('button', { name: tr('members.actions', { name: owner.name }) }),
+    );
+    expect(screen.queryByRole('button', { name: tr('members.menu.reset') })).toBeNull();
   });
 
   it('explains when the account is used elsewhere', async () => {
     server.use(http.post(route('members/:id/password-reset'), fail('RESET_NOT_ALLOWED', 409)));
     const { user } = await renderAt('/members', { lang: 'en' });
     const name = tr('members.resetFor', { name: assistant.name });
-    await user.click(await screen.findByRole('button', { name }));
+    await openItem(user, assistant.name, 'reset');
     await user.click(screen.getByRole('button', { name: tr('members.createResetLink') }));
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.RESET_NOT_ALLOWED'));
     await user.click(screen.getByRole('button', { name: tr('payments.close') }));
@@ -276,7 +284,16 @@ describe('messages', () => {
     expect(within(log).getAllByText(tr('messages.triggers.absence'))).not.toHaveLength(0);
     expect(within(log).getAllByText('علي')).toHaveLength(2);
     expect(within(log).getByText(tr('messages.attempts', { count: 3 }))).toBeVisible();
-    expect(within(log).getAllByText(full.body)).toHaveLength(2);
+    // The text opens on a tap (audit 3 M2).
+    expect(within(log).queryByText(full.body)).toBeNull();
+    // One open at a time: the last two rows are `full`'s.
+    const rows = within(log).getAllByRole('button', { expanded: false });
+    await user.click(rows.at(-1)!);
+    await user.click(rows.at(-2)!);
+    expect(within(log).getAllByText(full.body)).toHaveLength(1);
+    expect(rows.at(-1)).toHaveAttribute('aria-expanded', 'false');
+    await user.click(rows.at(-2)!);
+    expect(within(log).queryByText(full.body)).toBeNull();
     // The log opens first; the switches are one tap away (audit 3 M1).
     expect(screen.queryByRole('checkbox')).toBeNull();
     await user.click(screen.getByRole('button', { name: tr('messages.status.sent') }));

@@ -40,6 +40,7 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
   await enterWorkspace(page, t, CENTER[lang]);
   await page.goto(`/groups/${group.id}/exams`);
   await expect(page.getByText(t.exams.empty)).toBeVisible();
+  await page.getByRole('button', { name: t.exams.new }).click();
   await page.getByLabel(t.exams.examTitle).fill(`شهر ${n}`);
   await page.getByLabel(t.exams.maxScore).fill('20');
   await page.getByRole('button', { name: t.exams.create }).click();

@@ -38,21 +38,20 @@ describe('dashboard', () => {
     );
     const { user } = await renderAt('/dashboard');
     const range = await screen.findByRole('group', { name: tr('dashboard.range') });
-    expect(screen.getByText(tr('dashboard.subtitle', { count: 8 }))).toBeVisible();
     expect(within(range).getByRole('button', { pressed: true })).toHaveTextContent(
       tr('dashboard.weeks', { count: 8 }),
     );
     const pickRange = (count: number) =>
       user.click(within(range).getByRole('button', { name: tr('dashboard.weeks', { count }) }));
     await pickRange(26);
-    expect(await screen.findByText(tr('dashboard.subtitle', { count: 26 }))).toBeVisible();
-    expect(asked).toEqual(['8', '26']);
-    const bars = screen.getByRole('list', { name: tr('dashboard.attendance') });
     // 26 bars, labelled by one axis row of 4 dates instead of a label each.
-    expect(within(bars).getAllByRole('listitem')).toHaveLength(26);
+    await expect
+      .poll(() => screen.getAllByRole('list', { name: tr('dashboard.attendance') })[0]!.children)
+      .toHaveLength(26);
+    expect(asked).toEqual(['8', '26']);
     expect(screen.getByTestId('bar-axis').children).toHaveLength(4);
     await pickRange(13);
-    expect(await screen.findByText(tr('dashboard.subtitle', { count: 13 }))).toBeVisible();
+    await expect.poll(() => asked).toEqual(['8', '26', '13']);
   });
 
   it('hides money for teachers and shows an empty state, in English', async () => {

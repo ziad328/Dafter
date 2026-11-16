@@ -30,6 +30,8 @@ const PILL: Record<Status, string> = {
 export default function Messages() {
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<Status | ''>('');
+  // The row whose text is open: tap a row to read the message (audit 3 M2).
+  const [open, setOpen] = useState<string>();
   const workspace = useGetCurrentWorkspaceQuery().data;
   const isOwner = workspace?.role === 'owner';
   const isTeacher = workspace?.role === 'teacher';
@@ -87,54 +89,71 @@ export default function Messages() {
       ) : (
         <Panel className="overflow-hidden">
           <ul className="divide-y" data-testid="message-log">
-            {log.data?.map((m) => (
-              <li key={m.id} className="grid gap-1 px-4 py-3 text-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="grid">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {t(`messages.triggers.${m.trigger}`)}
-                    </span>
-                    <span className="font-semibold">{names.format(m.students)}</span>
-                  </span>
-                  <span
-                    className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', PILL[m.status])}
+            {log.data?.map((m) => {
+              // Closed at night: held for quiet hours, and the one time shown says until when.
+              const held =
+                m.status === 'queued' &&
+                m.attempts === 0 &&
+                Date.parse(m.sendAfter) - Date.parse(m.createdAt) > 60_000;
+              return (
+                <li key={m.id} className="grid gap-1 px-4 py-3 text-sm">
+                  <button
+                    type="button"
+                    disabled={!m.body}
+                    aria-expanded={m.body ? open === m.id : undefined}
+                    onClick={() => setOpen(open === m.id ? undefined : m.id)}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md text-start focus-visible:outline-2 disabled:cursor-default"
                   >
-                    {t(`messages.status.${m.status}`)}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-x-3 text-muted-foreground">
-                  <bdi>{m.phone}</bdi>
-                  {m.guardianName && <span>{m.guardianName}</span>}
-                  <bdi>{when(m.sentAt ?? m.sendAfter)}</bdi>
-                </div>
-                {/* Held, not stuck: closed at night, it waits for quiet hours to end. */}
-                {m.status === 'queued' &&
-                  m.attempts === 0 &&
-                  Date.parse(m.sendAfter) - Date.parse(m.createdAt) > 60_000 && (
+                    <span className="grid">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {t(`messages.triggers.${m.trigger}`)}
+                      </span>
+                      <span className="font-semibold">{names.format(m.students)}</span>
+                    </span>
+                    <span
+                      className={cn(
+                        'rounded-full px-2.5 py-0.5 text-xs font-medium',
+                        PILL[m.status],
+                      )}
+                    >
+                      {t(`messages.status.${m.status}`)}
+                    </span>
+                  </button>
+                  <div className="flex flex-wrap gap-x-3 text-muted-foreground">
+                    <bdi>{m.phone}</bdi>
+                    {m.guardianName && <span>{m.guardianName}</span>}
+                    {held ? (
+                      <span>
+                        {t('messages.heldUntil', {
+                          time: displayTime(m.sendAfter, tz, i18n.language),
+                        })}
+                      </span>
+                    ) : (
+                      <bdi>{when(m.sentAt ?? m.sendAfter)}</bdi>
+                    )}
+                  </div>
+                  {/* Re-checked when it was due, and no longer true: says why it never went out. */}
+                  {m.skipReason && (
                     <p className="text-xs text-muted-foreground">
-                      {t('messages.heldUntil', {
-                        time: displayTime(m.sendAfter, tz, i18n.language),
-                      })}
+                      {t(`messages.skipReason.${m.skipReason}`)}
                     </p>
                   )}
-                {/* Re-checked when it was due, and no longer true: says why it never went out. */}
-                {m.skipReason && (
-                  <p className="text-xs text-muted-foreground">
-                    {t(`messages.skipReason.${m.skipReason}`)}
-                  </p>
-                )}
-                {m.body && (
-                  <p dir={m.locale === 'en' ? 'ltr' : 'rtl'} className="text-start">
-                    {m.body}
-                  </p>
-                )}
-                {m.status !== 'sent' && m.attempts > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {t('messages.attempts', { count: m.attempts })}
-                  </p>
-                )}
-              </li>
-            ))}
+                  {m.body && open === m.id && (
+                    <p
+                      dir={m.locale === 'en' ? 'ltr' : 'rtl'}
+                      className="rounded-md bg-ink-soft/50 p-2 text-start"
+                    >
+                      {m.body}
+                    </p>
+                  )}
+                  {m.status !== 'sent' && m.attempts > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('messages.attempts', { count: m.attempts })}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </Panel>
       )}

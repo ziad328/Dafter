@@ -75,12 +75,11 @@ test('the owner invites an assistant with their teacher, removes the teacher, an
 
   // Remove the teacher: a second tap confirms; their group stays, flagged.
   const manage = t.members.manage.replace('{name}', teacherName);
-  await page
-    .getByRole('listitem')
-    .filter({ hasText: teacherName })
-    .first()
-    .getByRole('button', { name: manage })
+  const teacherRow = page.getByRole('listitem').filter({ hasText: teacherName }).first();
+  await teacherRow
+    .getByRole('button', { name: t.members.actions.replace('{name}', teacherName) })
     .click();
+  await teacherRow.getByRole('button', { name: t.members.menu.manage }).click();
   const sheet = page.getByRole('dialog', { name: manage });
   await sheet.getByRole('button', { name: t.members.remove }).click();
   await sheet.getByRole('button', { name: t.members.confirmRemove }).click();
@@ -98,7 +97,10 @@ test('the owner invites an assistant with their teacher, removes the teacher, an
   // The only owner can't remove themselves.
   await openNav(page, t, t.nav.staff);
   const me = t.members.manage.replace('{name}', 'أحمد محمود');
-  await page.getByRole('button', { name: me }).click();
+  await page
+    .getByRole('button', { name: t.members.actions.replace('{name}', 'أحمد محمود') })
+    .click();
+  await page.getByRole('button', { name: t.members.menu.manage }).click();
   const own = page.getByRole('dialog', { name: me });
   await own.getByRole('button', { name: t.members.remove }).click();
   await own.getByRole('button', { name: t.members.confirmRemove }).click();
