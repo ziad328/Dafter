@@ -62,7 +62,7 @@ test('owner enrolls a student and sends a link; the student activates and binds 
 
   await expect(page.getByText(t.studentApp.staff.notActivated)).toBeVisible();
   await page.getByRole('button', { name: t.studentApp.staff.invite }).click();
-  const link = (await page.getByTestId('invite-link').textContent())!;
+  const link = (await page.getByTestId('invite-link').getAttribute('data-link'))!;
 
   // The student, on their own phone.
   const phone = await browser.newContext({

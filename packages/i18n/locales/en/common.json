@@ -339,7 +339,7 @@
       "bound": "Activated on a phone.",
       "noPhone": "Activated, no phone linked.",
       "invite": "Create activation link",
-      "linkHint": "Send this link to the student. It works once, for 72 hours.",
+      "linkHint": "Send the link to the student. It works once, until {when}.",
       "reset": "Reset phone",
       "resetConfirm": "Tap again to reset the phone"
     },

@@ -4,7 +4,7 @@ import type {
   OpenSession,
   RosterEntry,
 } from '@dafter/contracts';
-import { Clock, List, Maximize, X } from 'lucide-react';
+import { ChevronDown, Clock, List, Maximize, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -247,6 +247,14 @@ function SessionTitle({ id }: { id: string }) {
 }
 
 const FIXES = ['present', 'late', 'excused', 'absent'] as const;
+// The status pill's colours (absent rows show the "present" button instead).
+const PILL: Record<AttendanceRecord['status'], string> = {
+  present: 'bg-present-soft text-present',
+  late: 'bg-late-soft text-late',
+  excused: 'bg-muted text-muted-foreground',
+  makeup: 'bg-violet-soft text-violet',
+  absent: 'bg-absent-soft',
+};
 
 /** One student: their status (tap to change it), or a one-tap "present" for students without a phone. */
 function RosterRow({
@@ -300,16 +308,21 @@ function RosterRow({
           {t('live.present')}
         </Button>
       ) : (
-        // A wrong tap or scan is fixed here: tap the status, pick the right one.
-        <Button
-          size="sm"
-          variant="ghost"
+        // A wrong tap or scan is fixed here: tap the status, pick the right one. A coloured pill
+        // with a chevron, so it reads as something to tap (audit 3 LV5).
+        <button
+          type="button"
           aria-expanded={picking}
           aria-label={t('live.change', { name })}
           onClick={() => setPicking((p) => !p)}
+          className={cn(
+            'inline-flex h-8 items-center gap-1 rounded-full ps-3 pe-2 text-xs font-medium transition-colors focus-visible:outline-2',
+            PILL[record.status],
+          )}
         >
           {t(`live.status.${record.status}`)}
-        </Button>
+          <ChevronDown aria-hidden className="size-3.5" />
+        </button>
       )}
       {picking && record && (
         <div

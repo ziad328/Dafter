@@ -112,12 +112,13 @@ export function Breadcrumbs() {
                 to={c.to}
                 className="rounded-md px-1 text-muted-foreground transition-colors hover:text-ink focus-visible:outline-2"
               >
-                {c.label}
+                <bdi>{c.label}</bdi>
               </Link>
             ) : (
-              <span aria-current="page" className="block truncate px-1 font-semibold">
+              // <bdi>: «98114798 نور» keeps its order in English (audit 3 S10).
+              <bdi aria-current="page" className="block truncate px-1 font-semibold">
                 {c.label}
-              </span>
+              </bdi>
             )}
           </li>
         ))}

@@ -73,27 +73,32 @@ export default function StudentForm() {
   if (id && existing.error) return <FormError message={t(errorKey(existing.error))} />;
   if (!id || !existing.data) return <StudentFormBody />;
   // Mounted once the student is loaded, so the form's default values are the student's.
+  // Two columns on a laptop: who and where on one side, money on the other (audit 3 S9).
   return (
     <>
       <SectionChips />
-      {editing === id ? (
-        <StudentFormBody
-          key={id}
-          id={id}
-          student={existing.data}
-          onDone={() => setEditing(undefined)}
-        />
-      ) : (
-        <StudentSummary student={existing.data} onEdit={() => setEditing(id)} />
-      )}
-      <div id="student-groups" className="scroll-mt-4">
-        <Enrollments studentId={id} />
-      </div>
-      <div id="student-fees" className="scroll-mt-4">
-        <StudentFees studentId={id} />
-      </div>
-      <div id="student-app" className="scroll-mt-4">
-        <AppAccess student={existing.data} />
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="grid gap-4">
+          {editing === id ? (
+            <StudentFormBody
+              key={id}
+              id={id}
+              student={existing.data}
+              onDone={() => setEditing(undefined)}
+            />
+          ) : (
+            <StudentSummary student={existing.data} onEdit={() => setEditing(id)} />
+          )}
+          <div id="student-groups" className="scroll-mt-4">
+            <Enrollments studentId={id} />
+          </div>
+          <div id="student-app" className="scroll-mt-4">
+            <AppAccess student={existing.data} />
+          </div>
+        </div>
+        <div id="student-fees" className="scroll-mt-4">
+          <StudentFees studentId={id} />
+        </div>
       </div>
     </>
   );
@@ -105,7 +110,11 @@ const SECTIONS = ['groups', 'fees', 'app'] as const;
 function SectionChips() {
   const { t } = useTranslation();
   return (
-    <nav aria-label={t('students.sections.label')} className="flex flex-wrap gap-2 print:hidden">
+    // Both columns fit on a laptop, so the jumps are for phones only.
+    <nav
+      aria-label={t('students.sections.label')}
+      className="flex flex-wrap gap-2 print:hidden lg:hidden"
+    >
       {SECTIONS.map((s) => (
         <button
           key={s}
@@ -132,7 +141,9 @@ function StudentSummary({ student, onEdit }: { student: Student; onEdit: () => v
       <CardHeader className="flex flex-row items-start justify-between gap-2">
         <div className="grid gap-1">
           <CardTitle>
-            <h1 className="text-xl">{name}</h1>
+            <h1 className="text-xl">
+              <bdi>{name}</bdi>
+            </h1>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {itemName(student.gradeLevel, i18n.language)}

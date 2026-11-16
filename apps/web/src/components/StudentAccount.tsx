@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { groupName, itemName } from '@/lib/groups';
 import { errorDetails, errorKey } from '@/lib/session';
+import { intlLocale } from '@/lib/time';
 
 /** GROUP_FULL: «المجموعة مكتملة (20/20). إضافة على أي حال؟» with Add anyway and Cancel. */
 export function GroupFullConfirm({
@@ -179,7 +180,7 @@ export function Enrollments({ studentId }: { studentId: string }) {
 
 /** App access: hand out an activation link, or reset the bound phone. */
 export function AppAccess({ student }: { student: Student }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [invite, invited] = useCreateStudentInviteMutation();
   const [reset, wasReset] = useResetStudentDeviceMutation();
   const [confirming, setConfirming] = useState(false);
@@ -202,7 +203,7 @@ export function AppAccess({ student }: { student: Student }) {
         <p role="status" className="text-sm">
           {status}
         </p>
-        {!student.activated && (
+        {!student.activated && !link && (
           <Button
             type="button"
             variant="outline"
@@ -212,12 +213,22 @@ export function AppAccess({ student }: { student: Student }) {
             {t('studentApp.staff.invite')}
           </Button>
         )}
+        {/* Send or Copy and when it stops working; the URL itself helps nobody (audit 3 S8). */}
         {link && (
-          <div className="grid gap-2 rounded-md border p-3 text-sm">
-            <p>{t('studentApp.staff.linkHint')}</p>
-            <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="invite-link">
-              {link}
-            </bdi>
+          <div
+            className="grid gap-2 rounded-md border p-3 text-sm"
+            data-testid="invite-link"
+            data-link={link}
+          >
+            <p>
+              {t('studentApp.staff.linkHint', {
+                when: new Intl.DateTimeFormat(intlLocale(i18n.language), {
+                  weekday: 'long',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                }).format(Date.parse(invited.data!.expiresAt)),
+              })}
+            </p>
             <ShareButton text={t('share.studentInvite')} url={link} />
           </div>
         )}

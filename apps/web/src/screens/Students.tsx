@@ -146,6 +146,12 @@ export default function Students() {
                         )}
                       </span>
                     </span>
+                    {/* The assistant sees who still needs a link (audit 3 S3). */}
+                    {!s.activated && s.status === 'active' && (
+                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        {t('groups.notActivated')}
+                      </span>
+                    )}
                     {s.balancePiastres > 0 && (
                       <bdi className="shrink-0 rounded-full bg-rose-soft px-2 py-0.5 text-xs font-medium text-rose">
                         {formatEgp(s.balancePiastres, i18n.language)}

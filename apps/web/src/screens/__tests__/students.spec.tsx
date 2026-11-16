@@ -460,9 +460,11 @@ describe('app access', () => {
   it('makes an activation link and copies it', async () => {
     const { user } = await renderAt(page);
     await user.click(await screen.findByRole('button', { name: tr('studentApp.staff.invite') }));
-    expect(await screen.findByTestId('invite-link')).toHaveTextContent(
-      '/s/activate/student-invite-token',
-    );
+    const shared = await screen.findByTestId('invite-link');
+    expect(shared.dataset.link).toContain('/s/activate/student-invite-token');
+    // The link itself is not printed, and the button to make one is gone.
+    expect(shared).not.toHaveTextContent('/s/activate');
+    expect(screen.queryByRole('button', { name: tr('studentApp.staff.invite') })).toBeNull();
     await user.click(screen.getByRole('button', { name: tr('share.copy') }));
     expect(await screen.findByRole('button', { name: tr('share.copied') })).toBeVisible();
   });
