@@ -58,11 +58,20 @@ export default function Login() {
           </Link>
         </CardContent>
       </form>
-      <CardFooter className="mt-6 gap-1 text-sm">
-        {t('auth.login.noAccount')}
-        <Link className="underline" to={`/register?next=${encodeURIComponent(next)}`}>
-          {t('auth.login.register')}
-        </Link>
+      {/* Close to the form, and a way in for a student who opened the staff page (audit 3 A4). */}
+      <CardFooter className="grid justify-start gap-1 text-sm">
+        <p className="flex flex-wrap gap-1">
+          {t('auth.login.noAccount')}
+          <Link className="underline" to={`/register?next=${encodeURIComponent(next)}`}>
+            {t('auth.login.register')}
+          </Link>
+        </p>
+        <p className="flex flex-wrap gap-1 text-muted-foreground">
+          {t('auth.login.student')}
+          <Link className="text-foreground underline" to="/s/login">
+            {t('auth.login.studentLink')}
+          </Link>
+        </p>
       </CardFooter>
     </Card>
   );

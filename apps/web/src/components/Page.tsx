@@ -33,14 +33,22 @@ const TONES = [
   'bg-rose-soft text-rose',
 ];
 
+// Words most centers start with: «سنتر النور» and «سنتر الأمل» would both read «سن» (audit 3 A9).
+const GENERIC = new Set(['سنتر', 'دروس', 'مركز', 'center', 'centre']);
+
 /** Initials in a circle; the colour follows the name, so a person keeps theirs everywhere. */
 export function Avatar({ name, className }: { name: string; className?: string }) {
-  // «ال» is the article, not the word: «سنتر النور» is «سن», not «سا».
-  const words = name
-    .trim()
-    .split(/\s+/)
-    .map((w) => (w.startsWith('ال') && w.length > 3 ? w.slice(2) : w));
-  const initials = (words[0]?.[0] ?? '') + (words[1]?.[0] ?? '');
+  const all = name.trim().split(/\s+/);
+  const named = all.filter((w) => !GENERIC.has(w.toLowerCase()));
+  // «ال» is the article, not the word: «أحمد الشريف» is «أش», not «أا».
+  const words = (named.length ? named : all).map((w) =>
+    w.startsWith('ال') && w.length > 3 ? w.slice(2) : w,
+  );
+  // One word left after dropping «سنتر»: two of its letters, «سنتر النور» is «نو».
+  const initials =
+    named.length === 1 && all.length > 1
+      ? words[0]!.slice(0, 2)
+      : (words[0]?.[0] ?? '') + (words[1]?.[0] ?? '');
   let hash = 0;
   for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
   return (

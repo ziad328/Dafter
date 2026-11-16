@@ -17,7 +17,8 @@ test('staff signs in and switches workspace', async ({ page, lang, t }) => {
   await workspaceChip(page, t).click();
   await page.getByRole('button', { name: PRIVATE[lang] }).click();
   await expect(workspaceChip(page, t)).toContainText(PRIVATE[lang]);
-  await expect(workspaceChip(page, t)).toContainText(t.roles.owner);
+  // Her own lessons read as an independent teacher's, not «مالك» (audit 3 A8).
+  await expect(workspaceChip(page, t)).toContainText(t.workspaces.create.independent);
 
   // The session (refresh cookie) and the chosen workspace survive a reload.
   await page.reload();
@@ -39,5 +40,5 @@ test('a new account picks independent teacher on the welcome screen', async ({ p
   await page.getByLabel(t.workspaces.create.teacherName).fill(`دروس سامي ${n}`);
   await page.getByRole('button', { name: t.workspaces.create.submit }).click();
   await expect(workspaceChip(page, t)).toContainText(`دروس سامي ${n}`);
-  await expect(workspaceChip(page, t)).toContainText(t.roles.owner);
+  await expect(workspaceChip(page, t)).toContainText(t.workspaces.create.independent);
 });

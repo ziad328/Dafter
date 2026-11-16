@@ -1,7 +1,7 @@
 import { ChevronLeft, Search, UserPlus, Wallet } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { useListGroupsQuery, useListStudentsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { FilterPicker, uniqueOptions } from '@/components/FilterChips';
@@ -17,6 +17,12 @@ export default function Students() {
   const { t, i18n } = useTranslation();
   // The laptop top bar's search lands here as ?q=.
   const [params] = useSearchParams();
+  // The phone header's search icon opens this screen ready to type (audit 3 N5).
+  const searchFirst = !!(useLocation().state as { search?: boolean } | null)?.search;
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (searchFirst) searchRef.current?.focus();
+  }, [searchFirst]);
   const [text, setText] = useState(() => params.get('q') ?? '');
   const [q, setQ] = useState(text.trim());
   // Debounced: one request after typing pauses, not one per key.
@@ -64,6 +70,7 @@ export default function Students() {
           aria-hidden
         />
         <input
+          ref={searchRef}
           type="search"
           aria-label={t('students.search')}
           placeholder={t('students.search')}

@@ -92,7 +92,6 @@ export const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryE
     return result;
   }
 
-  // After a reload there is no token yet: refresh first instead of earning a 401.
   // After a reload there is no token yet: refresh first instead of earning a 401. Signed out, only
   // the public invite preview goes out; everything else is answered 401 here.
   if (!accessToken && !(await refreshOnce(api, extra)).data) {
@@ -104,9 +103,14 @@ export const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryE
   const result = await raw(args, api, extra);
   if (result.error?.status !== 401) return result;
   // Another request may have refreshed while this one was in flight; only refresh if not.
-  if (accessToken === sent && !(await refreshOnce(api, extra)).data) return result;
+  if (accessToken === sent && !(await refreshOnce(api, extra)).data) {
+    // The session ended mid-screen: refetch /me so RequireAuth signs out with ?next= set to this
+    // page (audit 3 A12). /me itself already reaches RequireAuth.
+    if (url !== '/api/v1/me') api.dispatch(baseApi.util.invalidateTags(['auth']));
+    return result;
+  }
   return raw(args, api, extra);
 };
 
 /** Endpoints are injected by the generated file; never add them by hand. */
-export const baseApi = createApi({ baseQuery, endpoints: () => ({}) });
+export const baseApi = createApi({ baseQuery, tagTypes: ['auth'], endpoints: () => ({}) });

@@ -6,9 +6,15 @@ const initials = (name: string) => render(<Avatar name={name} />).container.text
 
 describe('avatar', () => {
   it('skips the Arabic article when picking initials', () => {
-    expect(initials('سنتر النور')).toBe('سن');
+    expect(initials('أحمد الشريف')).toBe('أش');
     expect(initials('أحمد محمود')).toBe('أم');
     expect(initials('الي')).toBe('ا');
-    expect(initials('Al-Nour Center')).toBe('AC');
+  });
+
+  it('skips the word every center starts with (audit 3 A9)', () => {
+    expect(initials('سنتر النور')).toBe('نو');
+    expect(initials('سنتر الأمل التعليمي')).toBe('أت');
+    expect(initials('Al-Nour Center')).toBe('Al');
+    expect(initials('سنتر')).toBe('س');
   });
 });

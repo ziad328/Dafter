@@ -48,7 +48,9 @@
       "submit": "دخول",
       "noAccount": "ليس لديك حساب؟",
       "register": "أنشئ حسابًا",
-      "forgot": "نسيت كلمة المرور؟"
+      "forgot": "نسيت كلمة المرور؟",
+      "student": "طالب؟",
+      "studentLink": "ادخل من هنا"
     },
     "register": {
       "title": "إنشاء حساب",
@@ -604,7 +606,6 @@
     "startsIn": "تبدأ {when}",
     "started": "بدأت {when}",
     "startQr": "ابدأ واعرض كود الحضور",
-    "findStudent": "البحث عن طالب",
     "recordPayment": "تسجيل دفعة",
     "quick": "اختصارات",
     "opensAt": "تُفتح {time}",

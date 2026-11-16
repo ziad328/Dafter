@@ -11,7 +11,6 @@ import {
   MessageSquareText,
   Play,
   ScanLine,
-  Search,
   UserPlus,
   Users,
   UsersRound,
@@ -497,17 +496,17 @@ function QuickActions({ role }: { role?: string }) {
   const [paying, setPaying] = useState(false);
   const items: { to?: string; label: string; icon: typeof Wallet }[] = [
     { to: '/students/new', label: t('today.addStudent'), icon: UserPlus },
-    { to: '/students', label: t('today.findStudent'), icon: Search },
     { label: t('today.recordPayment'), icon: Wallet },
     ...(role && role !== 'teacher'
       ? [{ to: '/messages', label: t('nav.messages'), icon: MessageSquareText }]
       : []),
   ];
   return (
-    // One row of small shortcuts; three for a teacher, so no hole (audit 3 H3).
+    // One row of small shortcuts, sized to how many the role gets (audit 3 H3). Finding a
+    // student is the header's search icon on phones and the top bar on laptops (audit 3 N5).
     <Panel className="p-2">
       <h2 className="sr-only">{t('today.quick')}</h2>
-      <ul className={cn('grid gap-1', items.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
+      <ul className={cn('grid gap-1', items.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
         {items.map(({ to, label, icon: Icon }, i) => {
           const body = (
             <>

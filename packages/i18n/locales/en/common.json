@@ -48,7 +48,9 @@
       "submit": "Sign in",
       "noAccount": "Don't have an account?",
       "register": "Create one",
-      "forgot": "Forgot your password?"
+      "forgot": "Forgot your password?",
+      "student": "A student?",
+      "studentLink": "Sign in here"
     },
     "register": {
       "title": "Create account",
@@ -604,7 +606,6 @@
     "startsIn": "Starts {when}",
     "started": "Started {when}",
     "startQr": "Start and show the attendance code",
-    "findStudent": "Find a student",
     "recordPayment": "Record a payment",
     "quick": "Quick actions",
     "opensAt": "Opens at {time}",

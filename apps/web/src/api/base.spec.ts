@@ -77,6 +77,23 @@ describe('baseQuery single-flight refresh', () => {
     });
   });
 
+  it('a session that ends mid-screen refetches /me, so the sign-out keeps ?next', async () => {
+    await call('/api/v1/me');
+    valid = 'expired-on-the-server';
+    refreshFails = true;
+    const dispatch = vi.fn();
+    const result = await baseQuery('/api/v1/groups', { ...api, dispatch }, {});
+    expect(result.error).toMatchObject({ status: 401 });
+    expect(dispatch).toHaveBeenCalledOnce();
+    // /me itself already reaches RequireAuth: no second refetch.
+    refreshFails = false;
+    await call('/api/v1/me');
+    valid = 'expired-again';
+    refreshFails = true;
+    await baseQuery('/api/v1/me', { ...api, dispatch }, {});
+    expect(dispatch).toHaveBeenCalledOnce();
+  });
+
   it('starts without a workspace when storage is blocked', async () => {
     vi.resetModules();
     const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {

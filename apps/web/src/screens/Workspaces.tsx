@@ -8,7 +8,7 @@ import { CreateWorkspace } from '@/components/CreateWorkspace';
 import { FormError, Skeleton } from '@/components/Field';
 import { Avatar, PageHeader, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
-import { errorKey, useSelectWorkspace, workspaceName } from '@/lib/session';
+import { errorKey, useSelectWorkspace, workspaceName, workspaceRole } from '@/lib/session';
 import { cn } from '@/lib/utils';
 
 export default function Workspaces() {
@@ -57,7 +57,7 @@ export default function Workspaces() {
                 <Avatar name={name} className="size-12 rounded-xl" />
                 <span className="grid min-w-0 flex-1">
                   <span className="truncate font-semibold">{name}</span>
-                  <span className="text-sm text-muted-foreground">{t(`roles.${ws.role}`)}</span>
+                  <span className="text-sm text-muted-foreground">{workspaceRole(t, ws)}</span>
                 </span>
                 {here && <Check className="size-5 text-ink" aria-hidden />}
               </button>

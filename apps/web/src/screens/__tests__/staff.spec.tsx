@@ -357,13 +357,22 @@ describe('workspaces', () => {
   });
 
   it('marks the current workspace and switches to another', async () => {
-    server.use(http.get(route('workspaces'), () => Response.json([fx.workspaces[0], second])));
+    const own = {
+      ...second,
+      id: crypto.randomUUID(),
+      nameAr: 'أ. منى',
+      type: 'independent',
+      role: 'owner',
+    };
+    server.use(http.get(route('workspaces'), () => Response.json([fx.workspaces[0], second, own])));
     const { user, router } = await renderAt('/workspaces', { lang: 'en' });
     const current = await screen.findByRole('button', { name: new RegExp('Al-Nour Center') });
     expect(current).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByRole('navigation', { name: tr('nav.breadcrumbs') })).toHaveTextContent(
-      tr('workspaces.title'),
-    );
+    // No trail to "More" right after sign-in; her own place reads as hers (audit 3 A8).
+    expect(screen.queryByRole('navigation', { name: tr('nav.breadcrumbs') })).toBeNull();
+    expect(
+      screen.getAllByText(tr('workspaces.create.independent'), { selector: 'button *' }),
+    ).toHaveLength(1);
     await user.click(screen.getByRole('button', { name: new RegExp(second.nameAr) }));
     expect(getWorkspaceId()).toBe(second.id);
     expect(router.state.location.pathname).toBe('/');
@@ -662,6 +671,45 @@ describe('app shell', () => {
     expect(
       await screen.findByRole('navigation', { name: tr('nav.breadcrumbs') }),
     ).toHaveTextContent(tr('students.new'));
+  });
+
+  it('trails the exam sheet back to its group, and More to fees and the dashboard', async () => {
+    const { unmount } = await renderAt(`/exams/${fx.exam.id}`);
+    const crumbs = await screen.findByRole('navigation', { name: tr('nav.breadcrumbs') });
+    expect(await within(crumbs).findByText(fx.exam.title)).toBeVisible();
+    expect(await within(crumbs).findByRole('link', { name: tr('exams.title') })).toHaveAttribute(
+      'href',
+      `/groups/${fx.exam.groupId}/exams`,
+    );
+    unmount();
+    for (const [path, key] of [
+      ['/fees', 'nav.fees'],
+      ['/dashboard', 'nav.dashboard'],
+    ] as const) {
+      const page = await renderAt(path);
+      expect(
+        await screen.findByRole('navigation', { name: tr('nav.breadcrumbs') }),
+      ).toHaveTextContent(tr(key));
+      page.unmount();
+    }
+  });
+
+  it("opens the students list ready to type from the phone header's search icon", async () => {
+    const { user, router } = await renderAt('/groups');
+    await user.click(await screen.findByRole('link', { name: tr('students.search') }));
+    expect(router.state.location.pathname).toBe('/students');
+    await expect
+      .poll(() => document.activeElement)
+      .toBe(screen.getAllByRole('searchbox', { name: tr('students.search') }).at(-1));
+  });
+
+  it('switches language and signs out from More', async () => {
+    const { user, router } = await renderAt('/more');
+    const main = await screen.findByRole('main');
+    await user.click(within(main).getByRole('button', { name: tr('shell.switchLanguage') }));
+    expect(document.documentElement.lang).toBe('en');
+    await user.click(within(main).getByRole('button', { name: tr('shell.logout') }));
+    await expect.poll(() => router.state.location.pathname).toBe('/login');
   });
 
   it('shows English student names in the crumbs', async () => {

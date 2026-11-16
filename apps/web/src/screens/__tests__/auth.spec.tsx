@@ -17,6 +17,24 @@ describe('sign in', () => {
     });
   });
 
+  it('signed out mid-screen, keeps the page and its query in ?next (audit 3 A12)', async () => {
+    server.use(
+      http.get(route('me'), fail('UNAUTHENTICATED', 401)),
+      http.post(route('auth/refresh'), fail('UNAUTHENTICATED', 401)),
+    );
+    const { router } = await renderAt('/students?q=nour');
+    await expect.poll(() => router.state.location.pathname).toBe('/login');
+    expect(router.state.location.search).toBe(`?next=${encodeURIComponent('/students?q=nour')}`);
+  });
+
+  it('points a student to the student sign-in (audit 3 A4)', async () => {
+    await renderAt('/login', { workspace: null });
+    expect(await screen.findByRole('link', { name: tr('auth.login.studentLink') })).toHaveAttribute(
+      'href',
+      '/s/login',
+    );
+  });
+
   it('shows the server error code translated, and validates before sending', async () => {
     server.use(http.post(route('auth/login'), fail('INVALID_CREDENTIALS', 401)));
     const { user } = await renderAt('/login', { workspace: null });

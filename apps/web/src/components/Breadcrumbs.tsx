@@ -1,7 +1,7 @@
 import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, matchPath, useLocation } from 'react-router';
-import { useGetGroupQuery, useGetStudentQuery } from '@/api/generated';
+import { useGetExamSheetQuery, useGetGroupQuery, useGetStudentQuery } from '@/api/generated';
 import { itemName } from '@/lib/groups';
 import { cn } from '@/lib/utils';
 
@@ -19,8 +19,9 @@ function useName(kind: 'student' | 'group', id?: string) {
 }
 
 /**
- * The way back from a detail screen ("Students › Ahmed Khaled"). Top-level screens have none;
- * the screens reached through "More" show it on phones only, where "More" is their parent.
+ * The way back from a detail screen ("Students › Ahmed Khaled"). One rule (audit 3 N6): every
+ * screen opened from another one has a trail; top-level screens have none, and the screens
+ * reached through "More" show it on phones only, where "More" is their parent.
  */
 export function Breadcrumbs() {
   const { t } = useTranslation();
@@ -29,7 +30,11 @@ export function Breadcrumbs() {
   const student = matchPath('/students/:id', pathname)?.params.id;
   const groupEdit = matchPath('/groups/:id/edit', pathname)?.params.id;
   const groupExams = matchPath('/groups/:id/exams', pathname)?.params.id;
-  const group = matchPath('/groups/:id', pathname)?.params.id ?? groupEdit ?? groupExams;
+  const examId = matchPath('/exams/:id', pathname)?.params.id;
+  // RTK shares the exam screen's own request.
+  const exam = useGetExamSheetQuery({ id: examId! }, { skip: !examId }).data?.exam;
+  const group =
+    matchPath('/groups/:id', pathname)?.params.id ?? groupEdit ?? groupExams ?? exam?.groupId;
   const studentName = useName('student', student);
   const groupName = useName('group', group);
 
@@ -39,6 +44,13 @@ export function Breadcrumbs() {
     crumbs = [
       { label: t('nav.students'), to: '/students' },
       { label: student === 'new' ? t('students.new') : (studentName ?? '') },
+    ];
+  else if (examId)
+    crumbs = [
+      { label: t('nav.groups'), to: '/groups' },
+      { label: groupName ?? '', to: group && `/groups/${group}` },
+      { label: t('exams.title'), to: group && `/groups/${group}/exams` },
+      { label: exam?.title ?? '' },
     ];
   else if (groupEdit || groupExams)
     crumbs = [
@@ -70,11 +82,12 @@ export function Breadcrumbs() {
     const more: Record<string, string> = {
       '/messages': t('nav.messages'),
       '/members': t('nav.staff'),
+      '/fees': t('nav.fees'),
       '/cash-summary': t('nav.cashSummary'),
+      '/dashboard': t('nav.dashboard'),
       '/rooms': t('nav.rooms'),
       '/settings': t('nav.settings'),
       '/dev/phone': t('nav.phone'),
-      '/workspaces': t('workspaces.title'),
     };
     if (more[pathname]) {
       crumbs = [{ label: t('nav.more'), to: '/more' }, { label: more[pathname] }];

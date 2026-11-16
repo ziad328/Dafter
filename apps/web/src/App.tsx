@@ -92,11 +92,12 @@ function RequireAuth({ loginPath = '/login' }: { loginPath?: string }) {
   const staffOnly = loginPath === '/login';
   const { t } = useTranslation();
   const me = useGetMeQuery();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   if (me.isLoading) return <Skeleton />;
   if (me.error && 'status' in me.error && me.error.status === 401) {
-    return <Navigate to={`${loginPath}?next=${encodeURIComponent(pathname)}`} replace />;
+    // Keep the whole place, query included, so signing in again lands here (audit 3 A12).
+    return <Navigate to={`${loginPath}?next=${encodeURIComponent(pathname + search)}`} replace />;
   }
   if (me.error) return <FormError message={t(errorKey(me.error))} />;
   // A signed-in student who opens a staff link belongs in the student app (audit 3 A11).

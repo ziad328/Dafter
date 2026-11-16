@@ -30,6 +30,14 @@ export function errorText(t: TFunction, error: unknown): string {
   return t(errorKey(error));
 }
 
+/** «مدرّس مستقل» for the owner of an independent workspace, else the role (audit 3 A8). */
+export const workspaceRole = (t: TFunction, ws: Pick<Workspace, 'type' | 'role'>) =>
+  t(
+    ws.type === 'independent' && ws.role === 'owner'
+      ? 'workspaces.create.independent'
+      : `roles.${ws.role}`,
+  );
+
 export const workspaceName = (ws: Pick<Workspace, 'nameAr' | 'nameEn'>, lang: string) =>
   lang === 'en' && ws.nameEn ? ws.nameEn : ws.nameAr;
 

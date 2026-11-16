@@ -1,9 +1,8 @@
 import { ArrowLeftRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router';
-import { AccountActions, useNavItems } from '@/components/AppShell';
+import { AccountActions, SECTIONS, useNavItems } from '@/components/AppShell';
 
-const SECTIONS = ['daily', 'money', 'admin'] as const;
 const row = 'flex min-h-12 items-center gap-3 px-4 text-sm font-medium';
 
 /**
