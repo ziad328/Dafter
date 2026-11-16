@@ -52,6 +52,31 @@ export const invite = z
   })
   .meta({ id: 'Invite' });
 
+/** What an invite link opens: the center and the role, before signing in (audit 3 A10). */
+export const invitePreview = z
+  .object({
+    workspaceNameAr: z.string(),
+    workspaceNameEn: z.string().nullable(),
+    workspaceType: z.enum(['center', 'independent']),
+    role: z.enum(['teacher', 'assistant']),
+  })
+  .meta({ id: 'InvitePreview' });
+
+/** An unused, unexpired invite, for the owner's list (no token: only its hash is stored). */
+export const pendingInvite = z
+  .object({
+    id: z.uuid(),
+    role: z.enum(['teacher', 'assistant']),
+    expiresAt: z.iso.datetime(),
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: 'PendingInvite' });
+
+export const pendingInviteList = z.array(pendingInvite).meta({ id: 'PendingInviteList' });
+
+export type InvitePreview = z.infer<typeof invitePreview>;
+export type PendingInvite = z.infer<typeof pendingInvite>;
+
 /** Owner-issued password reset link for a staff member: shown once, opens /reset/<token>. */
 export const staffResetLink = z
   .object({ token: z.string(), expiresAt: z.iso.datetime() })

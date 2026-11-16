@@ -184,7 +184,14 @@ export class AuthService {
 }
 
 function toMe(u: User): Me {
-  return { id: u.id, name: u.name, phone: u.phone, email: u.email, locale: u.locale };
+  return {
+    id: u.id,
+    name: u.name,
+    phone: u.phone,
+    email: u.email,
+    locale: u.locale,
+    kind: u.passwordHash ? 'staff' : 'student',
+  };
 }
 
 function uniqueViolation(err: unknown): AppError | undefined {

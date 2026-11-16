@@ -33,7 +33,7 @@ async function staff() {
   return res.json().accessToken as string;
 }
 
-type Method = 'GET' | 'POST' | 'PUT';
+type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
 const call = (method: Method, url: string, token: string, ws?: string, payload?: object) =>
   app.inject({
     method,
@@ -113,6 +113,76 @@ describe('invites', () => {
     expect((await call('POST', 'invites', o.token, o.ws, { role: 'owner' })).json().code).toBe(
       'VALIDATION_FAILED',
     );
+  });
+});
+
+describe('invite preview, pending list and revoke (audit 3 A10, A13)', () => {
+  it('names the center and the role before sign-in, for a usable invite only', async () => {
+    const o = await owner();
+    const token = await invite(o, 'assistant');
+    const res = await app.inject({ method: 'GET', url: `/api/v1/invites/${token}` });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      workspaceNameAr: 'سنتر',
+      workspaceNameEn: null,
+      workspaceType: 'center',
+      role: 'assistant',
+    });
+    await call('POST', `invites/${token}/accept`, await staff());
+    const used = await app.inject({ method: 'GET', url: `/api/v1/invites/${token}` });
+    expect([used.statusCode, used.json().code]).toEqual([410, 'INVITE_INVALID']);
+    const unknown = await app.inject({ method: 'GET', url: '/api/v1/invites/not-a-token' });
+    expect(unknown.json().code).toBe('INVITE_INVALID');
+    const later = await invite(o, 'teacher');
+    clock.advance(INVITE_TTL_MS);
+    const expired = await app.inject({ method: 'GET', url: `/api/v1/invites/${later}` });
+    expect(expired.json().code).toBe('INVITE_INVALID');
+  });
+
+  it('lists pending invites, newest first, without used ones', async () => {
+    const o = await owner();
+    await invite(o, 'teacher');
+    clock.advance(1000);
+    const newest = (await call('POST', 'invites', o.token, o.ws, { role: 'assistant' })).json();
+    await call('POST', `invites/${await invite(o)}/accept`, await staff());
+    const list = (await call('GET', 'invites', o.token, o.ws)).json();
+    expect(list.map((i: { role: string }) => i.role)).toEqual(['assistant', 'teacher']);
+    expect(list[0]).toEqual({
+      id: newest.id,
+      role: 'assistant',
+      expiresAt: newest.expiresAt,
+      createdAt: expect.any(String),
+    });
+    expect(list[0]).not.toHaveProperty('token');
+  });
+
+  it('revokes: the link stops working and the invite leaves the list', async () => {
+    const o = await owner();
+    const created = (await call('POST', 'invites', o.token, o.ws, { role: 'teacher' })).json();
+    const res = await call('DELETE', `invites/${created.id}`, o.token, o.ws);
+    expect(res.statusCode).toBe(204);
+    expect((await call('GET', 'invites', o.token, o.ws)).json()).toEqual([]);
+    const accept = await call('POST', `invites/${created.token}/accept`, await staff());
+    expect(accept.json().code).toBe('INVITE_INVALID');
+    // A second revoke finds nothing pending.
+    expect((await call('DELETE', `invites/${created.id}`, o.token, o.ws)).statusCode).toBe(404);
+  });
+
+  it('is owner only, and another workspace sees none of it (404, never 403)', async () => {
+    const o = await owner();
+    const created = (await call('POST', 'invites', o.token, o.ws, { role: 'teacher' })).json();
+    const teacher = await joined(o, 'teacher');
+    expect((await call('GET', 'invites', teacher, o.ws)).json().code).toBe('FORBIDDEN');
+    expect((await call('DELETE', `invites/${created.id}`, teacher, o.ws)).json().code).toBe(
+      'FORBIDDEN',
+    );
+
+    const other = await owner();
+    expect((await call('GET', 'invites', other.token, other.ws)).json()).toEqual([]);
+    const cross = await call('DELETE', `invites/${created.id}`, other.token, other.ws);
+    expect([cross.statusCode, cross.json().code]).toEqual([404, 'NOT_FOUND']);
+    // Still pending in its own workspace.
+    expect((await call('GET', 'invites', o.token, o.ws)).json()).toHaveLength(1);
   });
 });
 

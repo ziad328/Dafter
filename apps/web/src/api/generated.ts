@@ -106,6 +106,18 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ['members'],
       }),
+      listInvites: build.query<ListInvitesApiResponse, ListInvitesApiArg>({
+        query: () => ({ url: `/api/v1/invites` }),
+        providesTags: ['members'],
+      }),
+      revokeInvite: build.mutation<RevokeInviteApiResponse, RevokeInviteApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/invites/${queryArg.id}`, method: 'DELETE' }),
+        invalidatesTags: ['members'],
+      }),
+      getInvitePreview: build.query<GetInvitePreviewApiResponse, GetInvitePreviewApiArg>({
+        query: (queryArg) => ({ url: `/api/v1/invites/${queryArg.token}` }),
+        providesTags: ['members'],
+      }),
       createStaffResetLink: build.mutation<
         CreateStaffResetLinkApiResponse,
         CreateStaffResetLinkApiArg
@@ -550,6 +562,17 @@ export type CreateInviteApiResponse =
 export type CreateInviteApiArg = {
   createInviteRequest: CreateInviteRequest;
 };
+export type ListInvitesApiResponse = /** status 200 Pending invites */ PendingInviteList;
+export type ListInvitesApiArg = void;
+export type RevokeInviteApiResponse = unknown;
+export type RevokeInviteApiArg = {
+  id: string;
+};
+export type GetInvitePreviewApiResponse =
+  /** status 200 The inviting center and role */ InvitePreview;
+export type GetInvitePreviewApiArg = {
+  token: string;
+};
 export type CreateStaffResetLinkApiResponse =
   /** status 201 The link token, shown only here */ StaffResetLink;
 export type CreateStaffResetLinkApiArg = {
@@ -862,6 +885,7 @@ export type Me = {
   phone: string | null;
   email: string | null;
   locale: 'ar' | 'en';
+  kind: 'staff' | 'student';
 };
 export type AuthResponse = {
   accessToken: string;
@@ -956,6 +980,19 @@ export type Invite = {
 export type CreateInviteRequest = {
   role: 'teacher' | 'assistant';
   teacherMembershipIds?: string[];
+};
+export type PendingInvite = {
+  id: string;
+  role: 'teacher' | 'assistant';
+  expiresAt: string;
+  createdAt: string;
+};
+export type PendingInviteList = PendingInvite[];
+export type InvitePreview = {
+  workspaceNameAr: string;
+  workspaceNameEn: string | null;
+  workspaceType: 'center' | 'independent';
+  role: 'teacher' | 'assistant';
 };
 export type StaffResetLink = {
   token: string;
@@ -1436,6 +1473,9 @@ export const {
   useListWorkspacesQuery,
   useGetCurrentWorkspaceQuery,
   useCreateInviteMutation,
+  useListInvitesQuery,
+  useRevokeInviteMutation,
+  useGetInvitePreviewQuery,
   useCreateStaffResetLinkMutation,
   useAcceptInviteMutation,
   useListMembersQuery,

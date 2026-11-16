@@ -66,7 +66,7 @@ test('the owner invites an assistant with their teacher, removes the teacher, an
     .getByRole('checkbox', { name: teacherName })
     .check();
   await page.getByRole('button', { name: t.members.createLink }).click();
-  const link = (await page.getByTestId('staff-invite-link').textContent())!;
+  const link = (await page.getByTestId('staff-invite-link').getAttribute('data-link'))!;
   const assistantName = `مساعد ${n}`;
   await joins(link.split('/invite/')[1]!, assistantName, `0142${n}`);
   await page.reload();

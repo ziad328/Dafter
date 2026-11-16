@@ -76,6 +76,8 @@ import {
 } from './stats.js';
 import {
   createInviteRequest,
+  invitePreview,
+  pendingInviteList,
   createWorkspaceRequest,
   invite,
   member,
@@ -241,6 +243,39 @@ export function buildOpenApi() {
           requestBody: { required: true, content: json(createInviteRequest) },
           responses: {
             201: { description: 'The invite; its token is shown only here', content: json(invite) },
+            ...errors,
+          },
+        },
+        get: {
+          operationId: 'listInvites',
+          tags: ['members'],
+          description: 'Owner only. Invites not used yet and not expired, newest first.',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'Pending invites', content: json(pendingInviteList) },
+            ...errors,
+          },
+        },
+      },
+      '/api/v1/invites/{id}': {
+        delete: {
+          operationId: 'revokeInvite',
+          tags: ['members'],
+          description: 'Owner only. Expires a pending invite now, so its link stops working.',
+          security: [{ bearer: [] }],
+          requestParams: { path: z.object({ id: z.uuid() }) },
+          responses: { 204: { description: 'Revoked' }, ...errors },
+        },
+      },
+      '/api/v1/invites/{token}': {
+        get: {
+          operationId: 'getInvitePreview',
+          tags: ['members'],
+          description:
+            'No sign-in needed: the token is the secret. The center and the role of a usable invite; INVITE_INVALID otherwise.',
+          requestParams: { path: z.object({ token: z.string() }) },
+          responses: {
+            200: { description: 'The inviting center and role', content: json(invitePreview) },
             ...errors,
           },
         },

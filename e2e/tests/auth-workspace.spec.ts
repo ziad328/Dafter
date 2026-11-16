@@ -1,4 +1,4 @@
-import { expect, signIn, STAFF, test, workspaceChip } from './fixtures';
+import { expect, PASSWORD, signIn, STAFF, test, workspaceChip } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PRIVATE = { ar: 'دروس منى حسن', en: 'Mona Hassan Lessons' };
@@ -22,4 +22,22 @@ test('staff signs in and switches workspace', async ({ page, lang, t }) => {
   // The session (refresh cookie) and the chosen workspace survive a reload.
   await page.reload();
   await expect(workspaceChip(page, t)).toContainText(PRIVATE[lang]);
+});
+
+// A brand-new account has no workspace: the welcome screen asks center or teacher (audit 3 A6, A7).
+test('a new account picks independent teacher on the welcome screen', async ({ page, t }) => {
+  const n = String(Date.now()).slice(-8);
+  await page.goto('/register');
+  await page.getByLabel(t.auth.register.name).fill(`سامي ${n}`);
+  await page.getByLabel(t.auth.register.phone).fill(`011${n}`);
+  await page.getByLabel(t.auth.register.password).fill(PASSWORD);
+  await page.getByRole('button', { name: t.auth.register.submit }).click();
+
+  await expect(page).toHaveURL(/\/welcome$/);
+  await expect(page.getByRole('button', { name: t.shell.logout })).toBeVisible();
+  await page.getByText(t.workspaces.create.independent, { exact: true }).click();
+  await page.getByLabel(t.workspaces.create.teacherName).fill(`دروس سامي ${n}`);
+  await page.getByRole('button', { name: t.workspaces.create.submit }).click();
+  await expect(workspaceChip(page, t)).toContainText(`دروس سامي ${n}`);
+  await expect(workspaceChip(page, t)).toContainText(t.roles.owner);
 });

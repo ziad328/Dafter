@@ -14,7 +14,8 @@
     "name": "أحمد محمود",
     "phone": "01000000001",
     "email": "owner@dafter.test",
-    "locale": "ar"
+    "locale": "ar",
+    "kind": "staff"
   },
   "workspaces": [
     {

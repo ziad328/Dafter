@@ -81,11 +81,15 @@
     "title": "Invitation",
     "body": "You've been invited to join a workspace on Dafter.",
     "join": "Join now",
-    "signInFirst": "Sign in or create an account to accept the invite."
+    "signInFirst": "Sign in or create an account to accept the invite.",
+    "invites": "{center} invites you {role}",
+    "as": {
+      "teacher": "as a teacher",
+      "assistant": "as an assistant"
+    }
   },
   "workspaces": {
     "title": "Workspaces",
-    "empty": "You don't have a workspace yet. Create one to get started.",
     "create": {
       "title": "New workspace",
       "nameAr": "Name",
@@ -93,7 +97,11 @@
       "type": "Type",
       "center": "Tutoring center",
       "independent": "Independent teacher",
-      "submit": "Create"
+      "submit": "Create",
+      "centerHint": "Teachers and assistants in one place",
+      "independentHint": "You teach, with an assistant if you like",
+      "centerName": "Center's name",
+      "teacherName": "Your name as students see it"
     }
   },
   "filters": {
@@ -546,7 +554,10 @@
     "removeHint": "{name} will no longer get in. Their groups and records stay, and need a new teacher.",
     "confirmRemove": "Yes, remove",
     "teachesGroups": "{count, plural, one {Teaches an active group} other {Teaches # active groups}}. Move them to another teacher first.",
-    "inviteShort": "Invite"
+    "inviteShort": "Invite",
+    "pending": "Invites not accepted yet",
+    "expires": "Expires {when}",
+    "revoke": "Revoke"
   },
   "nav": {
     "label": "Main",
@@ -695,5 +706,9 @@
     "invalid": "Type a number from 0 to 120",
     "save": "Save",
     "saved": "Saved"
+  },
+  "welcome": {
+    "title": "Welcome, {name}",
+    "body": "How will you use Dafter?"
   }
 }

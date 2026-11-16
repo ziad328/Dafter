@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import {
   useCreateInviteMutation,
+  useListInvitesQuery,
+  useRevokeInviteMutation,
   useCreateStaffResetLinkMutation,
   useGetCurrentWorkspaceQuery,
   useGetMeQuery,
@@ -18,6 +20,7 @@ import { Avatar, PageHeader, Panel, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { setWorkspaceId } from '@/api/base';
 import { errorDetails, errorKey } from '@/lib/session';
+import { intlLocale } from '@/lib/time';
 
 /** Staff of the workspace; the owner invites teachers and assistants and picks assistants' teachers. */
 export default function Members() {
@@ -63,6 +66,7 @@ export default function Members() {
           className="h-11 w-full rounded-2xl border bg-card px-4 text-base shadow-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       )}
+      {isOwner && <PendingInvites />}
       <Panel className="overflow-hidden">
         <ul className="divide-y">
           {shown.map((m) => (
@@ -73,6 +77,50 @@ export default function Members() {
         </ul>
       </Panel>
     </div>
+  );
+}
+
+/** Invites nobody has accepted yet, each with a revoke; hidden when there are none. */
+function PendingInvites() {
+  const { t, i18n } = useTranslation();
+  const list = useListInvitesQuery();
+  const [revoke, revoking] = useRevokeInviteMutation();
+  if (!list.data?.length) return null;
+  return (
+    <section aria-labelledby="pending-invites" className="grid gap-2">
+      <h2 id="pending-invites" className="font-semibold">
+        {t('members.pending')}
+      </h2>
+      <Panel className="overflow-hidden">
+        <ul className="divide-y">
+          {list.data.map((inv) => (
+            <li key={inv.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+              <span className="grid">
+                <span className="font-medium">{t(`roles.${inv.role}`)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t('members.expires', {
+                    when: new Intl.DateTimeFormat(intlLocale(i18n.language), {
+                      weekday: 'long',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    }).format(Date.parse(inv.expiresAt)),
+                  })}
+                </span>
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={revoking.isLoading}
+                onClick={() => void revoke({ id: inv.id })}
+              >
+                {t('members.revoke')}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+      <FormError message={revoking.error && t(errorKey(revoking.error))} />
+    </section>
   );
 }
 
@@ -132,10 +180,10 @@ function InviteForm({ teachers }: { teachers: Member[] }) {
       {link && (
         <div className="grid gap-2 rounded-md border p-3 text-sm">
           <p>{t('members.linkHint', { role: t(`roles.${created.data!.role}`) })}</p>
-          <bdi className="break-all font-mono text-xs" dir="ltr" data-testid="staff-invite-link">
-            {link}
-          </bdi>
-          <ShareButton text={t('share.staffInvite')} url={link} />
+          {/* Send or Copy only: a 70-character link on screen helps nobody (audit 3 A13). */}
+          <div data-testid="staff-invite-link" data-link={link}>
+            <ShareButton text={t('share.staffInvite')} url={link} />
+          </div>
         </div>
       )}
     </div>

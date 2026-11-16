@@ -3,7 +3,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import type {
   CreateInviteRequest,
   Invite,
+  InvitePreview,
   Member,
+  PendingInvite,
   StaffResetLink,
   UpdateMemberRequest,
   Workspace,
@@ -61,6 +63,23 @@ export class MembersService {
     if (result === 'not_found') throw new AppError('NOT_FOUND');
     if (result === 'not_allowed') throw new AppError('RESET_NOT_ALLOWED');
     return { token, expiresAt: expiresAt.toISOString() };
+  }
+
+  async preview(token: string): Promise<InvitePreview> {
+    const found = await this.repo.findInvitePreview(hashToken(token), this.clock.now());
+    if (!found) throw new AppError('INVITE_INVALID');
+    return found;
+  }
+
+  listInvites(workspaceId: string, role: Role): Promise<PendingInvite[]> {
+    requireOwner(role);
+    return this.repo.listPending(workspaceId, this.clock.now());
+  }
+
+  async revokeInvite(workspaceId: string, role: Role, id: string): Promise<void> {
+    requireOwner(role);
+    if (!(await this.repo.revoke(workspaceId, id, this.clock.now())))
+      throw new AppError('NOT_FOUND');
   }
 
   async accept(userId: string, token: string) {

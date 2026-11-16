@@ -9,6 +9,8 @@ import {
 
 const AUTH_PREFIX = '/api/v1/auth/';
 const REFRESH_URL = `${AUTH_PREFIX}refresh`;
+// GET /api/v1/invites/<token>: the invite page reads it before sign-in.
+const PUBLIC_READ = /^\/api\/v1\/invites\/[^/]+$/;
 const WORKSPACE_KEY = 'dafter.workspace';
 
 // Memory only: a reload loses it and the refresh cookie gets a new one.
@@ -91,7 +93,10 @@ export const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryE
   }
 
   // After a reload there is no token yet: refresh first instead of earning a 401.
+  // After a reload there is no token yet: refresh first instead of earning a 401. Signed out, only
+  // the public invite preview goes out; everything else is answered 401 here.
   if (!accessToken && !(await refreshOnce(api, extra)).data) {
+    if (PUBLIC_READ.test(url)) return raw(args, api, extra);
     return { error: { status: 401, data: { code: 'UNAUTHENTICATED' } } };
   }
 

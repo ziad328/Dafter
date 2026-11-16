@@ -68,7 +68,12 @@ describe('register', () => {
       password,
     });
     expect(res.statusCode).toBe(201);
-    expect(res.json().user).toMatchObject({ phone, email: 'mona@example.com', locale: 'ar' });
+    expect(res.json().user).toMatchObject({
+      phone,
+      email: 'mona@example.com',
+      locale: 'ar',
+      kind: 'staff',
+    });
     const cookie = refreshCookie(res)!;
     expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/api/v1/auth' });
     // Only the hash is stored.

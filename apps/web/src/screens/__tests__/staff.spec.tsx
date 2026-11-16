@@ -29,10 +29,34 @@ describe('staff', () => {
     await screen.findByRole('combobox', { name: tr('members.role') });
     await pick(user, tr('members.role'), tr('roles.teacher'));
     await user.click(screen.getByRole('button', { name: tr('members.createLink') }));
-    expect(await screen.findByTestId('staff-invite-link')).toHaveTextContent(
-      '/invite/staff-invite-token',
-    );
+    // Send or Copy only; the link itself is not printed (audit 3 A13).
+    const shared = await screen.findByTestId('staff-invite-link');
+    expect(shared.dataset.link).toMatch(/\/invite\/staff-invite-token$/);
+    expect(shared).not.toHaveTextContent('/invite/');
     expect(call('POST /api/v1/invites')?.body).toEqual({ role: 'teacher' });
+  });
+
+  it('lists invites not accepted yet, and revokes one', async () => {
+    const { user } = await renderAt('/members');
+    const pending = await screen.findByRole('region', { name: tr('members.pending') });
+    expect(within(pending).getByText(tr('roles.assistant'))).toBeVisible();
+    await user.click(within(pending).getByRole('button', { name: tr('members.revoke') }));
+    await expect
+      .poll(() => sent.some((s) => s.call.startsWith('DELETE /api/v1/invites/')))
+      .toBe(true);
+  });
+
+  it('shows no pending list when every invite was used, and a failed revoke', async () => {
+    server.use(http.get(route('invites'), () => Response.json([])));
+    const { unmount } = await renderAt('/members', { lang: 'en' });
+    await screen.findByRole('button', { name: tr('members.inviteShort') });
+    expect(screen.queryByRole('region', { name: tr('members.pending') })).toBeNull();
+    unmount();
+    server.resetHandlers();
+    server.use(http.delete(route('invites/:id'), fail('NOT_FOUND', 404)));
+    const { user } = await renderAt('/members');
+    await user.click(await screen.findByRole('button', { name: tr('members.revoke') }));
+    expect(await screen.findByText(tr('errors.NOT_FOUND'))).toBeVisible();
   });
 
   it('sets which teachers an assistant works for, and undoes a failed save', async () => {
@@ -321,6 +345,11 @@ describe('messages', () => {
 describe('workspaces', () => {
   const second = { ...fx.workspaces[0]!, id: crypto.randomUUID(), nameEn: null, role: 'teacher' };
 
+  it('sends someone who already has a workspace from the welcome screen to their list', async () => {
+    const { router } = await renderAt('/welcome', { workspace: null });
+    await expect.poll(() => router.state.location.pathname).toBe('/');
+  });
+
   it('skips the list for someone with one workspace', async () => {
     const { router } = await renderAt('/workspaces', { workspace: null });
     await expect.poll(() => router.state.location.pathname).toBe('/');
@@ -343,11 +372,20 @@ describe('workspaces', () => {
   it('creates a workspace, validating the name', async () => {
     const { user, router } = await renderAt('/workspaces');
     await user.click(await screen.findByRole('button', { name: tr('workspaces.create.title') }));
+    await user.click(screen.getByRole('button', { name: tr('payments.close') }));
+    await user.click(screen.getByRole('button', { name: tr('workspaces.create.title') }));
     const sheet = screen.getByRole('dialog');
     await user.click(within(sheet).getByRole('button', { name: tr('workspaces.create.submit') }));
     expect(await within(sheet).findByText(tr('form.invalid.nameAr'))).toBeVisible();
-    await user.type(within(sheet).getByLabelText(tr('workspaces.create.nameAr')), 'سنتر الأمل');
-    await user.click(within(sheet).getByLabelText(tr('workspaces.create.independent')));
+    // The type comes first, as two cards; it renames the name field (audit 3 A7).
+    expect(within(sheet).getByLabelText(tr('workspaces.create.centerName'))).toBeVisible();
+    await user.click(
+      within(sheet).getByRole('radio', { name: new RegExp(tr('workspaces.create.independent')) }),
+    );
+    await user.type(
+      within(sheet).getByLabelText(tr('workspaces.create.teacherName')),
+      'سنتر الأمل',
+    );
     await user.click(within(sheet).getByRole('button', { name: tr('workspaces.create.submit') }));
     await expect
       .poll(() => call('POST /api/v1/workspaces')?.body)
@@ -358,18 +396,24 @@ describe('workspaces', () => {
     expect(router.state.location.pathname).toBe('/');
   });
 
-  it('shows a failed create, an empty list and a failed list', async () => {
+  it('welcomes a new account with no workspace, outside the app shell (audit 3 A6)', async () => {
     server.use(
       http.post(route('workspaces'), fail('INTERNAL', 500)),
       http.get(route('workspaces'), () => Response.json([])),
     );
-    const { user, unmount } = await renderAt('/workspaces');
-    expect(await screen.findByText(tr('workspaces.empty'))).toBeVisible();
-    await user.click(screen.getByRole('button', { name: tr('workspaces.create.title') }));
-    await user.type(screen.getByLabelText(tr('workspaces.create.nameAr')), 'سنتر');
+    const { user, router, unmount } = await renderAt('/workspaces', { workspace: null });
+    expect(
+      await screen.findByRole('heading', { name: tr('welcome.title', { name: fx.me.name }) }),
+    ).toBeVisible();
+    expect(router.state.location.pathname).toBe('/welcome');
+    // The plain layout: sign-out and language in the header, no tab bar.
+    expect(screen.getByRole('button', { name: tr('shell.logout') })).toBeVisible();
+    expect(screen.queryByRole('navigation', { name: tr('nav.label') })).toBeNull();
+    // The English name waits under «تفاصيل أكثر».
+    expect(screen.getByLabelText(new RegExp(tr('workspaces.create.nameEn')))).not.toBeVisible();
+    await user.type(screen.getByLabelText(tr('workspaces.create.centerName')), 'سنتر');
     await user.click(screen.getByRole('button', { name: tr('workspaces.create.submit') }));
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.INTERNAL'));
-    await user.click(screen.getByRole('button', { name: tr('payments.close') }));
     unmount();
     server.use(http.get(route('workspaces'), fail('FORBIDDEN', 403)));
     await renderAt('/workspaces');
@@ -548,6 +592,25 @@ describe('staff invite link', () => {
       'href',
       '/register?next=%2Finvite%2Ftok',
     );
+    // It names the center and the role before sign-in (audit 3 A10).
+    expect(
+      screen.getByRole('heading', {
+        name: tr('invite.invites', { center: 'سنتر النور', role: tr('invite.as.assistant') }),
+      }),
+    ).toBeVisible();
+  });
+
+  it('says when an invite link no longer works, in English', async () => {
+    server.use(http.get(route('invites/:token'), fail('INVITE_INVALID', 410)));
+    await renderAt('/invite/tok', { workspace: null, lang: 'en' });
+    expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.INVITE_INVALID'));
+    expect(screen.queryByRole('button', { name: tr('invite.join') })).toBeNull();
+  });
+
+  it('sends a signed-in student from a staff link to the student app (audit 3 A11)', async () => {
+    server.use(http.get(route('me'), () => Response.json({ ...fx.me, kind: 'student' })));
+    const { router } = await renderAt('/groups');
+    await expect.poll(() => router.state.location.pathname).toBe('/s');
   });
 
   it('joins and opens the workspace, or shows why not', async () => {

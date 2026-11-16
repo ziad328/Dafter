@@ -19,7 +19,7 @@ export function errorDetails(error: unknown, code: ErrorCode): Record<string, st
   return data?.code === code ? (data.details ?? {}) : undefined;
 }
 
-export const workspaceName = (ws: Workspace, lang: string) =>
+export const workspaceName = (ws: Pick<Workspace, 'nameAr' | 'nameEn'>, lang: string) =>
   lang === 'en' && ws.nameEn ? ws.nameEn : ws.nameAr;
 
 /** Only same-app paths, so ?next= cannot send the user to another site. */

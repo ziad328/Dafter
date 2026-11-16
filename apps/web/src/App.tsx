@@ -22,6 +22,7 @@ const ForgotPassword = lazyPage(() => import('./screens/ForgotPassword'));
 const ResetPassword = lazyPage(() => import('./screens/ResetPassword'));
 const AcceptInvite = lazyPage(() => import('./screens/AcceptInvite'));
 const Workspaces = lazyPage(() => import('./screens/Workspaces'));
+const Welcome = lazyPage(() => import('./screens/Welcome'));
 const Members = lazyPage(() => import('./screens/Members'));
 const Home = lazyPage(() => import('./screens/Home'));
 const Groups = lazyPage(() => import('./screens/Groups'));
@@ -88,6 +89,7 @@ function Layout() {
 }
 
 function RequireAuth({ loginPath = '/login' }: { loginPath?: string }) {
+  const staffOnly = loginPath === '/login';
   const { t } = useTranslation();
   const me = useGetMeQuery();
   const { pathname } = useLocation();
@@ -97,6 +99,8 @@ function RequireAuth({ loginPath = '/login' }: { loginPath?: string }) {
     return <Navigate to={`${loginPath}?next=${encodeURIComponent(pathname)}`} replace />;
   }
   if (me.error) return <FormError message={t(errorKey(me.error))} />;
+  // A signed-in student who opens a staff link belongs in the student app (audit 3 A11).
+  if (staffOnly && me.data?.kind === 'student') return <Navigate to="/s" replace />;
   return <Outlet />;
 }
 
@@ -110,6 +114,8 @@ export const routes: RouteObject[] = [
       { path: '/forgot', element: <ForgotPassword /> },
       { path: '/reset/:token', element: <ResetPassword /> },
       { path: '/invite/:token', element: <AcceptInvite /> },
+      // A new account with no workspace: two big choices, sign-out and language in the header.
+      { element: <RequireAuth />, children: [{ path: '/welcome', element: <Welcome /> }] },
       // Student app (Day 14 makes it the installable PWA).
       { path: '/s/login', element: <StudentLogin /> },
       { path: '/s/activate/:token', element: <StudentLogin /> },

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { and, asc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
-import type { Invite, Member, Workspace } from '@dafter/contracts';
+import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
+import type { Invite, InvitePreview, Member, PendingInvite, Workspace } from '@dafter/contracts';
 import {
   assistantScopes,
   groups,
@@ -77,6 +77,76 @@ export class MembersRepository extends TenantRepository {
     if (!user.has_password || user.memberships > 1 || user.student) return 'not_allowed';
     await this.db.insert(passwordResets).values({ userId: member.userId, tokenHash, expiresAt });
     return 'ok';
+  }
+
+  /**
+   * The invite page's preview, before sign-in: like findInviteWorkspace, a read by token hash as
+   * the owner (no RLS), and only for an invite that can still be accepted.
+   */
+  async findInvitePreview(tokenHash: string, now: Date): Promise<InvitePreview | undefined> {
+    const [row] = await this.db
+      .select({
+        workspaceNameAr: workspaces.nameAr,
+        workspaceNameEn: workspaces.nameEn,
+        workspaceType: workspaces.type,
+        role: invites.role,
+      })
+      .from(invites)
+      .innerJoin(workspaces, eq(workspaces.id, invites.workspaceId))
+      .where(
+        and(eq(invites.tokenHash, tokenHash), isNull(invites.usedAt), gt(invites.expiresAt, now)),
+      );
+    return row && { ...row, role: row.role as InvitePreview['role'] };
+  }
+
+  /** Unused, unexpired invites of this workspace, newest first. */
+  listPending(workspaceId: string, now: Date): Promise<PendingInvite[]> {
+    return this.inTenant(workspaceId, async (tx) => {
+      const rows = await tx
+        .select({
+          id: invites.id,
+          role: invites.role,
+          expiresAt: invites.expiresAt,
+          createdAt: invites.createdAt,
+        })
+        .from(invites)
+        .where(
+          and(
+            eq(invites.workspaceId, workspaceId),
+            isNull(invites.usedAt),
+            gt(invites.expiresAt, now),
+          ),
+        )
+        .orderBy(desc(invites.createdAt));
+      return rows.map((r) => ({
+        id: r.id,
+        role: r.role as PendingInvite['role'],
+        expiresAt: r.expiresAt.toISOString(),
+        createdAt: r.createdAt.toISOString(),
+      }));
+    });
+  }
+
+  /**
+   * Revoke = expire now: accept already refuses an expired invite, and the row stays for the
+   * audit log. False when there is no pending invite with this id here.
+   */
+  revoke(workspaceId: string, id: string, now: Date): Promise<boolean> {
+    return this.inTenant(workspaceId, async (tx) => {
+      const rows = await tx
+        .update(invites)
+        .set({ expiresAt: now })
+        .where(
+          and(
+            eq(invites.workspaceId, workspaceId),
+            eq(invites.id, id),
+            isNull(invites.usedAt),
+            gt(invites.expiresAt, now),
+          ),
+        )
+        .returning({ id: invites.id });
+      return rows.length > 0;
+    });
   }
 
   async findInviteWorkspace(tokenHash: string): Promise<string | undefined> {

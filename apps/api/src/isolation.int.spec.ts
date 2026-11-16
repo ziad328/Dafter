@@ -25,6 +25,8 @@ const NON_TENANT_ROUTES = new Set([
   'GET /api/v1/workspaces',
   // The invitee is not a member yet; the token names the workspace.
   'POST /api/v1/invites/:token/accept',
+  // Before sign-in: the token alone names the invite; it shows the center's name and the role.
+  'GET /api/v1/invites/:token',
   // Student login spans every workspace the student belongs to; the invite names the record.
   'POST /api/v1/auth/otp/request',
   'POST /api/v1/auth/otp/verify',

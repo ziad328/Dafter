@@ -1,15 +1,13 @@
-import { createWorkspaceRequest, type CreateWorkspaceRequest } from '@dafter/contracts';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { Navigate } from 'react-router';
 import { getWorkspaceId } from '@/api/base';
-import { useCreateWorkspaceMutation, useListWorkspacesQuery } from '@/api/generated';
-import { Field, FormError, Skeleton } from '@/components/Field';
-import { Avatar, PageHeader, Panel, Sheet } from '@/components/Page';
+import { useListWorkspacesQuery } from '@/api/generated';
+import { CreateWorkspace } from '@/components/CreateWorkspace';
+import { FormError, Skeleton } from '@/components/Field';
+import { Avatar, PageHeader, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { errorKey, useSelectWorkspace, workspaceName } from '@/lib/session';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +24,8 @@ export default function Workspaces() {
   }, [current, only, select]);
 
   if (list.isLoading || (!current && only)) return <Skeleton />;
+  // No workspace yet: the welcome screen asks center or independent teacher (audit 3 A6).
+  if (list.data?.length === 0) return <Navigate to="/welcome" replace />;
 
   return (
     <div className="grid gap-5">
@@ -39,9 +39,6 @@ export default function Workspaces() {
         }
       />
       <FormError message={list.error && t(errorKey(list.error))} />
-      {list.data?.length === 0 && (
-        <Panel className="p-8 text-center text-muted-foreground">{t('workspaces.empty')}</Panel>
-      )}
       <ul className="grid gap-3 sm:grid-cols-2">
         {list.data?.map((ws) => {
           const name = workspaceName(ws, i18n.language);
@@ -76,49 +73,5 @@ export default function Workspaces() {
         <CreateWorkspace onCreated={select} />
       </Sheet>
     </div>
-  );
-}
-
-function CreateWorkspace({ onCreated }: { onCreated: (id: string) => void }) {
-  const { t } = useTranslation();
-  const [create, { error, isLoading }] = useCreateWorkspaceMutation();
-  const { register, handleSubmit, formState } = useForm<CreateWorkspaceRequest>({
-    resolver: zodResolver(createWorkspaceRequest),
-    defaultValues: { type: 'center' },
-  });
-
-  const onSubmit = handleSubmit(async (body) => {
-    const created = await create({ createWorkspaceRequest: body });
-    if (created.data) onCreated(created.data.id);
-  });
-
-  return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-4">
-      <Field
-        label={t('workspaces.create.nameAr')}
-        error={formState.errors.nameAr && t('form.invalid.nameAr')}
-        {...register('nameAr')}
-      />
-      <Field
-        label={`${t('workspaces.create.nameEn')} ${t('form.optional')}`}
-        dir="ltr"
-        error={formState.errors.nameEn && t('form.invalid.nameAr')}
-        // Empty must be undefined, or the min-length rule rejects "".
-        {...register('nameEn', { setValueAs: (v: string) => v.trim() || undefined })}
-      />
-      <fieldset className="grid gap-2">
-        <legend className="mb-2 text-sm font-medium">{t('workspaces.create.type')}</legend>
-        {(['center', 'independent'] as const).map((type) => (
-          <Label key={type} className="font-normal">
-            <input type="radio" value={type} className="accent-primary" {...register('type')} />
-            {t(`workspaces.create.${type}`)}
-          </Label>
-        ))}
-      </fieldset>
-      <FormError message={error && t(errorKey(error))} />
-      <Button type="submit" disabled={isLoading}>
-        {t('workspaces.create.submit')}
-      </Button>
-    </form>
   );
 }

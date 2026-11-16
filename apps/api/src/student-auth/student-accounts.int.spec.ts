@@ -152,7 +152,10 @@ describe('student activation and login', () => {
     const email = 'later@example.com';
     await activate(c.owner, await c.newStudent(), email);
     expect((await post('auth/otp/request', { email })).statusCode).toBe(204);
-    expect((await post('auth/otp/verify', { email, code: codeFor(email) })).statusCode).toBe(200);
+    const verified = await post('auth/otp/verify', { email, code: codeFor(email) });
+    expect(verified.statusCode).toBe(200);
+    // A student account: the web app sends it to /s from any staff URL (audit 3 A11).
+    expect(verified.json().user.kind).toBe('student');
 
     const before = mailer.inbox.length;
     expect((await post('auth/otp/request', { email: 'nobody@example.com' })).statusCode).toBe(204);

@@ -220,6 +220,27 @@ export const handlers = [
     ),
   ),
   http.post(api('invites/:token/accept'), log(fx.currentWorkspace)),
+  http.get(
+    api('invites'),
+    log([
+      {
+        id: '0d3b1c55-7a39-4c43-9a43-8f1f1b0e2c11',
+        role: 'assistant',
+        expiresAt: new Date(Date.now() + 48 * 3_600_000).toISOString(),
+        createdAt: new Date().toISOString(),
+      },
+    ]),
+  ),
+  http.delete(api('invites/:id'), log(null, 204)),
+  http.get(
+    api('invites/:token'),
+    log({
+      workspaceNameAr: 'سنتر النور',
+      workspaceNameEn: 'Al-Nour Center',
+      workspaceType: 'center',
+      role: 'assistant',
+    }),
+  ),
   http.get(api('members'), log(fx.members)),
   http.post(
     api('members/:id/password-reset'),

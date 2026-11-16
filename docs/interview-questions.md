@@ -223,3 +223,11 @@ The outbox insert is one `insert … select … on conflict do nothing` in the c
 
 **2. Why can't a repeated close inflate that number?**
 A second close is refused (SESSION_NOT_OPEN), and even a replayed insert hits the unique `dedupe_key` and counts 0. The number shown is what the sender will really send, unless the workspace switched absence messages off, which makes it 0 too.
+
+## Invite preview and revoke
+
+**1. `GET /invites/:token` needs no sign-in. Why is that safe?**
+The token is 32 random bytes and only its hash is stored, so guessing one is hopeless; the answer holds only the center's name and the role, and only for an invite that can still be accepted. It is the same trust the accept link already had.
+
+**2. Why is revoking an invite "expire it now" instead of a delete or a new column?**
+Accept already refuses an expired invite in its single conditional UPDATE, so no new check is needed, the row stays for the audit log, and no migration has to reach Neon. The update is filtered by workspace, so another center's id answers 404.

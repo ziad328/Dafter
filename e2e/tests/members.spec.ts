@@ -27,7 +27,7 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
   await page.getByRole('button', { name: t.members.inviteShort }).click();
   await choose(page, t.members.role, t.roles.assistant);
   await page.getByRole('button', { name: t.members.createLink }).click();
-  const link = (await page.getByTestId('staff-invite-link').textContent())!;
+  const link = (await page.getByTestId('staff-invite-link').getAttribute('data-link'))!;
   expect(link).toMatch(/\/invite\/[\w-]+$/);
   // Send (share sheet) on phones, Copy where the browser has none.
   await expect(
@@ -39,6 +39,14 @@ test('owner invites an assistant by link, the assistant joins, and the owner pic
   await ctx.addInitScript((l) => localStorage.setItem('dafter.locale', l), lang);
   const a = await ctx.newPage();
   await a.goto(new URL(link).pathname);
+  // The page names the center and the role before sign-in (audit 3 A10).
+  await expect(
+    a.getByRole('heading', {
+      name: t.invite.invites
+        .replace('{center}', CENTER[lang])
+        .replace('{role}', t.invite.as.assistant),
+    }),
+  ).toBeVisible();
   await a.getByRole('link', { name: t.auth.register.submit }).click();
   await a.getByLabel(t.auth.register.name).fill(name);
   await a.getByLabel(t.auth.register.phone).fill(`010${n}`);

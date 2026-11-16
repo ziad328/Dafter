@@ -32,6 +32,8 @@ export const me = z
     phone: z.string().nullable(),
     email: z.string().nullable(),
     locale: z.enum(['ar', 'en']),
+    // Students sign in with an emailed code and have no password; the web app sends them to /s.
+    kind: z.enum(['staff', 'student']),
   })
   .meta({ id: 'Me' });
 
