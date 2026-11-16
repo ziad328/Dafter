@@ -55,6 +55,14 @@ describe('today', () => {
     expect(within(next).queryByRole('link', { name: tr('today.startQr') })).toBeNull();
   });
 
+  it('keeps a class more than 2 hours away to one line (audit 3 V2)', async () => {
+    withSessions([session('scheduled', 300)]);
+    await renderAt('/', { lang: 'en' });
+    const next = await screen.findByRole('region', { name: fx.sessions[1]!.subject.nameEn });
+    expect(within(next).getByText(/in 5 hours/)).toBeVisible();
+    expect(within(next).queryByText(new RegExp(tr('today.opensAt').split('{')[0]!))).toBeNull();
+  });
+
   it('says a late session started, and counts hours when it is far', async () => {
     withSessions([session('scheduled', -150), session('open', 10)]);
     await renderAt('/', { lang: 'en' });

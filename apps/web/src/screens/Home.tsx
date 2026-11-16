@@ -263,6 +263,8 @@ function SetupChecklist({ steps }: { steps: SetupStep[] }) {
   );
 }
 
+const FAR_MS = 2 * 60 * 60_000;
+
 const range = (s: Session, tz: string, lang: string) =>
   `${displayTime(s.startsAt, tz, lang)} – ${displayTime(s.endsAt, tz, lang)}`;
 
@@ -282,6 +284,24 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
     : t(Date.parse(s.startsAt) > now ? 'today.startsIn' : 'today.started', {
         when: relative(s.startsAt, now, lang),
       });
+
+  // More than 2 h away it is a reminder, not the thing to do now: one line (audit 3 V2).
+  if (!open && Date.parse(s.startsAt) - now > FAR_MS)
+    return (
+      <section
+        aria-labelledby="next-session"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-linear-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] px-4 py-3 text-sm text-white shadow-card"
+      >
+        <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium">
+          {t('today.next')}
+        </span>
+        <h2 id="next-session" className="text-base font-semibold">
+          {itemName(s.subject, lang)}
+        </h2>
+        <bdi className="text-white/85">{range(s, tz, lang)}</bdi>
+        <span className="ms-auto text-white/75">{timing}</span>
+      </section>
+    );
 
   return (
     <section
@@ -389,25 +409,34 @@ function WeekChart({ week }: { week: StatsDay[] }) {
       </div>
       <ol className="flex items-end gap-2" aria-label={t('stats.week')}>
         {week.map((d, i) => {
-          const pct = d.total ? Math.round((d.present / d.total) * 100) : 0;
+          const pct = Math.round((d.present / d.total) * 100);
+          // A day without classes is «—», not a 0% bar (audit 3 H6).
+          const shown = d.total ? `${pct}%` : t('stats.noClasses');
           return (
             <li key={d.date} className="flex flex-1 flex-col items-center gap-1.5">
               {/* A fixed-height track, so the bar's percentage height has something to resolve against. */}
-              <div className="flex h-28 w-full items-end" title={`${pct}%`}>
-                <div
-                  className={cn(
-                    'w-full rounded-t-lg transition-[height] duration-700 ease-out',
-                    i === week.length - 1 ? 'bg-ink' : 'bg-ink/30',
-                    !d.total && 'bg-muted',
-                  )}
-                  style={{
-                    height: grown ? `${Math.max(pct, 4)}%` : '0%',
-                    transitionDelay: `${i * 60}ms`,
-                  }}
-                />
+              <div className="flex h-28 w-full items-end justify-center" title={shown}>
+                {d.total ? (
+                  <div
+                    className={cn(
+                      'w-full rounded-t-lg transition-[height] duration-700 ease-out',
+                      i === week.length - 1 ? 'bg-ink' : 'bg-ink/30',
+                    )}
+                    style={{
+                      height: grown ? `${Math.max(pct, 4)}%` : '0%',
+                      transitionDelay: `${i * 60}ms`,
+                    }}
+                  />
+                ) : (
+                  // The day's sr-only line below already says «لا حصص».
+                  <span
+                    aria-hidden
+                    className="text-sm text-muted-foreground before:content-['—']"
+                  />
+                )}
               </div>
               <span className="text-xs text-muted-foreground">{day(d.date)}</span>
-              <span className="sr-only">{`${pct}%`}</span>
+              <span className="sr-only">{shown}</span>
             </li>
           );
         })}

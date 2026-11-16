@@ -13,7 +13,7 @@ import {
 } from '@/api/generated';
 import { Field, FormError, Skeleton } from '@/components/Field';
 import { FilterPicker, uniqueOptions } from '@/components/FilterChips';
-import { PageHeader, Panel } from '@/components/Page';
+import { PageHeader, Panel, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { itemName } from '@/lib/groups';
 import { errorDetails, errorKey } from '@/lib/session';
@@ -116,31 +116,48 @@ export default function Timetable() {
       ) : days.size === 0 ? (
         <p className="text-sm text-muted-foreground">{t('timetable.empty')}</p>
       ) : (
-        [...days].map(([date, sessions]) => (
-          <section
-            key={date}
-            className="grid scroll-mt-4 gap-2"
-            // Today's sessions are what staff open the timetable for, so start there.
-            ref={date === today ? scrollToToday : undefined}
-          >
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-              {dayLabel(date, lang)}
-              {date === today && (
-                <span className="rounded-full bg-ink px-2 py-0.5 text-xs text-primary-foreground">
-                  {t('nav.today')}
-                </span>
-              )}
-            </h2>
-            {/* Compact rows: a busy day fits on a phone screen (audit TT1). */}
-            <Panel className="overflow-hidden">
-              <ul className="divide-y">
-                {sessions.map((s) => (
-                  <SessionRow key={s.id} session={s} tz={tz} canWrite={canWrite} />
-                ))}
-              </ul>
-            </Panel>
-          </section>
-        ))
+        // Phones: the days with sessions, one under another. Laptops: the whole week as seven
+        // columns, empty days included (audit 3 TT6).
+        <div className="grid gap-4 lg:grid-cols-7 lg:items-start lg:gap-2">
+          {[0, 1, 2, 3, 4, 5, 6].map((n) => {
+            const date = addDays(from, n);
+            const sessions = days.get(date) ?? [];
+            return (
+              <section
+                key={date}
+                className={cn(
+                  'grid min-w-0 scroll-mt-4 gap-2',
+                  !sessions.length && 'hidden lg:grid',
+                )}
+                // Today's sessions are what staff open the timetable for, so start there.
+                ref={date === today ? scrollToToday : undefined}
+              >
+                <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-muted-foreground">
+                  {dayLabel(date, lang)}
+                  {date === today && (
+                    <span className="rounded-full bg-ink px-2 py-0.5 text-xs text-primary-foreground">
+                      {t('nav.today')}
+                    </span>
+                  )}
+                </h2>
+                {sessions.length ? (
+                  // Compact rows: a busy day fits on a phone screen (audit TT1).
+                  <Panel className="overflow-hidden">
+                    <ul className="divide-y">
+                      {sessions.map((s) => (
+                        <SessionRow key={s.id} session={s} tz={tz} canWrite={canWrite} />
+                      ))}
+                    </ul>
+                  </Panel>
+                ) : (
+                  <p className="px-1 text-sm text-muted-foreground before:content-['—']">
+                    <span className="sr-only">{t('stats.noClasses')}</span>
+                  </p>
+                )}
+              </section>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -167,77 +184,93 @@ function SessionRow({
   const [mode, setMode] = useState<'view' | 'menu' | 'confirm' | 'move'>('view');
   const [cancel, cancelled] = useCancelSessionMutation();
   const editable = canWrite && s.status === 'scheduled';
+  const startNow = startable(s, tz);
+  const title = `${itemName(s.subject, lang)}${s.groupLabel ? ` · ${s.groupLabel}` : ''}`;
+  // Line 2 carries what line 1 leaves out, so the label and room are no longer cut (audit 3 TT3).
+  const details = [
+    itemName(s.gradeLevel, lang),
+    s.teacherName,
+    ...(s.room ? [s.room.name] : []),
+    ...(s.status !== 'scheduled' ? [t(`timetable.status.${s.status}`)] : []),
+    ...(s.moved ? [t('timetable.moved')] : []),
+  ].join(' · ');
 
   return (
-    <li className="grid gap-3 px-4 py-3">
-      <div className="flex items-center gap-3">
-        <div className="grid w-16 shrink-0 text-sm">
-          <bdi className="font-semibold">{displayTime(s.startsAt, tz, lang)}</bdi>
-          <bdi className="text-xs text-muted-foreground">{displayTime(s.endsAt, tz, lang)}</bdi>
-        </div>
-        <span aria-hidden className={cn('size-2.5 shrink-0 rounded-full', DOT[s.status])} />
-        <div className="grid min-w-0 flex-1">
-          <h3 className="truncate font-semibold">
-            {`${itemName(s.subject, lang)} · ${itemName(s.gradeLevel, lang)}`}
-            {s.groupLabel && ` · ${s.groupLabel}`}
-          </h3>
-          <p className="truncate text-sm text-muted-foreground">
-            {s.teacherName}
-            {s.room && ` · ${s.room.name}`}
-            {s.status !== 'scheduled' && ` · ${t(`timetable.status.${s.status}`)}`}
-            {s.moved && ` · ${t('timetable.moved')}`}
-          </p>
-        </div>
-        {startable(s, tz) && (
-          <Button asChild size="sm">
-            <Link to={`/sessions/${s.id}/live`} state={{ from: '/timetable' }}>
-              {t('timetable.start')}
-            </Link>
-          </Button>
-        )}
-        {/* Move and cancel wait behind one menu, so a busy row has no stray "cancel" tap. */}
-        {editable && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('timetable.actions')}
-            aria-expanded={mode === 'menu'}
-            onClick={() => setMode(mode === 'menu' ? 'view' : 'menu')}
-          >
-            <MoreHorizontal aria-hidden />
-          </Button>
-        )}
+    <li className="flex items-center gap-3 px-4 py-3 lg:grid lg:gap-1.5 lg:px-2.5 lg:py-2.5">
+      <div className="grid w-16 shrink-0 text-sm lg:flex lg:w-auto lg:items-center lg:gap-1.5 lg:text-xs">
+        <span aria-hidden className={cn('hidden size-2 rounded-full lg:block', DOT[s.status])} />
+        <bdi className="font-semibold whitespace-nowrap">{displayTime(s.startsAt, tz, lang)}</bdi>
+        <bdi className="text-xs whitespace-nowrap text-muted-foreground">
+          {displayTime(s.endsAt, tz, lang)}
+        </bdi>
       </div>
-      {editable && mode !== 'view' && (
-        <div className="grid gap-3">
-          <FormError message={cancelled.error && t(errorKey(cancelled.error))} />
-          {mode === 'menu' && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setMode('move')}>
-                {t('timetable.move')}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setMode('confirm')}>
-                {t('timetable.cancel')}
-              </Button>
-            </div>
+      <span aria-hidden className={cn('size-2.5 shrink-0 rounded-full lg:hidden', DOT[s.status])} />
+      <div className="grid min-w-0 flex-1">
+        <h3 className="truncate font-semibold lg:text-sm lg:whitespace-normal">{title}</h3>
+        <p className="truncate text-sm text-muted-foreground lg:text-xs lg:whitespace-normal">
+          {details}
+        </p>
+      </div>
+      {(startNow || editable) && (
+        <div className="flex shrink-0 items-center gap-1">
+          {startNow && (
+            <Button asChild size="sm">
+              <Link to={`/sessions/${s.id}/live`} state={{ from: '/timetable' }}>
+                {t('timetable.start')}
+              </Link>
+            </Button>
           )}
-          {mode === 'confirm' && (
-            <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={cancelled.isLoading}
-                onClick={() => void cancel({ id: s.id })}
-              >
-                {t('timetable.confirmCancel')}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setMode('view')}>
-                {t('timetable.keep')}
-              </Button>
-            </div>
+          {/* Move and cancel wait behind one menu, so a busy row has no stray "cancel" tap; in a
+            sheet, so they fit a week column on a laptop too. */}
+          {editable && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('timetable.actions')}
+              aria-expanded={mode !== 'view'}
+              className="lg:ms-auto"
+              onClick={() => setMode('menu')}
+            >
+              <MoreHorizontal aria-hidden />
+            </Button>
           )}
-          {mode === 'move' && <MoveForm session={s} tz={tz} onDone={() => setMode('view')} />}
         </div>
+      )}
+      {editable && (
+        <Sheet open={mode !== 'view'} onClose={() => setMode('view')} title={title}>
+          <div className="grid gap-3">
+            <p className="text-sm text-muted-foreground">
+              {`${dayLabel(localDate(s.startsAt, tz), lang)} · `}
+              <bdi>{`${displayTime(s.startsAt, tz, lang)} – ${displayTime(s.endsAt, tz, lang)}`}</bdi>
+            </p>
+            <FormError message={cancelled.error && t(errorKey(cancelled.error))} />
+            {mode === 'menu' && (
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setMode('move')}>
+                  {t('timetable.move')}
+                </Button>
+                <Button variant="ghost" onClick={() => setMode('confirm')}>
+                  {t('timetable.cancel')}
+                </Button>
+              </div>
+            )}
+            {mode === 'confirm' && (
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  disabled={cancelled.isLoading}
+                  onClick={() => void cancel({ id: s.id })}
+                >
+                  {t('timetable.confirmCancel')}
+                </Button>
+                <Button variant="ghost" onClick={() => setMode('view')}>
+                  {t('timetable.keep')}
+                </Button>
+              </div>
+            )}
+            {mode === 'move' && <MoveForm session={s} tz={tz} onDone={() => setMode('view')} />}
+          </div>
+        </Sheet>
       )}
     </li>
   );

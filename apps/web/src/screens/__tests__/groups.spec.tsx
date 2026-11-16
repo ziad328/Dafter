@@ -2,7 +2,7 @@ import { fireEvent, getDefaultNormalizer, screen, within } from '@testing-librar
 import { describe, expect, it } from 'vitest';
 import { weekdayName } from '@/lib/groups';
 import { formatEgp } from '@/lib/money';
-import { addDays, localDate, weekStart } from '@/lib/time';
+import { addDays, dayLabel, localDate, weekStart } from '@/lib/time';
 import { fail, fx, http, route, sent, server } from '@/test/server';
 import { filterBy, pick, renderAt, tr } from '@/test/render';
 
@@ -266,8 +266,9 @@ describe('timetable', () => {
     withWeek([session(today, 'scheduled')]);
     const { user } = await renderAt('/timetable');
     const menu = await screen.findByRole('button', { name: tr('timetable.actions') });
+    // Move and cancel open in a sheet; closing it keeps the session (audit 3 TT6).
     await user.click(menu);
-    await user.click(menu);
+    await user.click(screen.getByRole('button', { name: tr('timetable.close') }));
     expect(screen.queryByRole('button', { name: tr('timetable.move') })).toBeNull();
     await user.click(menu);
     await user.click(screen.getByRole('button', { name: tr('timetable.cancel') }));
@@ -314,6 +315,9 @@ describe('timetable', () => {
       target: { value: '18:00' },
     });
     fireEvent.change(end, { target: { value: '19:00' } });
+    // Native pickers show «06:00 PM» in Arabic too: the value is repeated in Arabic (audit 3 TT5).
+    expect(within(form).getByText('7:00 م')).toBeVisible();
+    expect(within(form).getByText(dayLabel(today, 'ar'))).toBeVisible();
     await user.click(within(form).getByRole('button', { name: tr('timetable.save') }));
     await expect
       .poll(() => call(`PATCH /api/v1/sessions/${s.id}`)?.body)
@@ -355,7 +359,8 @@ describe('timetable', () => {
     await user.click(screen.getByRole('button', { name: tr('timetable.move') }));
     await user.click(screen.getByRole('button', { name: tr('timetable.save') }));
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.SESSION_NOT_SCHEDULED'));
-    await user.click(screen.getByRole('button', { name: tr('timetable.close') }));
+    const form = screen.getByLabelText(tr('timetable.date')).closest('form')!;
+    await user.click(within(form).getByRole('button', { name: tr('timetable.close') }));
     expect(screen.queryByLabelText(tr('timetable.date'))).toBeNull();
   });
 

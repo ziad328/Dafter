@@ -626,7 +626,8 @@
     "expected": "Booked today",
     "checkedIn": "Checked in",
     "students": "Active students",
-    "week": "Attendance this week"
+    "week": "Attendance · last 7 days",
+    "noClasses": "No classes"
   },
   "payments": {
     "close": "Close",

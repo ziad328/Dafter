@@ -77,11 +77,11 @@ test('owner sees generated sessions, then moves and cancels one', async ({
     await page.getByRole('button', { name: t.timetable.nextWeek }).click();
 
   const card = page.getByRole('listitem').filter({ hasText: range(start, end) });
-  await expect(
-    card.getByRole('heading', { name: `${PHYSICS[lang]} · ${SEC3[lang]}` }),
-  ).toBeVisible();
+  // Line 1 is the subject (and label); the grade moved to line 2 (audit 3 TT3).
+  await expect(card.getByRole('heading', { name: PHYSICS[lang] })).toBeVisible();
+  await expect(card.getByText(SEC3[lang])).toBeVisible();
 
-  // Move it one hour later on the same day.
+  // Move it one hour later on the same day; move and cancel open in a sheet.
   await card.getByRole('button', { name: t.timetable.actions }).click();
   await card.getByRole('button', { name: t.timetable.move }).click();
   const later = `${pad(hour + 1)}:${minute}`;

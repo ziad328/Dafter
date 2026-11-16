@@ -107,6 +107,24 @@ function NextSession() {
     (s) => s.status !== 'cancelled' && s.status !== 'closed' && s.endsAt > now,
   );
   if (!next) return null;
+  // More than 2 h away: one line, so Scan stays near the top (audit 3 V2).
+  if (Date.parse(next.startsAt) - Date.now() > 2 * 60 * 60_000)
+    return (
+      <section
+        aria-label={t('today.next')}
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-gradient-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] px-4 py-3 text-sm text-white shadow-card"
+      >
+        <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs">{t('today.next')}</span>
+        <h2 className="text-base font-semibold">
+          {itemName(next.subject, lang)}
+          {next.groupLabel && ` · ${next.groupLabel}`}
+        </h2>
+        <span className="text-white/85">
+          {`${dayLabel(localDate(next.startsAt, next.timezone), lang)} · `}
+          <bdi>{displayTime(next.startsAt, next.timezone, lang)}</bdi>
+        </span>
+      </section>
+    );
   return (
     <section
       aria-label={t('today.next')}

@@ -14,16 +14,39 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { clockLabel, dayLabel } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
 type Props = ComponentProps<typeof Input> & { label: string; error?: string; hint?: string };
 
-/** Label, input and its translated error, wired for screen readers. Passwords get a show toggle. */
-export function Field({ label, error, hint, ...input }: Props) {
-  const { t } = useTranslation();
+/**
+ * Label, input and its translated error, wired for screen readers. Passwords get a show toggle.
+ * Date and time pickers draw «11/21/2026» and «05:30 PM» whatever the page language, so in Arabic
+ * the value is repeated under the field, «السبت 21 نوفمبر» or «5:30 م» (audit 3 TT5).
+ */
+export function Field({ label, error, hint, ref, ...input }: Props) {
+  const { t, i18n } = useTranslation();
   const id = useId();
   const [shown, setShown] = useState(false);
   const secret = input.type === 'password';
+  const local = i18n.language === 'ar' && (input.type === 'date' || input.type === 'time');
+  const own = useRef<HTMLInputElement | null>(null);
+  const [value, setValue] = useState('');
+  // The form writes values through the ref (defaults, reset) without a change event: read back.
+  useLayoutEffect(() => {
+    if (local) setValue(own.current!.value);
+  });
+  const setRef = (el: HTMLInputElement | null) => {
+    own.current = el;
+    if (typeof ref === 'function') ref(el);
+    else if (ref) ref.current = el;
+  };
+  const spoken =
+    local && value
+      ? input.type === 'date'
+        ? dayLabel(value, 'ar')
+        : clockLabel(value.slice(0, 5), 'ar')
+      : '';
   const note = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className="grid gap-2">
@@ -31,9 +54,14 @@ export function Field({ label, error, hint, ...input }: Props) {
       <div className="relative">
         <Input
           id={id}
+          ref={setRef}
           aria-invalid={!!error}
           aria-describedby={note}
           {...input}
+          onChange={(e) => {
+            input.onChange?.(e);
+            if (local) setValue(e.target.value);
+          }}
           type={secret && shown ? 'text' : input.type}
           className={cn(secret && 'pe-11', input.className)}
         />
@@ -53,6 +81,11 @@ export function Field({ label, error, hint, ...input }: Props) {
           </button>
         )}
       </div>
+      {spoken && (
+        <p aria-hidden className="text-xs text-muted-foreground">
+          {spoken}
+        </p>
+      )}
       {error ? (
         <p id={`${id}-error`} className="text-sm text-destructive">
           {error}
