@@ -1,14 +1,16 @@
+import type { Group } from '@dafter/contracts';
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { fail, fx, http, route, sent, server } from '@/test/server';
+import { groupName as fullName } from '@/lib/groups';
 import { formatEgp } from '@/lib/money';
 import { filterBy, pick, renderAt, seen, tr } from '@/test/render';
 
 const student = fx.student;
 const page = `/students/${student.id}`;
 const call = (c: string) => sent.find((s) => s.call === c);
-const groupName = (g: (typeof fx.groups)[number]) =>
-  `${g.subject.nameAr} · ${g.gradeLevel.nameAr} · ${g.teacherName}`;
+// The dropdowns name a group by subject, grade, its first slot or label, and teacher (audit 3 G5).
+const groupName = (g: (typeof fx.groups)[number]) => fullName(g as Group, 'ar', true);
 
 const lastEnroll = () =>
   sent.findLast((s) => s.call.startsWith('POST') && s.call.endsWith('/enrollments'))?.body;

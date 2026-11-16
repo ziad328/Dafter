@@ -26,6 +26,7 @@ const Members = lazyPage(() => import('./screens/Members'));
 const Home = lazyPage(() => import('./screens/Home'));
 const Groups = lazyPage(() => import('./screens/Groups'));
 const GroupForm = lazyPage(() => import('./screens/GroupForm'));
+const GroupPage = lazyPage(() => import('./screens/GroupPage'));
 const Timetable = lazyPage(() => import('./screens/Timetable'));
 const Students = lazyPage(() => import('./screens/Students'));
 const StudentForm = lazyPage(() => import('./screens/StudentForm'));
@@ -133,7 +134,8 @@ export const routes: RouteObject[] = [
           { path: '/members', element: <Members /> },
           { path: '/groups', element: <Groups /> },
           { path: '/groups/new', element: <GroupForm /> },
-          { path: '/groups/:id', element: <GroupForm /> },
+          { path: '/groups/:id', element: <GroupPage /> },
+          { path: '/groups/:id/edit', element: <GroupForm /> },
           { path: '/groups/:id/exams', element: <GroupExams /> },
           { path: '/exams/:id', element: <ExamSheet /> },
           { path: '/timetable', element: <Timetable /> },

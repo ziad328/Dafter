@@ -47,13 +47,16 @@ describe('groups', () => {
     expect(screen.getByRole('link', { name: new RegExp(tr('groups.new')) })).toBeVisible();
   });
 
-  it('shows assistants plain cards, in English', async () => {
+  it('lets assistants open a group page but not create one, in English', async () => {
     asRole('assistant');
     await renderAt('/groups', { lang: 'en' });
     expect(await screen.findAllByRole('heading', { name: /^Arabic/ })).toHaveLength(
       fx.groups.length,
     );
-    expect(screen.queryByRole('link', { name: /Arabic/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /Arabic/ })[0]).toHaveAttribute(
+      'href',
+      `/groups/${fx.groups[0]!.id}`,
+    );
     expect(screen.queryByRole('link', { name: new RegExp(tr('groups.new')) })).toBeNull();
   });
 
@@ -124,7 +127,7 @@ describe('group form', () => {
     await user.click(screen.getAllByRole('button', { name: tr('groups.removeSlot') })[1]!);
     await user.click(submit);
 
-    await expect.poll(() => router.state.location.pathname).toBe('/groups');
+    await expect.poll(() => router.state.location.pathname).toMatch(/^\/groups\/[^/]+$/);
     expect(call('POST /api/v1/groups')?.body).toEqual({
       subjectId: fx.subjects[0]!.id,
       gradeLevelId: fx.gradeLevels[0]!.id,
@@ -137,10 +140,10 @@ describe('group form', () => {
   });
 
   it('saves an unchanged group that has no capacity', async () => {
-    const { user, router } = await renderAt(`/groups/${fx.group.id}`);
+    const { user, router } = await renderAt(`/groups/${fx.group.id}/edit`);
     await screen.findByRole('combobox', { name: tr('groups.teacher') });
     await user.click(screen.getByRole('button', { name: tr('groups.save') }));
-    await expect.poll(() => router.state.location.pathname).toBe('/groups');
+    await expect.poll(() => router.state.location.pathname).toBe(`/groups/${fx.group.id}`);
     expect(call(`PATCH /api/v1/groups/${fx.group.id}`)?.body).toMatchObject({
       capacity: null,
       label: null,
@@ -167,7 +170,7 @@ describe('group form', () => {
 
   it('edits an existing group with its saved fee, and shows a save error', async () => {
     server.use(http.patch(route('groups/:id'), fail('SLOT_OVERLAP_TEACHER', 409)));
-    const { user } = await renderAt(`/groups/${fx.group.id}`, { lang: 'en' });
+    const { user } = await renderAt(`/groups/${fx.group.id}/edit`, { lang: 'en' });
     expect(
       await screen.findByLabelText(`${tr('groups.monthlyFee')} ${tr('form.optional')}`),
     ).toHaveValue('500.00');
@@ -180,15 +183,15 @@ describe('group form', () => {
     server.use(
       http.get(route('groups/:id'), () => Response.json({ ...fx.group, monthlyFeePiastres: null })),
     );
-    const { user, router } = await renderAt(`/groups/${fx.group.id}`);
+    const { user, router } = await renderAt(`/groups/${fx.group.id}/edit`);
     await user.click(await screen.findByRole('button', { name: tr('groups.save') }));
-    await expect.poll(() => router.state.location.pathname).toBe('/groups');
+    await expect.poll(() => router.state.location.pathname).toBe(`/groups/${fx.group.id}`);
     expect(screen.queryByRole('combobox', { name: tr('groups.teacher') })).toBeNull();
   });
 
   it('says when the group cannot be loaded', async () => {
     server.use(http.get(route('groups/:id'), fail('GROUP_NOT_FOUND', 404)));
-    await renderAt(`/groups/${fx.group.id}`);
+    await renderAt(`/groups/${fx.group.id}/edit`);
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.GROUP_NOT_FOUND'));
   });
 });
@@ -372,7 +375,7 @@ describe('a group whose teacher was removed', () => {
     );
     await renderAt('/groups');
     expect(await screen.findByText(tr('groups.teacherRemoved'))).toBeVisible();
-    await renderAt(`/groups/${gone.id}`);
+    await renderAt(`/groups/${gone.id}/edit`);
     expect(
       await screen.findByText(tr('groups.teacherRemovedHint', { name: gone.teacherName })),
     ).toBeVisible();

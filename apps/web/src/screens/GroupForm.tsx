@@ -37,7 +37,7 @@ const toForm = (g: Group): CreateGroupRequest => ({
 
 const blankSlot = { weekday: 6, startTime: '16:00', endTime: '17:30' };
 
-/** Create (/groups/new) and edit (/groups/:id) one group. */
+/** Create (/groups/new) and edit (/groups/:id/edit) one group. */
 export default function GroupForm() {
   const { t } = useTranslation();
   const { id } = useParams();
@@ -106,7 +106,8 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
       const res = id
         ? await update({ id, updateGroupRequest: { ...body, force } })
         : await create({ createGroupRequest: { ...body, force } });
-      if (res.data) void navigate('/groups');
+      // Back to the group's own page (audit 3 G1).
+      if (res.data) void navigate(`/groups/${res.data.id}`);
     });
   const onSubmit = save();
   // The form as it is now (edited since the warning or not), never a copy from the first try.

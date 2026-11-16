@@ -586,7 +586,7 @@ describe('app shell', () => {
   });
 
   it('shows the way back on detail screens', async () => {
-    const { unmount } = await renderAt(`/groups/${fx.group.id}`);
+    const { unmount } = await renderAt(`/groups/${fx.group.id}/edit`);
     const crumbs = await screen.findByRole('navigation', { name: tr('nav.breadcrumbs') });
     expect(await within(crumbs).findByText(fx.group.subject.nameAr)).toBeVisible();
     unmount();

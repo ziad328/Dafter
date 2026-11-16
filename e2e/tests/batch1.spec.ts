@@ -36,7 +36,7 @@ test('owner archives a group, and it leaves the active list', async ({
 
   await signIn(page, t, STAFF.owner);
   await enterWorkspace(page, t, CENTER[lang]);
-  await page.goto(`/groups/${group.id}`);
+  await page.goto(`/groups/${group.id}/edit`);
   await page.getByRole('button', { name: t.groups.archive }).click();
   await page.getByRole('button', { name: t.groups.confirmArchive }).click();
   await expect(page).toHaveURL(/\/groups$/);
@@ -45,6 +45,7 @@ test('owner archives a group, and it leaves the active list', async ({
 
   // Restore it again in one tap.
   await card.click();
+  await page.getByRole('link', { name: t.groups.editShort }).click();
   await submitGroup(page, t, t.groups.restore);
   await expect(page).toHaveURL(/\/groups$/);
   await expect(page.getByRole('link').filter({ hasText: label })).not.toContainText(

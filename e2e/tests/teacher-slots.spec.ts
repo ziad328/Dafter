@@ -56,6 +56,6 @@ test('a second group at the same time as the teacher’s first warns, and saves 
   await expect(page).toHaveURL(/\/groups\/new$/);
 
   await warning.getByRole('button', { name: t.groups.saveAnyway }).click();
-  await expect(page).toHaveURL(/\/groups$/);
+  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}$/);
   await expect.poll(async () => ((await api.get('groups')) as unknown[]).length).toBe(2);
 });

@@ -138,7 +138,14 @@
     "archiveHint": "تختفي المجموعة من اليوم والجدول، وتُحذف حصصها القادمة. سجلها يبقى.",
     "overRoom": "السعة أكبر من مقاعد {room} ({capacity} مقعد)",
     "teacherRemoved": "بدون مدرّس",
-    "teacherRemovedHint": "{name} لم يعد في السنتر. اختر مدرّسًا لهذه المجموعة."
+    "teacherRemovedHint": "{name} لم يعد في السنتر. اختر مدرّسًا لهذه المجموعة.",
+    "editShort": "تعديل",
+    "notActivated": "لم يفعّل",
+    "noStudents": "لا طلاب في المجموعة بعد.",
+    "nextClasses": "الحصص القادمة",
+    "noNextClasses": "لا حصص في الأسبوعين القادمين.",
+    "allExams": "كل الامتحانات",
+    "noExams": "لا امتحانات بعد."
   },
   "roles": {
     "owner": "مالك",

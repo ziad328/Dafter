@@ -11,7 +11,7 @@ const asRole = (role: string) =>
 
 describe('archive a group', () => {
   it('archives after a second tap, then goes back to the list', async () => {
-    const { user, router } = await renderAt(`/groups/${fx.group.id}`);
+    const { user, router } = await renderAt(`/groups/${fx.group.id}/edit`);
     await user.click(await screen.findByRole('button', { name: tr('groups.archive') }));
     expect(screen.getByText(tr('groups.archiveHint'))).toBeVisible();
     expect(body(`PATCH /api/v1/groups/${fx.group.id}`)).toBeUndefined();
@@ -25,10 +25,10 @@ describe('archive a group', () => {
       http.get(route('groups/:id'), () => Response.json({ ...fx.group, status: 'archived' })),
       http.patch(route('groups/:id'), fail('FORBIDDEN', 403)),
     );
-    const { user, router } = await renderAt(`/groups/${fx.group.id}`, { lang: 'en' });
+    const { user, router } = await renderAt(`/groups/${fx.group.id}/edit`, { lang: 'en' });
     await user.click(await screen.findByRole('button', { name: tr('groups.restore') }));
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
-    expect(router.state.location.pathname).toBe(`/groups/${fx.group.id}`);
+    expect(router.state.location.pathname).toBe(`/groups/${fx.group.id}/edit`);
   });
 });
 

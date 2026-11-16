@@ -138,7 +138,14 @@
     "archiveHint": "The group leaves Today and the timetable, and its upcoming sessions are removed. Its records stay.",
     "overRoom": "The capacity is more than the seats in {room} ({capacity})",
     "teacherRemoved": "No teacher",
-    "teacherRemovedHint": "{name} is no longer in the center. Pick a teacher for this group."
+    "teacherRemovedHint": "{name} is no longer in the center. Pick a teacher for this group.",
+    "editShort": "Edit",
+    "notActivated": "Not activated",
+    "noStudents": "No students in this group yet.",
+    "nextClasses": "Next classes",
+    "noNextClasses": "No classes in the next two weeks.",
+    "allExams": "All exams",
+    "noExams": "No exams yet."
   },
   "roles": {
     "owner": "Owner",

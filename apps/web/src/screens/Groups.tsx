@@ -157,16 +157,13 @@ export default function Groups() {
                   className="flex animate-rise items-center"
                   style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
                 >
-                  {canWrite ? (
-                    <Link
-                      to={`/groups/${g.id}`}
-                      className={cn(rowClass, 'hover:bg-ink-soft/50 focus-visible:bg-ink-soft')}
-                    >
-                      {body}
-                    </Link>
-                  ) : (
-                    <div className={rowClass}>{body}</div>
-                  )}
+                  {/* Every role opens the group's page; only owners and teachers see Edit there. */}
+                  <Link
+                    to={`/groups/${g.id}`}
+                    className={cn(rowClass, 'hover:bg-ink-soft/50 focus-visible:bg-ink-soft')}
+                  >
+                    {body}
+                  </Link>
                   {/* Every role that sees the group grades its exams, assistants too. */}
                   <Button asChild variant="ghost" size="icon" className="me-2 shrink-0">
                     <Link to={`/groups/${g.id}/exams`} aria-label={t('exams.title')}>

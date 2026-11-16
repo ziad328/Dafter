@@ -26,7 +26,7 @@ import { StudentFees } from '@/components/StudentFees';
 import { PageHeader } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { itemName } from '@/lib/groups';
+import { groupName, itemName } from '@/lib/groups';
 import { errorDetails, errorKey } from '@/lib/session';
 
 const formSchema = createStudentRequest.extend({ status: studentStatus.optional() });
@@ -278,7 +278,7 @@ function StudentFormBody({
                   .filter((g) => g.status === 'active')
                   .map((g) => (
                     <option key={g.id} value={g.id}>
-                      {`${itemName(g.subject, i18n.language)} · ${itemName(g.gradeLevel, i18n.language)} · ${g.teacherName}`}
+                      {groupName(g, i18n.language, true)}
                     </option>
                   ))}
               </SelectField>

@@ -15,7 +15,7 @@ import { ShareButton } from '@/components/ShareButton';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { itemName } from '@/lib/groups';
+import { groupName, itemName } from '@/lib/groups';
 import { errorDetails, errorKey } from '@/lib/session';
 
 /** GROUP_FULL: «المجموعة مكتملة (20/20). إضافة على أي حال؟» with Add anyway and Cancel. */
@@ -131,7 +131,7 @@ export function Enrollments({ studentId }: { studentId: string }) {
                 ?.filter((g) => g.status === 'active' && !active.some((e) => e.groupId === g.id))
                 .map((g) => (
                   <option key={g.id} value={g.id}>
-                    {name(g)}
+                    {groupName(g, i18n.language, true)}
                   </option>
                 ))}
             </SelectField>

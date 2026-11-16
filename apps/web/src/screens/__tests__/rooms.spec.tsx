@@ -166,7 +166,7 @@ describe('rooms on groups and the timetable', () => {
       ),
       http.patch(route('groups/:id'), booked(bodies)),
     );
-    const { user } = await renderAt(`/groups/${fx.group.id}`);
+    const { user } = await renderAt(`/groups/${fx.group.id}/edit`);
     const room = await screen.findByRole('combobox', {
       name: `${tr('groups.room')} ${tr('form.optional')}`,
     });

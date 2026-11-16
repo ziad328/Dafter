@@ -23,12 +23,19 @@ export const sortedSlots = (group: Group) =>
 /**
  * A name that tells groups apart: subject · its short label, or else its first slot · teacher
  * ("الفيزياء · السبت 4:00 م · منى حسن"). Without the slot, a teacher's groups of one subject
- * all read the same (audit 3 G5).
+ * all read the same (audit 3 G5). Forms that mix grades pass `withGrade`.
  */
-export const groupName = (group: Group, lang: string) => {
+export const groupName = (group: Group, lang: string, withGrade = false) => {
   const first = sortedSlots(group)[0];
   const when =
     group.label ??
     (first && `${weekdayName(lang, first.weekday)} ${clockLabel(first.startTime, lang)}`);
-  return [itemName(group.subject, lang), when, group.teacherName].filter(Boolean).join(' · ');
+  return [
+    itemName(group.subject, lang),
+    withGrade && itemName(group.gradeLevel, lang),
+    when,
+    group.teacherName,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 };

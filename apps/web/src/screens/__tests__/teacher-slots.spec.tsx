@@ -29,19 +29,19 @@ function busyTeacher(group: object = fx.group) {
 describe('teacher double-booking on the group form', () => {
   it('says when the teacher is busy, and saves the form as edited since, with force', async () => {
     const bodies = busyTeacher();
-    const { user, router } = await renderAt(`/groups/${fx.group.id}`);
+    const { user, router } = await renderAt(`/groups/${fx.group.id}/edit`);
     await user.click(await screen.findByRole('button', { name: tr('groups.save') }));
     const time = `⁨${clockLabel('16:00', 'ar')} – ${clockLabel('17:30', 'ar')}⁩`;
     expect(await screen.findByRole('alert')).toHaveTextContent(
       tr('groups.teacherBusyAt', { day: weekdayName('ar', 6), time }),
     );
-    expect(router.state.location.pathname).toBe(`/groups/${fx.group.id}`);
+    expect(router.state.location.pathname).toBe(`/groups/${fx.group.id}/edit`);
 
     // Edited after the warning: "Save anyway" sends the new time, not the first try's.
     const [start] = screen.getAllByLabelText(tr('groups.start'));
     fireEvent.change(start!, { target: { value: '08:00' } });
     await user.click(screen.getByRole('button', { name: tr('groups.saveAnyway') }));
-    await expect.poll(() => router.state.location.pathname).toBe('/groups');
+    await expect.poll(() => router.state.location.pathname).toBe(`/groups/${fx.group.id}`);
     expect(bodies.map((b) => b.force)).toEqual([undefined, true]);
     expect((bodies[1]!.slots as { startTime: string }[])[0]!.startTime).toBe('08:00');
   });
@@ -51,7 +51,7 @@ describe('teacher double-booking on the group form', () => {
       http.get(route('groups/:id'), () => Response.json({ ...fx.group, status: 'archived' })),
     );
     const bodies = busyTeacher();
-    const { user, router } = await renderAt(`/groups/${fx.group.id}`, { lang: 'en' });
+    const { user, router } = await renderAt(`/groups/${fx.group.id}/edit`, { lang: 'en' });
     await user.click(await screen.findByRole('button', { name: tr('groups.restore') }));
     await user.click(await screen.findByRole('button', { name: tr('groups.saveAnyway') }));
     await expect.poll(() => router.state.location.pathname).toBe('/groups');

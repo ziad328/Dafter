@@ -37,17 +37,17 @@ test('owner creates a group for a teacher', async ({ page, lang, t }) => {
   await page.getByLabel(t.groups.end).fill('17:30');
   await submitGroup(page, t);
 
-  await expect(page).toHaveURL(/\/groups$/);
-  // "0/485": the bare digits can also sit inside another group's label.
-  const card = page.getByRole('link').filter({ hasText: `/${capacity}` });
-  await expect(card.getByRole('heading', { name: PHYSICS[lang] })).toBeVisible();
-  await expect(card.getByText('منى حسن')).toBeVisible();
-  await expect(card.getByText(SEC3[lang])).toBeVisible();
+  // A new group opens on its own page (audit 3 G1); its header names it.
+  await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}$/);
+  const header = page.getByRole('main').locator('header').first();
+  await expect(header.getByRole('heading', { name: new RegExp(PHYSICS[lang]) })).toBeVisible();
+  await expect(header).toContainText(SEC3[lang]);
+  await expect(header).toContainText('منى حسن');
   // Slots read in 12-hour time.
-  await expect(card.getByText(SLOT[lang])).toBeVisible();
+  await expect(header).toContainText(SLOT[lang]);
 
   // Editing opens with the saved subject and grade, even on a fresh load (lists arrive late).
-  await card.click();
+  await page.getByRole('link', { name: t.groups.editShort }).click();
   await page.reload();
   await expect(page.getByRole('combobox', { name: t.groups.subject, exact: true })).toContainText(
     PHYSICS[lang],

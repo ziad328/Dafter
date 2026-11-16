@@ -26,7 +26,9 @@ export function Breadcrumbs() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const student = matchPath('/students/:id', pathname)?.params.id;
-  const group = matchPath('/groups/:id', pathname)?.params.id;
+  const groupEdit = matchPath('/groups/:id/edit', pathname)?.params.id;
+  const groupExams = matchPath('/groups/:id/exams', pathname)?.params.id;
+  const group = matchPath('/groups/:id', pathname)?.params.id ?? groupEdit ?? groupExams;
   const studentName = useName('student', student);
   const groupName = useName('group', group);
 
@@ -36,6 +38,12 @@ export function Breadcrumbs() {
     crumbs = [
       { label: t('nav.students'), to: '/students' },
       { label: student === 'new' ? t('students.new') : (studentName ?? '') },
+    ];
+  else if (groupEdit || groupExams)
+    crumbs = [
+      { label: t('nav.groups'), to: '/groups' },
+      { label: groupName ?? '', to: `/groups/${group}` },
+      { label: t(groupEdit ? 'groups.editShort' : 'exams.title') },
     ];
   else if (group)
     crumbs = [
