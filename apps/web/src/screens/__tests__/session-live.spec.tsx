@@ -111,7 +111,8 @@ describe('live session', () => {
     // The page shows "0 / N"; the full-screen overlay keeps the sentence for the class.
     const overlay = screen.getByText(tr('live.count', { count: 0 }));
     // Portalled out of the app shell, so its header and tab bar can't sit on top (audit 3 LV2).
-    expect(overlay.parentElement!.parentElement).toBe(document.body);
+    const portal = overlay.closest('.fixed')!;
+    expect(portal.parentElement).toBe(document.body);
     await user.click(screen.getByRole('button', { name: tr('live.exitFullScreen') }));
     expect(screen.queryAllByText(tr('live.count', { count: 0 }))).toHaveLength(0);
   });

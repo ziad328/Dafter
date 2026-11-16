@@ -210,6 +210,14 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* The browser's own bars take width and draw arrows: hidden everywhere. Scrolling still works
+     (wheel, keys, touch); the page draws PageScrollbar and boxes use ScrollArea, both overlays. */
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

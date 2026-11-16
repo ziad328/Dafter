@@ -28,6 +28,7 @@ import { Skeleton } from '@/components/Field';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { useSignOut, workspaceName, workspaceRole } from '@/lib/session';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 export const SECTIONS = ['daily', 'money', 'admin'] as const;
@@ -253,29 +254,32 @@ export function AppShell() {
         <aside className="hidden w-68 shrink-0 flex-col gap-6 bg-navy px-4 py-6 lg:sticky lg:top-0 lg:flex lg:h-dvh print:hidden">
           <Wordmark dark />
           <WorkspaceChip dark />
-          {/* The same three short sections as More (audit 3 N3); scrolls on a short screen. */}
-          <nav aria-label={t('nav.label')} className="-mx-1 grid gap-4 overflow-y-auto px-1">
-            {[undefined, ...SECTIONS].map((section) => {
-              const items = section ? more.filter((i) => i.section === section) : main;
-              if (!items.length) return null;
-              return (
-                <div key={section ?? 'main'} className="grid gap-0.5">
-                  {section && (
-                    // Not a heading: the page's own h1/h2 outline stays the page's.
-                    <p className="px-3 pb-1 text-xs font-semibold text-white/50">
-                      {t(`nav.sections.${section}`)}
-                    </p>
-                  )}
-                  {items.map(({ to, label, icon: Icon, end }) => (
-                    <NavLink key={to} to={to} end={end} className={sideLink}>
-                      <Icon className="size-5" aria-hidden />
-                      {label}
-                    </NavLink>
-                  ))}
-                </div>
-              );
-            })}
-          </nav>
+          {/* The same three short sections as More (audit 3 N3); scrolls on a short screen, with
+            a bar that floats over the olive and shows only while scrolling. */}
+          <ScrollArea tone="light" className="-mx-1 min-h-0" viewportClassName="px-1">
+            <nav aria-label={t('nav.label')} className="grid gap-4">
+              {[undefined, ...SECTIONS].map((section) => {
+                const items = section ? more.filter((i) => i.section === section) : main;
+                if (!items.length) return null;
+                return (
+                  <div key={section ?? 'main'} className="grid gap-0.5">
+                    {section && (
+                      // Not a heading: the page's own h1/h2 outline stays the page's.
+                      <p className="px-3 pb-1 text-xs font-semibold text-white/50">
+                        {t(`nav.sections.${section}`)}
+                      </p>
+                    )}
+                    {items.map(({ to, label, icon: Icon, end }) => (
+                      <NavLink key={to} to={to} end={end} className={sideLink}>
+                        <Icon className="size-5" aria-hidden />
+                        {label}
+                      </NavLink>
+                    ))}
+                  </div>
+                );
+              })}
+            </nav>
+          </ScrollArea>
           <AccountActions dark className="mt-auto" />
         </aside>
       )}

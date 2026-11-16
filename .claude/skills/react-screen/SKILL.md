@@ -8,4 +8,5 @@ description: Use when creating or editing anything in apps/web - screens, forms,
 - RTL: logical classes only; numbers, phones and codes inside <bdi>; flip directional icons with rtl:.
 - Loading: skeletons, not spinners. Optimistic updates only for attendance and edits; money waits for the server and shows a pending state.
 - Lazy-load routes; keep the initial bundle small.
+- Scrolling: the browser's scrollbars are hidden app-wide; the page shows PageScrollbar. Any box that scrolls (`overflow-y-auto`) wraps its content in `ScrollArea` from `components/ui/scroll-area` (`tone="light"` on dark surfaces), so its bar floats, takes no width and shows only while scrolling.
 - All text follows the i18n-rtl skill.

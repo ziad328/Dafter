@@ -2,6 +2,7 @@ import { type LucideIcon, X } from 'lucide-react';
 import { type ReactNode, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 /** A screen's title, an optional line under it, and its one main action on the end side. */
@@ -94,15 +95,18 @@ export function Sheet({
       ref={ref}
       onClose={onClose}
       aria-label={title}
-      className="mx-auto mb-0 mt-auto max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-card p-5 text-foreground shadow-card backdrop:bg-black/40 sm:mb-auto sm:rounded-3xl"
+      className="mx-auto mb-0 mt-auto max-h-[92dvh] w-full max-w-md overflow-hidden rounded-t-3xl bg-card text-foreground shadow-card backdrop:bg-black/40 sm:mb-auto sm:rounded-3xl"
     >
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <Button size="icon" variant="ghost" aria-label={t('payments.close')} onClick={onClose}>
-          <X aria-hidden />
-        </Button>
-      </div>
-      {open && children}
+      {/* The sheet scrolls inside, with the floating bar. */}
+      <ScrollArea className="max-h-[92dvh]" viewportClassName="max-h-[inherit] p-5">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <Button size="icon" variant="ghost" aria-label={t('payments.close')} onClick={onClose}>
+            <X aria-hidden />
+          </Button>
+        </div>
+        {open && children}
+      </ScrollArea>
     </dialog>
   );
 }

@@ -14,6 +14,7 @@ import { FormError, Skeleton } from './components/Field';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Button } from './components/ui/button';
 import { lazyPage } from './lib/lazy-page';
+import { PageScrollbar } from './components/PageScrollbar';
 import { errorKey, useSignOut } from './lib/session';
 
 const Login = lazyPage(() => import('./screens/Login'));
@@ -169,5 +170,10 @@ export const routes: RouteObject[] = [
 const router = createBrowserRouter(routes);
 
 export function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <PageScrollbar />
+    </>
+  );
 }

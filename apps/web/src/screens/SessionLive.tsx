@@ -25,6 +25,7 @@ import { FormError, Skeleton } from '@/components/Field';
 import { Avatar } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { itemName } from '@/lib/groups';
 import { importQrKey, qrText } from '@/lib/qr';
 import { errorDetails, errorKey } from '@/lib/session';
@@ -464,15 +465,17 @@ function FullScreen({ onExit, children }: { onExit: () => void; children: ReactN
     };
   }, [onExit]);
   return createPortal(
-    <div
-      ref={ref}
-      className="fixed inset-0 z-[100] grid content-center gap-4 overflow-y-auto bg-background p-4 text-foreground"
-    >
-      {children}
-      <Button variant="outline" className="mx-auto" onClick={onExit}>
-        <X aria-hidden />
-        {t('live.exitFullScreen')}
-      </Button>
+    <div ref={ref} className="fixed inset-0 z-[100] bg-background text-foreground">
+      {/* A short landscape phone scrolls the QR and the list, with the floating bar. */}
+      <ScrollArea className="h-full">
+        <div className="grid min-h-dvh content-center gap-4 p-4">
+          {children}
+          <Button variant="outline" className="mx-auto" onClick={onExit}>
+            <X aria-hidden />
+            {t('live.exitFullScreen')}
+          </Button>
+        </div>
+      </ScrollArea>
     </div>,
     document.body,
   );
