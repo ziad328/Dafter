@@ -67,9 +67,14 @@ describe('settings', () => {
     await renderAt('/settings');
     expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.FORBIDDEN'));
 
-    await renderAt('/more');
+    // Under More for the owner only: others can't change it (audit 3 N2).
+    const more = await renderAt('/more');
     const nav = await screen.findByRole('navigation', { name: tr('nav.more') });
-    expect(within(nav).getByRole('link', { name: tr('nav.settings') })).toHaveAttribute(
+    expect(within(nav).queryByRole('link', { name: tr('nav.settings') })).toBeNull();
+    more.unmount();
+    asRole('owner');
+    await renderAt('/more');
+    expect((await screen.findAllByRole('link', { name: tr('nav.settings') }))[0]).toHaveAttribute(
       'href',
       '/settings',
     );

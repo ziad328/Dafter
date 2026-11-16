@@ -29,12 +29,20 @@ import { Button } from '@/components/ui/button';
 import { useSignOut, workspaceName } from '@/lib/session';
 import { cn } from '@/lib/utils';
 
-type Item = { to: string; label: string; icon: LucideIcon; end?: boolean };
+type Section = 'daily' | 'money' | 'admin';
+type Item = { to: string; label: string; icon: LucideIcon; end?: boolean; section?: Section };
 
-/** The staff navigation for the current role; the phone tabs keep the first four plus "More". */
+/**
+ * The staff navigation for the current role; the phone tabs keep the first four plus "More".
+ * Setup screens only the owner can change (rooms, staff, settings) are the owner's, and an
+ * independent teacher has no rooms or staff to manage (audit 3 N2); the URLs still work.
+ */
 export function useNavItems() {
   const { t } = useTranslation();
-  const role = useGetCurrentWorkspaceQuery(undefined, { skip: !getWorkspaceId() }).data?.role;
+  const ws = useGetCurrentWorkspaceQuery(undefined, { skip: !getWorkspaceId() }).data;
+  const role = ws?.role;
+  const owner = role === 'owner';
+  const center = ws?.type !== 'independent';
   const main: Item[] = [
     { to: '/', label: t('nav.today'), icon: CalendarCheck, end: true },
     { to: '/timetable', label: t('nav.timetable'), icon: CalendarDays },
@@ -42,16 +50,33 @@ export function useNavItems() {
     { to: '/groups', label: t('nav.groups'), icon: Layers },
   ];
   const more: Item[] = [
-    { to: '/dashboard', label: t('nav.dashboard'), icon: ChartColumn },
-    ...(role && role !== 'teacher' ? [{ to: '/fees', label: t('nav.fees'), icon: Wallet }] : []),
     // A teacher sees their own groups' messages, phones masked.
-    { to: '/messages', label: t('nav.messages'), icon: MessageSquareText },
-    { to: '/cash-summary', label: t('nav.cashSummary'), icon: HandCoins },
-    { to: '/rooms', label: t('nav.rooms'), icon: DoorOpen },
-    { to: '/members', label: t('nav.staff'), icon: UserCog },
-    { to: '/settings', label: t('nav.settings'), icon: SettingsIcon },
+    { to: '/messages', label: t('nav.messages'), icon: MessageSquareText, section: 'daily' },
+    ...(role && role !== 'teacher'
+      ? [{ to: '/fees', label: t('nav.fees'), icon: Wallet, section: 'money' as const }]
+      : []),
+    { to: '/cash-summary', label: t('nav.cashSummary'), icon: HandCoins, section: 'money' },
+    { to: '/dashboard', label: t('nav.dashboard'), icon: ChartColumn, section: 'money' },
+    ...(owner && center
+      ? [
+          { to: '/rooms', label: t('nav.rooms'), icon: DoorOpen, section: 'admin' as const },
+          { to: '/members', label: t('nav.staff'), icon: UserCog, section: 'admin' as const },
+        ]
+      : []),
+    ...(owner
+      ? [
+          {
+            to: '/settings',
+            label: t('nav.settings'),
+            icon: SettingsIcon,
+            section: 'admin' as const,
+          },
+        ]
+      : []),
     // shortcut: dev builds only; the demo deploy opens /dev/phone directly (docs/demo-script.md).
-    ...(import.meta.env.DEV ? [{ to: '/dev/phone', label: t('nav.phone'), icon: Smartphone }] : []),
+    ...(import.meta.env.DEV
+      ? [{ to: '/dev/phone', label: t('nav.phone'), icon: Smartphone, section: 'admin' as const }]
+      : []),
   ];
   return { main, more };
 }

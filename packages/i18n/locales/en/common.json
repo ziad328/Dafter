@@ -555,7 +555,12 @@
     "dashboard": "Dashboard",
     "cashSummary": "Cash summary",
     "rooms": "Rooms",
-    "settings": "Settings"
+    "settings": "Settings",
+    "sections": {
+      "daily": "Daily",
+      "money": "Money and reports",
+      "admin": "Setup"
+    }
   },
   "today": {
     "next": "Next session",

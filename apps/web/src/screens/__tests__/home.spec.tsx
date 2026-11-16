@@ -31,7 +31,8 @@ describe('today', () => {
     expect(screen.getByText(tr('stats.checkedIn'))).toBeInTheDocument();
     expect(screen.getByRole('list', { name: tr('stats.week') }).children).toHaveLength(7);
     expect(screen.getByText(tr('today.allSessions'))).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: tr('today.start') })).toBeInTheDocument();
+    // Only the open or next class has a button; later ones don't (audit 3 H5).
+    expect(screen.queryByRole('link', { name: tr('today.start') })).toBeNull();
     expect(screen.getByText(tr('timetable.status.closed'))).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: new RegExp(tr('nav.messages')) })).toHaveLength(2);
   });

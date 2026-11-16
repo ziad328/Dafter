@@ -118,7 +118,8 @@ export default function Home() {
           )}
 
           {stats.data && (
-            <ul className="order-3 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:order-none">
+            // One strip, not four big tiles (audit 3 H2).
+            <ul className="order-3 grid grid-cols-4 rounded-2xl border bg-card shadow-card xl:order-none [&>li+li]:border-s">
               <Tile
                 icon={CalendarCheck}
                 tone="ink"
@@ -246,14 +247,12 @@ function Tile({
 }) {
   const shown = useCountUp(value);
   return (
-    <li className="grid gap-3 rounded-2xl border bg-card p-4 shadow-card transition-transform hover:-translate-y-0.5">
-      <span className={cn('grid size-10 place-items-center rounded-xl', TILE_TONES[tone])}>
-        <Icon className="size-5" aria-hidden />
+    <li className="grid content-start justify-items-center gap-0.5 px-1 py-3 text-center">
+      <span className={cn('hidden size-8 place-items-center rounded-lg lg:grid', TILE_TONES[tone])}>
+        <Icon className="size-4" aria-hidden />
       </span>
-      <span className="grid">
-        <bdi className="text-3xl font-bold tabular-nums">{shown}</bdi>
-        <span className="text-sm text-muted-foreground">{label}</span>
-      </span>
+      <bdi className="text-xl font-bold tabular-nums">{shown}</bdi>
+      <span className="text-xs leading-tight text-muted-foreground">{label}</span>
     </li>
   );
 }
@@ -343,19 +342,20 @@ function DayList({ sessions, next, tz }: { sessions: Session[]; next?: Session; 
               <div className="grid min-w-0 flex-1">
                 <span className="truncate font-semibold">{itemName(s.subject, lang)}</span>
                 <span className="truncate text-sm text-muted-foreground">
-                  {`${itemName(s.gradeLevel, lang)} · ${s.teacherName}`}
+                  {`${s.groupLabel ?? itemName(s.gradeLevel, lang)} · ${s.teacherName}`}
                 </span>
               </div>
               {s === next ? (
                 <span className="shrink-0 rounded-full bg-ink-soft px-3 py-1 text-xs font-semibold text-ink">
                   {t(s.status === 'open' ? 'today.inProgress' : 'today.next')}
                 </span>
-              ) : startable(s) ? (
-                <Button asChild size="sm" variant={s.status === 'open' ? 'default' : 'outline'}>
-                  <Link to={`/sessions/${s.id}/live`}>
-                    {t(s.status === 'open' ? 'today.continue' : 'today.start')}
-                  </Link>
+              ) : s.status === 'open' ? (
+                <Button asChild size="sm">
+                  <Link to={`/sessions/${s.id}/live`}>{t('today.continue')}</Link>
                 </Button>
+              ) : startable(s) ? (
+                // Later classes get no button of their own: one «ابدأ» per screen (audit 3 H5).
+                <span className="sr-only">{t('timetable.status.scheduled')}</span>
               ) : (
                 <span
                   className={cn(
@@ -394,15 +394,16 @@ function QuickActions({ role }: { role?: string }) {
       : []),
   ];
   return (
-    <Panel className="grid gap-3 p-5">
-      <h2 className="font-semibold">{t('today.quick')}</h2>
-      <ul className="grid grid-cols-2 gap-2">
+    // One row of small shortcuts; three for a teacher, so no hole (audit 3 H3).
+    <Panel className="p-2">
+      <h2 className="sr-only">{t('today.quick')}</h2>
+      <ul className={cn('grid gap-1', items.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
         {items.map(({ to, label, icon: Icon }, i) => {
           const body = (
             <>
               <span
                 className={cn(
-                  'grid size-11 place-items-center rounded-xl transition-transform group-hover:scale-110',
+                  'grid size-10 place-items-center rounded-xl transition-transform group-hover:scale-110',
                   ACTION_TONES[i % ACTION_TONES.length],
                 )}
               >
@@ -412,7 +413,7 @@ function QuickActions({ role }: { role?: string }) {
             </>
           );
           const cls =
-            'group grid h-full w-full justify-items-center gap-2 rounded-2xl border p-3 text-center text-sm font-medium transition-all hover:-translate-y-0.5 hover:border-ink/40 hover:shadow-card focus-visible:outline-2';
+            'group grid h-full w-full content-start justify-items-center gap-1.5 rounded-xl p-2 text-center text-xs leading-tight font-medium transition-colors hover:bg-ink-soft/50 focus-visible:outline-2';
           return (
             <li key={label}>
               {to ? (
