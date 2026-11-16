@@ -674,7 +674,8 @@
     "archived": "مؤرشفة",
     "noCapacity": "بدون سعة محددة",
     "invalid": "اكتب اسم القاعة، والسعة رقم من 1 إلى 1000",
-    "seats": "{count, plural, one {مقعد واحد} two {مقعدان} few {# مقاعد} many {# مقعدًا} other {# مقعد}}"
+    "seats": "{count, plural, one {مقعد واحد} two {مقعدان} few {# مقاعد} many {# مقعدًا} other {# مقعد}}",
+    "actions": "خيارات {name}"
   },
   "settings": {
     "title": "الإعدادات",

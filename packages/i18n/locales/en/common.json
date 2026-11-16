@@ -674,7 +674,8 @@
     "archived": "Archived",
     "noCapacity": "No set capacity",
     "invalid": "Type a room name; capacity is a number from 1 to 1000",
-    "seats": "{count, plural, one {# seat} other {# seats}}"
+    "seats": "{count, plural, one {# seat} other {# seats}}",
+    "actions": "{name} options"
   },
   "settings": {
     "title": "Settings",

@@ -203,6 +203,8 @@ function Entry({ entry: e }: { entry: LedgerEntry }) {
               e.reversedById && 'text-muted-foreground line-through',
             )}
           >
+            {/* A «+» marks money in (audit 3 S4). */}
+            {e.type === 'payment' && !e.reversedById && '+'}
             {formatEgp(Math.abs(e.amountPiastres), i18n.language)}
           </bdi>
           {/* Reversing waits behind a menu, like the timetable, so it is never a stray tap. */}

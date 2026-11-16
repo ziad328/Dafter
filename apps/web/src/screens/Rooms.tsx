@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { DoorOpen, Plus } from 'lucide-react';
+import { DoorOpen, MoreHorizontal, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   type Room,
@@ -127,6 +127,7 @@ function RoomForm({
 function RoomRow({ room, canEdit }: { room: Room; canEdit: boolean }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
+  const [menu, setMenu] = useState(false);
   const [update, updated] = useUpdateRoomMutation();
   const archived = room.status === 'archived';
   if (editing)
@@ -150,23 +151,37 @@ function RoomRow({ room, canEdit }: { room: Room; canEdit: boolean }) {
           {archived && ` · ${t('rooms.archived')}`}
         </span>
       </div>
+      {/* Edit and archive wait behind «⋯», like the timetable (audit 3 R3). */}
       {canEdit && (
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-            {t('rooms.edit')}
-          </Button>
+        <div className="flex items-center gap-1">
+          {menu && (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+                {t('rooms.edit')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={updated.isLoading}
+                onClick={() =>
+                  void update({
+                    id: room.id,
+                    updateRoomRequest: { status: archived ? 'active' : 'archived' },
+                  })
+                }
+              >
+                {t(archived ? 'rooms.restore' : 'rooms.archive')}
+              </Button>
+            </>
+          )}
           <Button
             variant="ghost"
-            size="sm"
-            disabled={updated.isLoading}
-            onClick={() =>
-              void update({
-                id: room.id,
-                updateRoomRequest: { status: archived ? 'active' : 'archived' },
-              })
-            }
+            size="icon-sm"
+            aria-label={t('rooms.actions', { name: room.name })}
+            aria-expanded={menu}
+            onClick={() => setMenu(!menu)}
           >
-            {t(archived ? 'rooms.restore' : 'rooms.archive')}
+            <MoreHorizontal aria-hidden />
           </Button>
         </div>
       )}

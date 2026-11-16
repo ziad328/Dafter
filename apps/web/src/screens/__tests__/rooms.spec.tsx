@@ -57,7 +57,11 @@ describe('rooms screen', () => {
     expect(screen.queryByText(tr('rooms.invalid'))).toBeNull();
 
     // Rename the first room, clearing its capacity.
-    await user.click(within(list).getAllByRole('button', { name: tr('rooms.edit') })[0]!);
+    // Edit and archive wait behind each room's «⋯» (audit 3 R3).
+    const menu = (i: number) =>
+      within(list).getByRole('button', { name: tr('rooms.actions', { name: ROOMS[i]!.name }) });
+    await user.click(menu(0));
+    await user.click(within(list).getByRole('button', { name: tr('rooms.edit') }));
     const edit = screen.getByLabelText(tr('rooms.name'));
     await user.clear(edit);
     await user.type(edit, 'قاعة 1 أ');
@@ -72,6 +76,7 @@ describe('rooms screen', () => {
     await expect
       .poll(() => body(`PATCH /api/v1/rooms/${ROOMS[0]!.id}`))
       .toEqual({ status: 'archived' });
+    await user.click(menu(1));
     await user.click(within(list).getByRole('button', { name: tr('rooms.restore') }));
     await expect
       .poll(() => body(`PATCH /api/v1/rooms/${ROOMS[1]!.id}`))
@@ -90,7 +95,10 @@ describe('rooms screen', () => {
     await user.type(within(sheet).getByLabelText(tr('rooms.name')), 'Room 1');
     await user.click(within(sheet).getByRole('button', { name: tr('rooms.add') }));
     expect(await screen.findByText(tr('errors.ROOM_NAME_TAKEN'))).toBeVisible();
-    await user.click(screen.getAllByRole('button', { name: tr('rooms.archive') })[0]!);
+    await user.click(
+      screen.getByRole('button', { name: tr('rooms.actions', { name: ROOMS[0]!.name }) }),
+    );
+    await user.click(screen.getByRole('button', { name: tr('rooms.archive') }));
     expect(await screen.findByText(tr('errors.FORBIDDEN'))).toBeVisible();
   });
 
@@ -101,6 +109,7 @@ describe('rooms screen', () => {
     expect(await screen.findByText('قاعة 1')).toBeVisible();
     expect(screen.getByText(tr('rooms.noCapacity'), { exact: false })).toBeVisible();
     expect(screen.queryByRole('button', { name: tr('rooms.add') })).toBeNull();
+    expect(screen.queryByRole('button', { name: /قاعة 1/ })).toBeNull();
     expect(screen.queryByRole('button', { name: tr('rooms.edit') })).toBeNull();
   });
 
