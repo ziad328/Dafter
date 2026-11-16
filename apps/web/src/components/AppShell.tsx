@@ -93,15 +93,18 @@ export function AccountActions({ className, dark }: { className?: string; dark?:
   const other = i18n.language === 'ar' ? 'en' : 'ar';
   return (
     <div className={cn('grid gap-2', className)}>
-      <Button
-        variant="outline"
-        lang={other}
-        className={cn(dark && SIDEBAR_OUTLINE)}
-        onClick={() => void i18n.changeLanguage(other)}
-      >
-        {t('shell.switchLanguage')}
-      </Button>
-      <ThemeToggle withLabel className={cn(dark && SIDEBAR_OUTLINE)} />
+      {/* Language and theme share one row (audit 3 N1). */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          lang={other}
+          className={cn(dark && SIDEBAR_OUTLINE)}
+          onClick={() => void i18n.changeLanguage(other)}
+        >
+          {t('shell.switchLanguage')}
+        </Button>
+        <ThemeToggle withLabel className={cn('px-2', dark && SIDEBAR_OUTLINE)} />
+      </div>
       <Button
         variant="ghost"
         className={cn(dark && 'text-white/70 hover:bg-white/10 hover:text-white')}
