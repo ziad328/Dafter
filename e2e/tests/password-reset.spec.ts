@@ -31,6 +31,6 @@ test('staff resets a forgotten password from the emailed link', async ({ page, r
   await page.getByLabel(t.auth.login.login).fill(email);
   await page.getByLabel(t.auth.login.password).fill('new-password-2');
   await page.getByRole('button', { name: t.auth.login.submit }).click();
-  // A new account has no workspace yet.
-  await expect(page).toHaveURL(/\/workspaces$/);
+  // A new account has no workspace yet: the welcome screen (audit 3 A6).
+  await expect(page).toHaveURL(/\/welcome$/);
 });
