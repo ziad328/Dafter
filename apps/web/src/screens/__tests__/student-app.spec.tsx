@@ -2,6 +2,7 @@ import { act, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { idb } from '@/test/idb';
 import { fail, fx, http, route, sent, server } from '@/test/server';
+import { dayLabel, localDate } from '@/lib/time';
 import { renderAt, tr } from '@/test/render';
 
 // The camera library: the test plays the scanner, handing over decoded text.
@@ -73,6 +74,34 @@ describe('student sign-in', () => {
     );
   });
 
+  it('shows the spam hint and a resend after 60 s, and restarts the countdown', async () => {
+    signedOut();
+    installed();
+    vi.useFakeTimers({ toFake: ['setInterval'] });
+    try {
+      const { user } = await renderAt('/s/login', { workspace: null, lang: 'en' });
+      await user.type(await screen.findByLabelText(tr('studentApp.email')), 'sara@example.com');
+      await user.click(screen.getByRole('button', { name: tr('studentApp.sendCode') }));
+      await screen.findByRole('button', { name: tr('studentApp.resendIn', { seconds: 60 }) });
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(screen.getByRole('note')).toHaveTextContent(tr('studentApp.checkSpam'));
+      await user.click(screen.getByRole('button', { name: tr('studentApp.resend') }));
+      expect(
+        await screen.findByRole('button', { name: tr('studentApp.resendIn', { seconds: 60 }) }),
+      ).toBeDisabled();
+      expect(sent.filter((s) => s.call === 'POST /api/v1/auth/otp/request')).toHaveLength(2);
+
+      // A failed resend says why and keeps the button.
+      server.use(http.post(route('auth/otp/request'), fail('RATE_LIMITED', 429)));
+      act(() => vi.advanceTimersByTime(60_000));
+      await user.click(screen.getByRole('button', { name: tr('studentApp.resend') }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(tr('errors.RATE_LIMITED'));
+      expect(screen.getByRole('button', { name: tr('studentApp.resend') })).toBeEnabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('activates with the saved invite: email, then the code, then home', async () => {
     signedOut();
     installed();
@@ -86,7 +115,11 @@ describe('student sign-in', () => {
     await user.clear(screen.getByLabelText(tr('studentApp.email')));
     await user.type(screen.getByLabelText(tr('studentApp.email')), ' sara@example.com ');
     await user.click(send);
-    expect(await screen.findByRole('note')).toHaveTextContent(tr('studentApp.checkSpam'));
+    // No spam warning at once; resend waits for its countdown (audit 3 SA5).
+    expect(
+      await screen.findByRole('button', { name: tr('studentApp.resendIn', { seconds: 60 }) }),
+    ).toBeDisabled();
+    expect(screen.queryByRole('note')).toBeNull();
     expect(call('POST /api/v1/auth/otp/request')?.body).toEqual({
       email: 'sara@example.com',
       inviteToken: token,
@@ -174,6 +207,24 @@ describe('student home', () => {
     expect(screen.getByTestId('attendance-rate')).toHaveTextContent(
       tr('studentApp.rate', { attended: 2, total: 3 }),
     );
+  });
+
+  it('skips a closed class for the next one, and ticks attended classes (audit 3 SA2)', async () => {
+    const [today, , later] = fx.mySchedule;
+    server.use(
+      http.get(route('me/schedule'), () =>
+        Response.json([{ ...today!, status: 'closed' }, ...fx.mySchedule.slice(1)]),
+      ),
+      http.get(route('me/attendance'), () =>
+        Response.json([{ ...fx.myAttendance[0]!, sessionId: today!.id }]),
+      ),
+    );
+    await renderAt('/s', { workspace: null });
+    const next = await screen.findByRole('region', { name: tr('today.next') });
+    const laterDay = dayLabel(localDate(later!.startsAt, later!.timezone), 'ar');
+    expect(next).toHaveTextContent(laterDay);
+    const schedule = screen.getByTestId('my-schedule');
+    expect(within(schedule).getAllByText(tr('studentApp.attended'))).toHaveLength(1);
   });
 
   it('says the student is bound to another phone', async () => {

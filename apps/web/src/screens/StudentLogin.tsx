@@ -71,13 +71,7 @@ function SignIn({ token }: { token?: string }) {
         </CardDescription>
       </CardHeader>
       {email ? (
-        <>
-          {/* Brevo's free sender often lands in spam; say so before the student gives up. */}
-          <p role="note" className="mx-6 rounded-xl bg-amber-soft px-4 py-3 text-sm text-late">
-            {t('studentApp.checkSpam')}
-          </p>
-          <CodeStep email={email} inviteToken={token} onBack={() => setEmail(undefined)} />
-        </>
+        <CodeStep email={email} inviteToken={token} onBack={() => setEmail(undefined)} />
       ) : (
         <EmailStep inviteToken={token} onSent={setEmail} />
       )}
@@ -265,6 +259,19 @@ function EmailStep({
   );
 }
 
+const RESEND_AFTER_S = 60;
+
+/** Seconds left of a countdown that restarts whenever `key` changes. */
+function useCountdown(seconds: number, key: number) {
+  const [left, setLeft] = useState(seconds);
+  useEffect(() => {
+    setLeft(seconds);
+    const timer = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [seconds, key]);
+  return left;
+}
+
 function CodeStep({
   email,
   inviteToken,
@@ -277,6 +284,10 @@ function CodeStep({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [verify, { error, isLoading }] = useVerifyOtpMutation();
+  const [resend, resending] = useRequestOtpMutation();
+  // A new countdown per sent code: the hint and «أعد إرسال الكود» wait 60 s (audit 3 SA5).
+  const [sends, setSends] = useState(0);
+  const left = useCountdown(RESEND_AFTER_S, sends);
   const { register, handleSubmit, formState } = useForm<z.infer<typeof codeForm>>({
     resolver: zodResolver(codeForm),
   });
@@ -304,9 +315,32 @@ function CodeStep({
             setValueAs: (v: string) => normalizeArabic(v).replace(/\s/g, ''),
           })}
         />
-        <FormError message={error && t(errorKey(error))} />
+        {/* Brevo's free sender often lands in spam: said once the code is late, not at once. */}
+        {left === 0 && (
+          <p role="note" className="text-sm text-muted-foreground">
+            {t('studentApp.checkSpam')}
+          </p>
+        )}
+        <FormError
+          message={(error ?? resending.error) && t(errorKey((error ?? resending.error)!))}
+        />
         <Button type="submit" disabled={isLoading}>
           {t('studentApp.verify')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={left > 0 || resending.isLoading}
+          onClick={async () => {
+            const res = await resend({ otpRequest: { email, inviteToken } });
+            if (!('error' in res)) setSends((n) => n + 1);
+          }}
+        >
+          {left > 0 ? (
+            <bdi>{t('studentApp.resendIn', { seconds: left })}</bdi>
+          ) : (
+            t('studentApp.resend')
+          )}
         </Button>
         <Button type="button" variant="ghost" onClick={onBack}>
           {t('studentApp.changeEmail')}

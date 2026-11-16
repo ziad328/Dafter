@@ -349,7 +349,10 @@
     "settings": "Settings",
     "confirmLogout": "Tap again to sign out",
     "grades": "My grades",
-    "noGrades": "No grades yet."
+    "noGrades": "No grades yet.",
+    "resend": "Resend the code",
+    "resendIn": "Resend in {seconds}s",
+    "attended": "Attended"
   },
   "live": {
     "count": "{count, plural, =0 {No one checked in yet} one {# student here} other {# students here}}",

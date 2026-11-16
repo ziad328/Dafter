@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronDown, ScanLine } from 'lucide-react';
+import { Check, ChevronDown, ScanLine } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import type { MyAttendanceRecord, MySession } from '@dafter/contracts';
@@ -94,13 +94,18 @@ const centerName = (c: MySession['center'], lang: string) =>
 const timeRange = (s: MySession, lang: string) =>
   `${displayTime(s.startsAt, s.timezone, lang)} – ${displayTime(s.endsAt, s.timezone, lang)}`;
 
-/** The next class that has not ended, on top: where the student is going next. */
+/**
+ * The next class, on top: where the student is going next. Cancelled, closed and finished
+ * classes are skipped (audit 3 SA2).
+ */
 function NextSession() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const { data } = useGetMyScheduleQuery();
   const now = new Date().toISOString();
-  const next = data?.find((s) => s.status !== 'cancelled' && s.endsAt > now);
+  const next = data?.find(
+    (s) => s.status !== 'cancelled' && s.status !== 'closed' && s.endsAt > now,
+  );
   if (!next) return null;
   return (
     <section
@@ -126,6 +131,12 @@ function Schedule() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const { data, isLoading } = useGetMyScheduleQuery();
+  // Attended classes get a ✓ in the schedule, so today's done class doesn't read as still ahead.
+  const attended = new Set(
+    (useGetMyAttendanceQuery().data ?? [])
+      .filter((r) => r.status !== 'absent')
+      .map((r) => r.sessionId),
+  );
   if (isLoading) return <Skeleton />;
   const days = new Map<string, MySession[]>();
   for (const s of data ?? []) {
@@ -167,6 +178,12 @@ function Schedule() {
                         {cancelled && (
                           <span className="rounded-full bg-rose-soft px-2 py-0.5 text-xs text-rose">
                             {t('timetable.status.cancelled')}
+                          </span>
+                        )}
+                        {attended.has(s.id) && (
+                          <span className="flex items-center gap-1 rounded-full bg-present-soft px-2 py-0.5 text-xs text-present">
+                            <Check className="size-3.5" aria-hidden />
+                            {t('studentApp.attended')}
                           </span>
                         )}
                       </span>
