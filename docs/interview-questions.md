@@ -253,3 +253,14 @@ Different answers would tell someone holding an old link that it once was real. 
 
 **3. Why a per-IP limit when the token can't be guessed?**
 Guessing is hopeless, but each call is still a database read anyone can trigger. Sixty lookups per IP in 15 minutes is far above a real student and stops a script from turning the endpoint into free load.
+
+## Rate limits in PostgreSQL
+
+**1. Why does one `INSERT … ON CONFLICT DO UPDATE` stop two parallel requests from both slipping under the limit?**
+The upsert locks the key's row, so the second request waits and then sees the first one's count. `take` puts the check in the same statement (`WHERE count < max OR the window ended`), so there is no gap between reading the count and writing it, unlike a SELECT followed by an UPDATE.
+
+**2. Why take the time from the `Clock` service and not the database's `now()`?**
+Tests move a fake clock to the end of a window; with `now()` they would have to sleep 15 minutes. It also keeps one source of time for the whole request.
+
+**3. What does a fixed window give up, and when would you change it?**
+Someone can use the full limit just before the window ends and again just after, so up to twice the limit in a short burst. For login (5 tries) that is still tiny. A sliding window or a token bucket fixes it at the cost of more state per key; worth it only if abuse shows up.

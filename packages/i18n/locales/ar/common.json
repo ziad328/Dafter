@@ -569,6 +569,7 @@
     "inviteShort": "دعوة",
     "pending": "دعوات لم تُقبل",
     "expires": "تنتهي {when}",
+    "invitedBy": "أرسلها {name}",
     "revoke": "إلغاء",
     "actions": "خيارات {name}",
     "menu": {

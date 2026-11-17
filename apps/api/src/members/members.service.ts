@@ -33,7 +33,12 @@ export class MembersService {
     @Inject(Clock) private readonly clock: Clock,
   ) {}
 
-  async createInvite(workspaceId: string, role: Role, body: CreateInviteRequest): Promise<Invite> {
+  async createInvite(
+    workspaceId: string,
+    membershipId: string,
+    role: Role,
+    body: CreateInviteRequest,
+  ): Promise<Invite> {
     requireOwner(role);
     const teacherMembershipIds = [...new Set(body.teacherMembershipIds ?? [])];
     await this.checkTeachers(workspaceId, teacherMembershipIds);
@@ -41,6 +46,7 @@ export class MembersService {
     const expiresAt = new Date(this.clock.now().getTime() + INVITE_TTL_MS);
     const { id } = await this.repo.createInvite(
       workspaceId,
+      membershipId,
       body.role,
       teacherMembershipIds,
       hashToken(token),

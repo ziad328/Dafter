@@ -14,7 +14,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | The live list polls the database every second per open teacher screen | Up to 1 s delay; Neon stays awake while a class is live | later (LISTEN/NOTIFY on a long-running host) |
 | The first request after a quiet spell starts NestJS (cold start) | About 1–2 s wait | — |
 | The `oasdiff` breaking-change check ignores new error codes (the web shows `errors.INTERNAL` for one it doesn't know), and a commit with a `BREAKING CHANGE` footer skips it | An old PWA shows a generic error for a new code until it updates | — |
-| Rate limits (login, codes, check-ins: 10 a minute per phone, 300 per session) are in process memory | They reset on restart and count per instance, so on Vercel a phone can get more scans through several warm instances | later (Redis at the VPS stage) |
+| Rate limits (login, codes, check-ins: 10 a minute per phone, 300 per session) are rows in PostgreSQL (`rate_limits`, since Nov 17) | Shared by every instance and kept across restarts; the cost is one or two small queries per login and scan, and a fixed window lets up to twice the limit through around a window edge | later (Redis or a sliding window only if those queries show up in latency) |
 | Every job loops over all workspaces in one pass (sessions, charges, outbox) | Slow with thousands of workspaces | later |
 | Test harness: cloned test databases are never dropped, and the global setup always starts a container | Slower local runs only | later |
 

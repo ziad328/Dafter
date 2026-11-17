@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { Controller, Get, Headers, Inject, Module, Query } from '@nestjs/common';
 import type { Db } from '@dafter/db';
 import { Clock } from '../clock.js';
+import { sweepRateLimits } from '../auth/rate-limiter.js';
 import { DB } from '../db.js';
 import { AppError } from '../errors.js';
 import { OutboxSender } from '../messages/outbox-sender.js';
@@ -37,7 +38,8 @@ export class TickController {
     const sessions = await generateAllSessions(this.db, this.clock);
     const charges = await chargeAllWorkspaces(this.db, this.clock);
     const reminders = await remindAllWorkspaces(this.db, this.clock);
-    return { sent: await this.outbox.sendAll(), sessions, charges, reminders };
+    const rateLimitsSwept = await sweepRateLimits(this.db, this.clock);
+    return { sent: await this.outbox.sendAll(), sessions, charges, reminders, rateLimitsSwept };
   }
 }
 

@@ -1,7 +1,7 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { auditLog, students } from '@dafter/db';
+import { auditLog, invites, students } from '@dafter/db';
 import { useTestDb } from '@dafter/db/testing';
 import { createApp } from '../app.js';
 import { REFRESH_COOKIE } from '../auth/auth.controller.js';
@@ -152,8 +152,20 @@ describe('invite preview, pending list and revoke (audit 3 A10, A13)', () => {
       role: 'assistant',
       expiresAt: newest.expiresAt,
       createdAt: expect.any(String),
+      invitedBy: 'منى حسن',
     });
     expect(list[0]).not.toHaveProperty('token');
+  });
+
+  it('shows no sender for an invite made before the sender was recorded', async () => {
+    const o = await owner();
+    const { id } = (await call('POST', 'invites', o.token, o.ws, { role: 'teacher' })).json();
+    await testDb()
+      .db.update(invites)
+      .set({ createdByMembershipId: null })
+      .where(eq(invites.id, id));
+    const [row] = (await call('GET', 'invites', o.token, o.ws)).json();
+    expect(row).toMatchObject({ id, invitedBy: null });
   });
 
   it('revokes: the link stops working and the invite leaves the list', async () => {

@@ -46,6 +46,7 @@ describe('staff', () => {
     const { user } = await renderAt('/members');
     const pending = await screen.findByRole('region', { name: tr('members.pending') });
     expect(within(pending).getByText(tr('roles.assistant'))).toBeVisible();
+    expect(within(pending).getByText(tr('members.invitedBy', { name: 'منى حسن' }))).toBeVisible();
     await user.click(within(pending).getByRole('button', { name: tr('members.revoke') }));
     await expect
       .poll(() => sent.some((s) => s.call.startsWith('DELETE /api/v1/invites/')))

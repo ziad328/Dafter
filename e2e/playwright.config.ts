@@ -13,6 +13,7 @@ const phone = { viewport: { width: 375, height: 812 }, hasTouch: true, isMobile:
 
 export default defineConfig({
   testDir: 'tests',
+  globalSetup: './global-setup.ts',
   fullyParallel: true,
   // One dev server (Vite + API + PostgreSQL) serves every worker; more than 6 at once makes the
   // first sign-ins of a cold run time out. GitHub's 4-core runner also runs that server, so it

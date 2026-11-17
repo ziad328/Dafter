@@ -228,6 +228,7 @@ export const handlers = [
         role: 'assistant',
         expiresAt: new Date(Date.now() + 48 * 3_600_000).toISOString(),
         createdAt: new Date().toISOString(),
+        invitedBy: 'منى حسن',
       },
     ]),
   ),

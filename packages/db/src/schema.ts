@@ -74,6 +74,19 @@ export const refreshTokens = pgTable(
   ],
 );
 
+// Rate-limit counters (fixed window per key). Global, not tenant data: keys are logins, IPs,
+// phones and sessions, prefixed by the limiter's name. In PostgreSQL so a restart (or a sleeping
+// free-tier instance) doesn't reset a lockout; expired rows are swept by the daily job.
+export const rateLimits = pgTable(
+  'rate_limits',
+  {
+    key: text('key').primaryKey(),
+    count: integer('count').notNull(),
+    resetAt: tz('reset_at').notNull(),
+  },
+  (t) => [index('rate_limits_reset_at_idx').on(t.resetAt)],
+);
+
 // Staff password reset links: single use, short-lived, only the SHA-256 of the token is stored.
 export const passwordResets = pgTable(
   'password_resets',
@@ -163,12 +176,21 @@ export const invites = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::uuid[]`),
+    // Who sent it (audit 3, Phase 3). Null for invites made before migration 0016.
+    createdByMembershipId: uuid('created_by_membership_id'),
     tokenHash: text('token_hash').notNull().unique(),
     expiresAt: tz('expires_at').notNull(),
     usedAt: tz('used_at'),
     createdAt: createdAt(),
   },
-  (t) => [index('invites_workspace_idx').on(t.workspaceId, t.createdAt)],
+  (t) => [
+    index('invites_workspace_idx').on(t.workspaceId, t.createdAt),
+    foreignKey({
+      name: 'invites_created_by_fk',
+      columns: [t.workspaceId, t.createdByMembershipId],
+      foreignColumns: [memberships.workspaceId, memberships.id],
+    }),
+  ],
 );
 
 // Teaching. Each workspace gets its own copy of the curriculum (see curriculum.ts), so it can edit it.

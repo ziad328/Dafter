@@ -116,3 +116,9 @@ Short records of design choices: decision, alternatives, why.
 - **Alternatives:** delete the row (groups, sessions and the audit log point at it); revoke the person's refresh tokens (signs them out of every other center too).
 - **Why:** history stays intact, the tenant guard already checks membership per request, so access ends on the next request.
 
+
+## 2026-11-17 · Rate limits in PostgreSQL, not memory or Redis
+
+- **Decision:** a global `rate_limits` table (key, count, reset_at), one `INSERT … ON CONFLICT DO UPDATE` per hit, `take` counting only keys under the limit; the daily job sweeps expired rows.
+- **Alternatives:** keep process memory (a restart, a sleeping instance or a second Vercel instance resets or splits the counts); Redis (a second service, and the free tier's daily command cap).
+- **Why:** the lockout must hold on a host that restarts often, and PostgreSQL is already there. The row lock on the key makes concurrent hits count one after another. Cost: one or two small queries per login and scan.

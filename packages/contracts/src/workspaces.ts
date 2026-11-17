@@ -69,6 +69,8 @@ export const pendingInvite = z
     role: z.enum(['teacher', 'assistant']),
     expiresAt: z.iso.datetime(),
     createdAt: z.iso.datetime(),
+    /** The sender's name; null for invites made before the sender was recorded. */
+    invitedBy: z.string().nullable(),
   })
   .meta({ id: 'PendingInvite' });
 

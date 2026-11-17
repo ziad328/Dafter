@@ -106,6 +106,11 @@ function PendingInvites() {
                     }).format(Date.parse(inv.expiresAt)),
                   })}
                 </span>
+                {inv.invitedBy && (
+                  <span className="text-xs text-muted-foreground">
+                    {t('members.invitedBy', { name: inv.invitedBy })}
+                  </span>
+                )}
               </span>
               <Button
                 size="sm"

@@ -14,7 +14,7 @@ import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';
 import { Mailer } from '../student-auth/mailer.js';
 import { AuthRepository, type User } from './auth.repository.js';
-import { RateLimiter } from './rate-limiter.js';
+import { RateLimiter, RateLimitStore } from './rate-limiter.js';
 
 export const ACCESS_TTL_S = 15 * 60;
 export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -55,19 +55,25 @@ export class AuthService {
     @Inject(JwtService) private readonly jwt: JwtService,
     @Inject(Clock) private readonly clock: Clock,
     @Inject(Mailer) private readonly mailer: Mailer,
+    @Inject(RateLimitStore) limits: RateLimitStore,
   ) {
-    this.perLogin = new RateLimiter(clock, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
-    this.perIp = new RateLimiter(clock, LOGIN_MAX_FAILURES_PER_IP, LOGIN_WINDOW_MS);
-    this.registrations = new RateLimiter(clock, REGISTER_PER_HOUR, 60 * 60 * 1000);
-    this.resets = new RateLimiter(clock, RESETS_PER_HOUR, 60 * 60 * 1000);
+    const hour = 60 * 60 * 1000;
+    this.perLogin = new RateLimiter(limits, clock, 'login', LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
+    this.perIp = new RateLimiter(
+      limits,
+      clock,
+      'login-ip',
+      LOGIN_MAX_FAILURES_PER_IP,
+      LOGIN_WINDOW_MS,
+    );
+    this.registrations = new RateLimiter(limits, clock, 'register', REGISTER_PER_HOUR, hour);
+    this.resets = new RateLimiter(limits, clock, 'reset', RESETS_PER_HOUR, hour);
   }
 
   async register(input: RegisterRequest, ip: string): Promise<Session> {
     if (!LOOPBACK.has(ip)) {
       // Every attempt counts (not only failures): this limits sign-up spam per address.
-      const keys = [`register:${ip}`];
-      this.registrations.check(keys);
-      this.registrations.fail(keys);
+      await this.registrations.take([ip]);
     }
     const user = await this.repo
       .createUser({
@@ -84,16 +90,14 @@ export class AuthService {
   }
 
   async login(input: LoginRequest, ip: string): Promise<Session> {
-    const login = [`login:${input.login.toLowerCase()}`];
-    const address = [`ip:${ip}`];
-    this.perLogin.check(login);
-    this.perIp.check(address);
+    const login = [input.login.toLowerCase()];
+    await this.perLogin.check(login);
+    await this.perIp.check([ip]);
     const user = await this.repo.findUserByLogin(input.login);
     // Students have no password and sign in with a one-time code instead.
     const ok = await verify(user?.passwordHash ?? (await DUMMY_HASH), input.password);
     if (!user?.passwordHash || !ok) {
-      this.perLogin.fail(login);
-      this.perIp.fail(address);
+      await Promise.all([this.perLogin.fail(login), this.perIp.fail([ip])]);
       throw new AppError('INVALID_CREDENTIALS');
     }
     return this.startSession(user, randomUUID());
@@ -115,9 +119,7 @@ export class AuthService {
 
   /** Same answer for every email: the link goes out only if a staff account (with a password) has it. */
   async forgotPassword({ email }: ForgotPasswordRequest, ip: string, appUrl: string) {
-    const keys = [`reset:${email.toLowerCase()}`, `reset-ip:${ip}`];
-    this.resets.check(keys);
-    this.resets.fail(keys);
+    await this.resets.take([`email:${email.toLowerCase()}`, `ip:${ip}`]);
     const user = await this.repo.findUserByLogin(email);
     if (!user?.passwordHash) return;
     const token = randomBytes(32).toString('base64url');

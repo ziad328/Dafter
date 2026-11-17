@@ -44,7 +44,7 @@ export class InvitesController {
     @Req() req: TenantedRequest,
     @Body(new ZodPipe(createInviteRequest)) body: CreateInviteRequest,
   ): Promise<Invite> {
-    return this.members.createInvite(req.workspaceId, req.role, body);
+    return this.members.createInvite(req.workspaceId, req.membershipId, req.role, body);
   }
 
   @Get()

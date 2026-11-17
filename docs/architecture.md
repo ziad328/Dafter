@@ -18,7 +18,7 @@ The browser only ever talks to the API through Caddy; anything slow or retryable
 | Database | PostgreSQL 17 | Money and attendance need constraints, transactions and row-level security |
 | ORM and migrations | Drizzle ORM + drizzle-kit | Close to SQL, fully typed, easy to combine with raw SQL and RLS |
 | Background jobs | pg-boss on PostgreSQL | Retries with backoff, delayed jobs for quiet hours, scheduled jobs, with no extra service, so it runs on free tiers too |
-| Cache and rate limits | In process at first; Redis only at the VPS stage, once there are several API replicas | No extra service to run or pay for until traffic needs one |
+| Cache and rate limits | Cache in process; rate limits in a PostgreSQL table (`rate_limits`, one upsert per hit). Redis only at the VPS stage, once there are several API replicas and the queries show | No extra service to run or pay for; limits survive restarts and serverless instances share them |
 | Auth | Built in-house: argon2id, 15-minute JWT access token, rotating refresh token in an httpOnly cookie | Shows you understand auth instead of renting it |
 | Frontend | React 19, Vite, React Router, Redux Toolkit + RTK Query, React Hook Form, vite-plugin-pwa for the installable student app | Your current stack, so you move fast |
 | UI and RTL | Tailwind CSS v4 with logical properties, shadcn/ui on Radix | Radix supports `dir="rtl"`; logical classes flip automatically |

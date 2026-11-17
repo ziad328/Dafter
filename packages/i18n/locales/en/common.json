@@ -569,6 +569,7 @@
     "inviteShort": "Invite",
     "pending": "Invites not accepted yet",
     "expires": "Expires {when}",
+    "invitedBy": "Sent by {name}",
     "revoke": "Revoke",
     "actions": "{name} options",
     "menu": {

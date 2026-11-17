@@ -8,7 +8,7 @@ import type {
   StudentInvitePreview,
 } from '@dafter/contracts';
 import { AuthService, hashToken, type Session } from '../auth/auth.service.js';
-import { RateLimiter } from '../auth/rate-limiter.js';
+import { RateLimiter, RateLimitStore } from '../auth/rate-limiter.js';
 import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';
 import { Mailer } from './mailer.js';
@@ -39,15 +39,16 @@ export class StudentAuthService {
     @Inject(AuthService) private readonly auth: AuthService,
     @Inject(Mailer) private readonly mailer: Mailer,
     @Inject(Clock) private readonly clock: Clock,
+    @Inject(RateLimitStore) limits: RateLimitStore,
   ) {
-    this.perEmail = new RateLimiter(clock, 5, WINDOW_MS);
-    this.perIp = new RateLimiter(clock, 30, WINDOW_MS);
-    this.previewPerIp = new RateLimiter(clock, 60, WINDOW_MS);
+    this.perEmail = new RateLimiter(limits, clock, 'otp-email', 5, WINDOW_MS);
+    this.perIp = new RateLimiter(limits, clock, 'otp-ip', 30, WINDOW_MS);
+    this.previewPerIp = new RateLimiter(limits, clock, 'invite-preview-ip', 60, WINDOW_MS);
   }
 
   /** «أهلًا يا سارة — سنتر النور» on the activation page, before any sign-in (audit 3 SA4). */
   async previewInvite(token: string, ip: string): Promise<StudentInvitePreview> {
-    if (this.previewPerIp.take([ip])) throw this.previewPerIp.error([ip]);
+    await this.previewPerIp.take([ip]);
     const row = await this.repo.findInvitePreview(hashToken(token), this.clock.now());
     if (!row) throw new AppError('INVITE_INVALID');
     const first = (name: string) => name.trim().split(/\s+/)[0]!;
@@ -61,10 +62,9 @@ export class StudentAuthService {
 
   async requestOtp(body: OtpRequest, ip: string) {
     const email = body.email.toLowerCase();
-    this.perEmail.check([email]);
-    this.perIp.check([ip]);
-    this.perEmail.fail([email]);
-    this.perIp.fail([ip]);
+    await this.perEmail.check([email]);
+    await this.perIp.check([ip]);
+    await Promise.all([this.perEmail.fail([email]), this.perIp.fail([ip])]);
     const now = this.clock.now();
     const user = await this.repo.findUserByEmail(email);
     if (body.inviteToken) {

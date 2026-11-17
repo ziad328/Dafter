@@ -998,6 +998,7 @@ export type PendingInvite = {
   role: 'teacher' | 'assistant';
   expiresAt: string;
   createdAt: string;
+  invitedBy: string | null;
 };
 export type PendingInviteList = PendingInvite[];
 export type InvitePreview = {

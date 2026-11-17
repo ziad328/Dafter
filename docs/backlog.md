@@ -45,7 +45,7 @@ Collected on Nov 16 from `known-limits.md`, `limits-plan.md`, `v1-next.md`, the 
 
 28. Vercel Hobby is non-commercial only: a paying center needs a paid host or a VPS. _(centers)_
 29. No always-on worker: a failed text can wait up to an hour. _(centers)_
-30. Rate limits live in memory per instance; move them to Redis. _(later)_
+30. ~~Rate limits live in memory per instance.~~ Done Nov 17: they live in PostgreSQL (`rate_limits`). _(done)_
 31. The live attendance list polls the database every second; move to LISTEN/NOTIFY. _(later)_
 32. Daily jobs loop over every workspace in one pass. _(later)_
 33. No offline screen in the PWA. _(later)_

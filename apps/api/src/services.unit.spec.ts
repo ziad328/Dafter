@@ -8,6 +8,7 @@ import {
   CHECKINS_PER_SESSION,
 } from './attendance/attendance.service.js';
 import { qrCode, sessionKey, windowAt } from './attendance/qr.js';
+import { MemoryRateLimitStore } from './auth/rate-limiter.js';
 import { FakeClock } from './clock.js';
 import { AppError } from './errors.js';
 import { OutboxSender } from './messages/outbox-sender.js';
@@ -41,6 +42,7 @@ describe('AttendanceService', () => {
       stub({ get: async () => ({}) }),
       clock,
       stub({ afterCommit: async () => {} }),
+      new MemoryRateLimitStore(),
     );
 
   it('refuses to open a session that is no longer scheduled', async () => {
@@ -183,6 +185,7 @@ describe('StudentAuthService.bindDevice', () => {
       stub({}),
       new ConsoleMailer(),
       clock,
+      new MemoryRateLimitStore(),
     );
     await expect(service.bindDevice('u', { publicKey: spki, label: 'phone' })).rejects.toBe(boom);
   });
@@ -237,7 +240,13 @@ describe('DevMailController', () => {
 
 describe('StudentAuthService', () => {
   const make = (repo: object) =>
-    new StudentAuthService(repo as never, stub({}), new ConsoleMailer(), clock);
+    new StudentAuthService(
+      repo as never,
+      stub({}),
+      new ConsoleMailer(),
+      clock,
+      new MemoryRateLimitStore(),
+    );
 
   it('limits code requests to 5 per email', async () => {
     const service = make({ findUserByEmail: async () => undefined });
@@ -281,6 +290,7 @@ describe('AuthService.register', () => {
       stub({}),
       clock,
       stub({}),
+      new MemoryRateLimitStore(),
     );
     await expect(
       service.register({ name: 'مدرس', phone: '01000000099', password: 'correct horse' }, '::1'),

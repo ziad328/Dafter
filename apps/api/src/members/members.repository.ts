@@ -21,6 +21,7 @@ type Role = Workspace['role'];
 export class MembersRepository extends TenantRepository {
   async createInvite(
     workspaceId: string,
+    createdByMembershipId: string,
     role: Invite['role'],
     teacherMembershipIds: string[],
     tokenHash: string,
@@ -29,7 +30,14 @@ export class MembersRepository extends TenantRepository {
     const [row] = await this.inTenant(workspaceId, (tx) =>
       tx
         .insert(invites)
-        .values({ workspaceId, role, teacherMembershipIds, tokenHash, expiresAt })
+        .values({
+          workspaceId,
+          createdByMembershipId,
+          role,
+          teacherMembershipIds,
+          tokenHash,
+          expiresAt,
+        })
         .returning({ id: invites.id }),
     );
     return row!;
@@ -108,8 +116,17 @@ export class MembersRepository extends TenantRepository {
           role: invites.role,
           expiresAt: invites.expiresAt,
           createdAt: invites.createdAt,
+          invitedBy: users.name,
         })
         .from(invites)
+        .leftJoin(
+          memberships,
+          and(
+            eq(memberships.workspaceId, invites.workspaceId),
+            eq(memberships.id, invites.createdByMembershipId),
+          ),
+        )
+        .leftJoin(users, eq(users.id, memberships.userId))
         .where(
           and(
             eq(invites.workspaceId, workspaceId),
@@ -123,6 +140,7 @@ export class MembersRepository extends TenantRepository {
         role: r.role as PendingInvite['role'],
         expiresAt: r.expiresAt.toISOString(),
         createdAt: r.createdAt.toISOString(),
+        invitedBy: r.invitedBy,
       }));
     });
   }

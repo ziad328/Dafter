@@ -22,6 +22,7 @@ import { Mailer, mailerFromEnv } from './student-auth/mailer.js';
 import { StudentsModule } from './students/students.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { AuditInterceptor } from './audit.interceptor.js';
+import { PgRateLimitStore, RateLimitStore } from './auth/rate-limiter.js';
 import { Clock } from './clock.js';
 import { DB } from './db.js';
 import { checkEnv } from './env-check.js';
@@ -81,8 +82,9 @@ export async function createApp(
         { provide: Clock, useValue: options.clock ?? new Clock() },
         { provide: Mailer, useValue: options.mailer ?? mailerFromEnv() },
         OutboxSender,
+        { provide: RateLimitStore, useClass: PgRateLimitStore },
       ],
-      exports: [DB, Clock, Mailer, OutboxSender],
+      exports: [DB, Clock, Mailer, OutboxSender, RateLimitStore],
     },
     // Behind the host's proxy (Vercel) req.ip comes from X-Forwarded-For; never trust it locally.
     new FastifyAdapter({ trustProxy: process.env.TRUST_PROXY === '1' }),
