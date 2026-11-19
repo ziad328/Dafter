@@ -101,12 +101,10 @@ export class MembersService {
 
   async setScopes(workspaceId: string, role: Role, memberId: string, teacherIds: string[]) {
     requireOwner(role);
-    const [member] = await this.repo.roles(workspaceId, [memberId]);
-    if (!member) throw new AppError('NOT_FOUND');
-    if (member.role !== 'assistant') throw new AppError('MEMBER_NOT_ASSISTANT');
-    const ids = [...new Set(teacherIds)];
-    await this.checkTeachers(workspaceId, ids);
-    await this.repo.replaceScopes(workspaceId, memberId, ids);
+    const result = await this.repo.replaceScopes(workspaceId, memberId, [...new Set(teacherIds)]);
+    if (result === 'not_found') throw new AppError('NOT_FOUND');
+    if (result === 'not_assistant') throw new AppError('MEMBER_NOT_ASSISTANT');
+    if (result === 'invalid_teacher') throw new AppError('SCOPE_TEACHER_INVALID');
   }
 
   /** Every id an active owner or teacher here (owners teach too), else SCOPE_TEACHER_INVALID. */

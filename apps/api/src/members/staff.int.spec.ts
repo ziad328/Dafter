@@ -94,6 +94,39 @@ describe('invites carry an assistant’s teachers', () => {
   });
 });
 
+describe('PUT /members/:id/scopes', () => {
+  it('never leaves a teacher removed at the same moment in a scope', async () => {
+    const { c, members, join } = await setup();
+    const a = await join('assistant');
+    for (let i = 0; i < 5; i++) {
+      const t = await join('teacher');
+      const [removed, scoped] = await Promise.all([
+        c.owner('PATCH', `members/${t.id}`, { status: 'removed' }),
+        c.owner('PUT', `members/${a.id}/scopes`, { teacherMembershipIds: [t.id] }),
+      ]);
+      expect(removed.statusCode).toBe(200);
+      // Either the scope was written first (and the removal took it away), or the check saw them gone.
+      expect([204, 'SCOPE_TEACHER_INVALID']).toContain(
+        scoped.statusCode === 204 ? 204 : scoped.json().code,
+      );
+      expect((await members()).find((m) => m.id === a.id)!.teacherMembershipIds).toEqual([]);
+    }
+  });
+
+  it('answers NOT_FOUND and MEMBER_NOT_ASSISTANT from inside the transaction', async () => {
+    const { c, byRole } = await setup();
+    const teacher = await byRole('teacher');
+    const none = await c.owner('PUT', `members/${crypto.randomUUID()}/scopes`, {
+      teacherMembershipIds: [],
+    });
+    expect(none.json().code).toBe('NOT_FOUND');
+    const notAssistant = await c.owner('PUT', `members/${teacher.id}/scopes`, {
+      teacherMembershipIds: [],
+    });
+    expect(notAssistant.json().code).toBe('MEMBER_NOT_ASSISTANT');
+  });
+});
+
 describe('PATCH /members/:id', () => {
   it('changes roles; scopes follow the role; teaching blocks becoming an assistant', async () => {
     const { c, byRole, join } = await setup();

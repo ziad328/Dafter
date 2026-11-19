@@ -276,10 +276,53 @@ export class MembersRepository extends TenantRepository {
     );
   }
 
-  replaceScopes(workspaceId: string, membershipId: string, teacherIds: string[]) {
-    return this.inTenant(workspaceId, (tx) =>
-      this.writeScopes(tx, workspaceId, membershipId, teacherIds),
-    );
+  /**
+   * Checks and writes in one transaction, after the same lock as `update` (the workspace's active
+   * owner rows): a teacher removed or demoted at the same moment is either gone before the check
+   * (SCOPE_TEACHER_INVALID) or removed after the write, and then their scopes go with them.
+   */
+  replaceScopes(
+    workspaceId: string,
+    membershipId: string,
+    teacherIds: string[],
+  ): Promise<'not_found' | 'not_assistant' | 'invalid_teacher' | 'ok'> {
+    return this.inTenant(workspaceId, async (tx) => {
+      await this.lockOwners(tx, workspaceId);
+      const [member] = await tx
+        .select({ role: memberships.role })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.workspaceId, workspaceId),
+            eq(memberships.id, membershipId),
+            eq(memberships.status, 'active'),
+          ),
+        );
+      if (!member) return 'not_found';
+      if (member.role !== 'assistant') return 'not_assistant';
+      if ((await this.activeTeachers(tx, workspaceId, teacherIds)).length !== teacherIds.length)
+        return 'invalid_teacher';
+      await this.writeScopes(tx, workspaceId, membershipId, teacherIds);
+      return 'ok';
+    });
+  }
+
+  /**
+   * Every change to who is in the workspace and what they see starts here, so two of them run one
+   * after the other and never lock each other's rows in opposite orders.
+   */
+  private lockOwners(tx: Tx, workspaceId: string) {
+    return tx
+      .select({ id: memberships.id })
+      .from(memberships)
+      .where(
+        and(
+          eq(memberships.workspaceId, workspaceId),
+          eq(memberships.role, 'owner'),
+          eq(memberships.status, 'active'),
+        ),
+      )
+      .for('update');
   }
 
   /** The given ids that are active owners or teachers here (owners teach too). */
@@ -337,17 +380,7 @@ export class MembersRepository extends TenantRepository {
     change: { role: Role } | { removedAt: Date },
   ): Promise<'not_found' | 'last_owner' | { teaching: number } | Role> {
     return this.inTenant(workspaceId, async (tx) => {
-      const owners = await tx
-        .select({ id: memberships.id })
-        .from(memberships)
-        .where(
-          and(
-            eq(memberships.workspaceId, workspaceId),
-            eq(memberships.role, 'owner'),
-            eq(memberships.status, 'active'),
-          ),
-        )
-        .for('update');
+      const owners = await this.lockOwners(tx, workspaceId);
       const [member] = await tx
         .select({ role: memberships.role })
         .from(memberships)
