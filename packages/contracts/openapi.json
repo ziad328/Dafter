@@ -4333,6 +4333,13 @@
           },
           "guardian": {
             "$ref": "#/components/schemas/GuardianInput"
+          },
+          "extraGuardians": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuardianInput"
+            }
           }
         },
         "required": ["nameAr", "gradeLevelId", "guardian"]
@@ -4417,6 +4424,13 @@
           },
           "guardian": {
             "$ref": "#/components/schemas/GuardianInput"
+          },
+          "extraGuardians": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuardianInput"
+            }
           }
         }
       },

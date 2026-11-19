@@ -18,15 +18,45 @@ export const guardianInput = z
   })
   .meta({ id: 'GuardianInput' });
 
-export const createStudentRequest = z
-  .object({
-    nameAr: name,
-    nameEn: name.optional(),
-    phone: mobilePhone.optional(),
-    gradeLevelId: z.uuid(),
-    school: optionalText.optional(),
-    guardian: guardianInput,
-  })
+/** Up to 3 more parents besides the primary one; every parent is texted unless the student says otherwise. */
+const extraGuardians = z.array(guardianInput).max(3);
+
+type GuardianFields = { guardian?: { phone: string }; extraGuardians?: { phone: string }[] };
+
+/**
+ * Extra parents are sent with the primary one (the form always sends both), and no phone appears
+ * twice: GUARDIAN_DUPLICATE on the repeated extra.
+ */
+export const checkGuardians = (v: GuardianFields, ctx: z.RefinementCtx) => {
+  if (!v.extraGuardians) return;
+  if (!v.guardian)
+    ctx.addIssue({ code: 'custom', path: ['guardian'], message: 'GUARDIAN_REQUIRED' });
+  const seen = new Set(v.guardian ? [v.guardian.phone] : []);
+  v.extraGuardians.forEach((g, i) => {
+    if (seen.has(g.phone))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['extraGuardians', i, 'phone'],
+        message: 'GUARDIAN_DUPLICATE',
+      });
+    seen.add(g.phone);
+  });
+};
+
+/** The create fields, unrefined, so the web form can extend them. */
+export const createStudentFields = z.object({
+  nameAr: name,
+  nameEn: name.optional(),
+  phone: mobilePhone.optional(),
+  gradeLevelId: z.uuid(),
+  school: optionalText.optional(),
+  guardian: guardianInput,
+  // Replaces the student's other parents when sent; left out, they stay as they are.
+  extraGuardians: extraGuardians.optional(),
+});
+
+export const createStudentRequest = createStudentFields
+  .superRefine(checkGuardians)
   .meta({ id: 'CreateStudentRequest' });
 
 export const updateStudentRequest = z
@@ -39,8 +69,11 @@ export const updateStudentRequest = z
     status: studentStatus,
     // Becomes the primary guardian (found or created by phone).
     guardian: guardianInput,
+    // Replaces the other (non-primary) parents; needs `guardian` too.
+    extraGuardians,
   })
   .partial()
+  .superRefine(checkGuardians)
   .meta({ id: 'UpdateStudentRequest' });
 
 export const listStudentsQuery = z
@@ -90,4 +123,5 @@ export type GuardianInput = z.infer<typeof guardianInput>;
 export type CreateStudentRequest = z.infer<typeof createStudentRequest>;
 export type UpdateStudentRequest = z.infer<typeof updateStudentRequest>;
 export type ListStudentsQuery = z.infer<typeof listStudentsQuery>;
+export type Guardian = z.infer<typeof guardian>;
 export type Student = z.infer<typeof student>;

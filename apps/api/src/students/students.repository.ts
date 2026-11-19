@@ -117,13 +117,18 @@ export class StudentsRepository extends TenantRepository {
     return row;
   }
 
-  create(workspaceId: string, values: StudentValues, guardian: GuardianInput) {
+  create(
+    workspaceId: string,
+    values: StudentValues,
+    guardian: GuardianInput,
+    extras: GuardianInput[] | undefined,
+  ) {
     return this.inTenant(workspaceId, async (tx) => {
       const [row] = await tx
         .insert(students)
         .values({ workspaceId, ...values })
         .returning({ id: students.id });
-      await this.setPrimaryGuardian(tx, workspaceId, row!.id, guardian);
+      await this.setGuardians(tx, workspaceId, row!.id, guardian, extras);
       return row!.id;
     });
   }
@@ -133,13 +138,14 @@ export class StudentsRepository extends TenantRepository {
     id: string,
     patch: Partial<StudentValues>,
     guardian: GuardianInput | undefined,
+    extras: GuardianInput[] | undefined,
   ) {
     return this.inTenant(workspaceId, async (tx) => {
       await tx
         .update(students)
         .set(patch)
         .where(and(eq(students.workspaceId, workspaceId), eq(students.id, id)));
-      if (guardian) await this.setPrimaryGuardian(tx, workspaceId, id, guardian);
+      if (guardian) await this.setGuardians(tx, workspaceId, id, guardian, extras);
     });
   }
 
@@ -293,16 +299,44 @@ export class StudentsRepository extends TenantRepository {
   }
 
   /**
-   * Finds the guardian by phone (a sibling's parent is reused and their details refreshed) or
-   * creates one, then makes it the student's only primary guardian. The old primary link is
-   * dropped (most likely a wrong number); the guardian row stays for its other students.
+   * Finds each guardian by phone (a sibling's parent is reused and their details refreshed) or
+   * creates one. The primary becomes the student's only primary link; the old primary link is
+   * dropped (most likely a wrong number). When `extras` is sent, the other links are replaced by
+   * it. Guardian rows stay for their other students.
    */
-  private async setPrimaryGuardian(
+  private async setGuardians(
     tx: Tx,
     workspaceId: string,
     studentId: string,
-    g: GuardianInput,
+    primary: GuardianInput,
+    extras: GuardianInput[] | undefined,
   ) {
+    const link = and(
+      eq(studentGuardians.workspaceId, workspaceId),
+      eq(studentGuardians.studentId, studentId),
+    );
+    // The extras first: a parent moving from extra to primary keeps one link, now primary.
+    if (extras)
+      await tx.delete(studentGuardians).where(and(link, eq(studentGuardians.isPrimary, false)));
+    await tx.delete(studentGuardians).where(and(link, eq(studentGuardians.isPrimary, true)));
+    const all = [primary, ...(extras ?? [])];
+    for (const [i, g] of all.entries()) {
+      const guardianId = await this.upsertGuardian(tx, workspaceId, g);
+      await tx
+        .insert(studentGuardians)
+        .values({ workspaceId, studentId, guardianId, isPrimary: i === 0 })
+        .onConflictDoUpdate({
+          target: [
+            studentGuardians.workspaceId,
+            studentGuardians.studentId,
+            studentGuardians.guardianId,
+          ],
+          set: { isPrimary: sql`excluded.is_primary` },
+        });
+    }
+  }
+
+  private async upsertGuardian(tx: Tx, workspaceId: string, g: GuardianInput) {
     const [row] = await tx
       .insert(guardians)
       .values({ workspaceId, ...g })
@@ -316,22 +350,7 @@ export class StudentsRepository extends TenantRepository {
         },
       })
       .returning({ id: guardians.id });
-    const link = and(
-      eq(studentGuardians.workspaceId, workspaceId),
-      eq(studentGuardians.studentId, studentId),
-    );
-    await tx.delete(studentGuardians).where(and(link, eq(studentGuardians.isPrimary, true)));
-    await tx
-      .insert(studentGuardians)
-      .values({ workspaceId, studentId, guardianId: row!.id, isPrimary: true })
-      .onConflictDoUpdate({
-        target: [
-          studentGuardians.workspaceId,
-          studentGuardians.studentId,
-          studentGuardians.guardianId,
-        ],
-        set: { isPrimary: true },
-      });
+    return row!.id;
   }
 
   private async select(tx: Tx, workspaceId: string, filter?: SQL, order: SQL[] = []) {

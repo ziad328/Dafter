@@ -1,13 +1,15 @@
 import {
-  createStudentRequest,
+  checkGuardians,
+  createStudentFields,
+  type Guardian,
   normalizeArabic,
   type Student,
   studentStatus,
 } from '@dafter/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus, X } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type DefaultValues, useFieldArray, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import * as z from 'zod';
@@ -29,8 +31,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { groupName, itemName } from '@/lib/groups';
 import { errorDetails, errorKey } from '@/lib/session';
 
-const formSchema = createStudentRequest.extend({ status: studentStatus.optional() });
+const formSchema = createStudentFields
+  .extend({ status: studentStatus.optional() })
+  .superRefine(checkGuardians);
 type FormValues = z.infer<typeof formSchema>;
+
+const guardianForm = (g: Guardian) => ({
+  phone: g.phone,
+  name: g.name ?? undefined,
+  relation: g.relation,
+  preferredLocale: g.preferredLocale,
+  whatsappOptIn: g.whatsappOptIn,
+});
 
 const toForm = (s: Student): FormValues => {
   const g = s.guardians.find((x) => x.isPrimary) ?? s.guardians[0];
@@ -48,12 +60,15 @@ const toForm = (s: Student): FormValues => {
       preferredLocale: g?.preferredLocale ?? 'ar',
       whatsappOptIn: g?.whatsappOptIn ?? true,
     },
+    extraGuardians: s.guardians.filter((x) => x !== g).map(guardianForm),
   };
 };
 
-const blank = {
+const newGuardian = { relation: 'mother', preferredLocale: 'ar', whatsappOptIn: true } as const;
+const blank: DefaultValues<FormValues> = {
   guardian: { relation: 'father', preferredLocale: 'ar', whatsappOptIn: true },
-} as const;
+  extraGuardians: [],
+};
 
 // Empty optional text is "not given"; phones accept Arabic digits typed on an Arabic keyboard.
 const optional = (v: string) => v.trim() || undefined;
@@ -134,7 +149,6 @@ function SectionChips() {
 /** The student at a glance; the edit form opens on demand. */
 function StudentSummary({ student, onEdit }: { student: Student; onEdit: () => void }) {
   const { t, i18n } = useTranslation();
-  const g = student.guardians.find((x) => x.isPrimary) ?? student.guardians[0];
   const name = i18n.language === 'en' && student.nameEn ? student.nameEn : student.nameAr;
   return (
     <Card>
@@ -164,15 +178,17 @@ function StudentSummary({ student, onEdit }: { student: Student; onEdit: () => v
               </dd>
             </>
           )}
-          {g && (
-            <>
-              <dt className="text-muted-foreground">{t('students.guardian')}</dt>
+          {student.guardians.map((g) => (
+            <div key={g.id} className="contents">
+              <dt className="text-muted-foreground">
+                {t(g.isPrimary ? 'students.guardian' : 'students.otherGuardian')}
+              </dt>
               <dd>
                 {g.name && `${g.name} · `}
                 <bdi>{g.phone}</bdi>
               </dd>
-            </>
-          )}
+            </div>
+          ))}
         </dl>
       </CardContent>
     </Card>
@@ -208,11 +224,12 @@ function StudentFormBody({
   const saving = created.isLoading || updated.isLoading || enrolled.isLoading;
   const error = created.error ?? updated.error;
 
-  const { register, handleSubmit, watch, setValue, formState } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState, control } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: student ? toForm(student) : blank,
   });
   const { errors } = formState;
+  const extras = useFieldArray({ control, name: 'extraGuardians' });
 
   const onSubmit = handleSubmit(async (body) => {
     // Already saved and waiting on the full-group confirm: Enter must not register them twice.
@@ -336,6 +353,85 @@ function StudentFormBody({
               selfId={id}
               message={t('students.sharedGuardian')}
             />
+
+            {extras.fields.length > 0 && (
+              <fieldset className="grid gap-3">
+                <legend className="mb-2 text-sm font-medium">{t('students.otherGuardians')}</legend>
+                {extras.fields.map((f, i) => {
+                  const e = errors.extraGuardians?.[i];
+                  return (
+                    <div key={f.id} className="grid gap-2 rounded-xl border p-3">
+                      <div className="flex items-end gap-2">
+                        <div className="grow">
+                          <Field
+                            label={t('students.guardianPhone')}
+                            type="tel"
+                            inputMode="tel"
+                            dir="ltr"
+                            autoComplete="off"
+                            error={
+                              e?.phone &&
+                              t(
+                                e.phone.message === 'GUARDIAN_DUPLICATE'
+                                  ? 'form.invalid.guardianDuplicate'
+                                  : 'form.invalid.mobile',
+                              )
+                            }
+                            {...register(`extraGuardians.${i}.phone`, { setValueAs: phone })}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t('students.removeGuardian')}
+                          onClick={() => extras.remove(i)}
+                        >
+                          <X aria-hidden className="size-4" />
+                        </Button>
+                      </div>
+                      <Field
+                        label={`${t('students.guardianName')} ${t('form.optional')}`}
+                        autoComplete="off"
+                        error={e?.name && t('form.invalid.name')}
+                        {...register(`extraGuardians.${i}.name`, { setValueAs: optional })}
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <SelectField
+                          label={t('students.relation')}
+                          {...register(`extraGuardians.${i}.relation`)}
+                        >
+                          {(['father', 'mother', 'other'] as const).map((r) => (
+                            <option key={r} value={r}>
+                              {t(`students.relations.${r}`)}
+                            </option>
+                          ))}
+                        </SelectField>
+                        <SelectField
+                          label={t('students.preferredLocale')}
+                          {...register(`extraGuardians.${i}.preferredLocale`)}
+                        >
+                          <option value="ar">{t('students.locales.ar')}</option>
+                          <option value="en">{t('students.locales.en')}</option>
+                        </SelectField>
+                      </div>
+                    </div>
+                  );
+                })}
+              </fieldset>
+            )}
+            {extras.fields.length < 3 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="justify-self-start"
+                onClick={() => extras.append({ ...newGuardian, phone: '' })}
+              >
+                <Plus aria-hidden className="size-4" />
+                {t('students.addGuardian')}
+              </Button>
+            )}
 
             {/* At the door only the four fields above matter; the rest can wait. Open when editing,
               or when a field inside needs fixing. */}

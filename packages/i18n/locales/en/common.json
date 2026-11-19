@@ -30,6 +30,7 @@
       "slotOverlap": "This slot overlaps another one on the same day.",
       "date": "Enter a valid date.",
       "mobile": "Enter an 11-digit Egyptian mobile number starting with 01.",
+      "guardianDuplicate": "This number is already one of the student's parents.",
       "code": "Enter the 6-digit code.",
       "discount": "Enter a number from 0 to 100.",
       "amount": "Enter an amount in pounds, like 150 or 150.50.",
@@ -300,6 +301,10 @@
     "create": "Add student",
     "save": "Save",
     "duplicatePhone": "This number is already used by:",
+    "otherGuardians": "Other parents",
+    "otherGuardian": "Other parent",
+    "addGuardian": "Add another parent",
+    "removeGuardian": "Remove this parent",
     "sharedGuardian": "This parent number is used by other students; the student will share the same parent:",
     "cancelEdit": "Back",
     "more": "More details"

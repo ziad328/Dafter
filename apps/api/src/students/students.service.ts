@@ -51,11 +51,12 @@ export class StudentsService {
 
   async create(ctx: Ctx, body: CreateStudentRequest): Promise<Student> {
     await this.checkGrade(ctx, body.gradeLevelId);
-    const { guardian, ...values } = body;
+    const { guardian, extraGuardians, ...values } = body;
     const id = await this.repo.create(
       ctx.workspaceId,
       { ...values, nameSearch: nameSearch(values.nameAr, values.nameEn) },
       guardian,
+      extraGuardians,
     );
     return this.get(ctx, id);
   }
@@ -65,12 +66,18 @@ export class StudentsService {
     // An archived grade may stay on the student; only a newly picked one must be active.
     if (body.gradeLevelId && body.gradeLevelId !== current.gradeLevel.id)
       await this.checkGrade(ctx, body.gradeLevelId);
-    const { guardian, ...patch } = body;
+    const { guardian, extraGuardians, ...patch } = body;
     const search = nameSearch(
       patch.nameAr ?? current.nameAr,
       patch.nameEn === undefined ? current.nameEn : patch.nameEn,
     );
-    await this.repo.update(ctx.workspaceId, id, { ...patch, nameSearch: search }, guardian);
+    await this.repo.update(
+      ctx.workspaceId,
+      id,
+      { ...patch, nameSearch: search },
+      guardian,
+      extraGuardians,
+    );
     return this.get(ctx, id);
   }
 

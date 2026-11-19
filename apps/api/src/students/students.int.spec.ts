@@ -168,6 +168,70 @@ describe('students', () => {
     expect(await names(c.owner, 'kareem')).toEqual(['كريم']);
   });
 
+  it('keeps more than one parent: extras replace extras, a promoted extra keeps one link', async () => {
+    const res = await c.assistant('POST', 'students', {
+      nameAr: 'سلمى',
+      gradeLevelId: c.gradeId,
+      guardian: guardian('01255555551'),
+      extraGuardians: [guardian('01255555552', { relation: 'father' })],
+    });
+    expect(res.statusCode).toBe(201);
+    const s = res.json();
+    expect(s.guardians).toMatchObject([
+      { phone: '01255555551', isPrimary: true },
+      { phone: '01255555552', relation: 'father', isPrimary: false },
+    ]);
+    // Without extraGuardians the other parents stay; a new primary that was an extra is promoted.
+    const promoted = (
+      await c.owner('PATCH', `students/${s.id}`, { guardian: guardian('01255555552') })
+    ).json();
+    expect(promoted.guardians).toMatchObject([{ phone: '01255555552', isPrimary: true }]);
+    expect(promoted.guardians).toHaveLength(1);
+    // The extras list replaces the others; the old primary comes back as an extra.
+    const swapped = (
+      await c.owner('PATCH', `students/${s.id}`, {
+        guardian: guardian('01255555552'),
+        extraGuardians: [guardian('01255555551'), guardian('01255555553')],
+      })
+    ).json();
+    expect(swapped.guardians.map((g: { phone: string }) => g.phone).sort()).toEqual([
+      '01255555551',
+      '01255555552',
+      '01255555553',
+    ]);
+    const cleared = (
+      await c.owner('PATCH', `students/${s.id}`, {
+        guardian: guardian('01255555552'),
+        extraGuardians: [],
+      })
+    ).json();
+    expect(cleared.guardians).toMatchObject([{ phone: '01255555552', isPrimary: true }]);
+    expect(cleared.guardians).toHaveLength(1);
+  });
+
+  it('rejects a repeated parent phone, and extras without the primary', async () => {
+    const dup = await c.owner('POST', 'students', {
+      nameAr: 'شريف',
+      gradeLevelId: c.gradeId,
+      guardian: guardian('01277777771'),
+      extraGuardians: [guardian('01277777771')],
+    });
+    expect(dup.statusCode).toBe(400);
+    expect(dup.json().details.issues).toEqual([{ path: 'extraGuardians.0.phone', code: 'custom' }]);
+    const s = (
+      await c.owner('POST', 'students', {
+        nameAr: 'شريف',
+        gradeLevelId: c.gradeId,
+        guardian: guardian('01277777771'),
+      })
+    ).json();
+    const alone = await c.owner('PATCH', `students/${s.id}`, {
+      extraGuardians: [guardian('01277777772')],
+    });
+    expect(alone.statusCode).toBe(400);
+    expect(alone.json().details.issues).toEqual([{ path: 'guardian', code: 'custom' }]);
+  });
+
   it('rejects a grade level from another workspace', async () => {
     const other = await center();
     const res = await c.owner('POST', 'students', {

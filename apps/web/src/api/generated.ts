@@ -1515,6 +1515,7 @@ export type CreateStudentRequest = {
   gradeLevelId: string;
   school?: string;
   guardian: GuardianInput;
+  extraGuardians?: GuardianInput[];
 };
 export type UpdateStudentRequest = {
   nameAr?: string;
@@ -1524,6 +1525,7 @@ export type UpdateStudentRequest = {
   school?: string | null;
   status?: 'active' | 'archived';
   guardian?: GuardianInput;
+  extraGuardians?: GuardianInput[];
 };
 export type Enrollment = {
   id: string;

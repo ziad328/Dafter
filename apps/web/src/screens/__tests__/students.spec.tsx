@@ -250,6 +250,67 @@ describe('student page', () => {
     expect(screen.queryByRole('button', { name: tr('students.save') })).not.toBeInTheDocument();
   });
 
+  it('lists every parent, adds, removes and checks for a repeated phone', async () => {
+    const primary = { ...student.guardians[0]!, phone: '01200000001', isPrimary: true };
+    const other = {
+      ...primary,
+      id: '00000000-0000-4000-8000-0000000000a2',
+      phone: '01200000002',
+      name: 'منى',
+      isPrimary: false,
+    };
+    server.use(
+      http.get(route('students/:id'), () =>
+        Response.json({ ...student, guardians: [primary, other] }),
+      ),
+    );
+    const { user } = await renderAt(page);
+    expect(await screen.findByText(tr('students.otherGuardian'))).toBeInTheDocument();
+    expect(screen.getByText(/منى ·/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: tr('students.edit') }));
+    const phones = () => screen.getAllByLabelText(tr('students.guardianPhone'));
+    expect(phones()).toHaveLength(2);
+    await user.click(screen.getByRole('button', { name: tr('students.removeGuardian') }));
+    expect(phones()).toHaveLength(1);
+    // The extras come before the primary's details (name, relation, language), which sit folded below.
+    // Up to three more parents: the add button goes away at the limit.
+    for (let i = 0; i < 3; i++)
+      await user.click(screen.getByRole('button', { name: tr('students.addGuardian') }));
+    expect(screen.queryByRole('button', { name: tr('students.addGuardian') })).toBeNull();
+    await user.click(screen.getAllByRole('button', { name: tr('students.removeGuardian') })[2]!);
+    await user.click(screen.getAllByRole('button', { name: tr('students.removeGuardian') })[1]!);
+    await user.type(phones()[1]!, '01200000001');
+    await user.click(screen.getAllByLabelText(new RegExp(tr('students.guardianName')))[0]!);
+    await user.paste('x'.repeat(101));
+    await user.click(screen.getByRole('button', { name: tr('students.save') }));
+    expect(await screen.findByText(tr('form.invalid.guardianDuplicate'))).toBeVisible();
+    expect(screen.getByText(tr('form.invalid.name'))).toBeVisible();
+    await user.clear(phones()[1]!);
+    await user.type(phones()[1]!, 'abc');
+    await user.click(screen.getByRole('button', { name: tr('students.save') }));
+    expect(await screen.findByText(tr('form.invalid.mobile'))).toBeVisible();
+    await user.clear(phones()[1]!);
+    await user.type(phones()[1]!, '01200000003');
+    await user.clear(screen.getAllByLabelText(new RegExp(tr('students.guardianName')))[0]!);
+    await user.click(screen.getAllByRole('combobox', { name: tr('students.relation') })[0]!);
+    await user.click(
+      (await screen.findAllByRole('option', { name: tr('students.relations.father') }))[0]!,
+    );
+    await user.click(screen.getAllByRole('combobox', { name: tr('students.preferredLocale') })[0]!);
+    await user.click(
+      (await screen.findAllByRole('option', { name: tr('students.locales.en') }))[0]!,
+    );
+    await user.click(screen.getByRole('button', { name: tr('students.save') }));
+    await expect
+      .poll(() => call(`PATCH /api/v1/students/${student.id}`)?.body)
+      .toMatchObject({
+        guardian: { phone: '01200000001' },
+        extraGuardians: [
+          { phone: '01200000003', relation: 'father', preferredLocale: 'en', whatsappOptIn: true },
+        ],
+      });
+  });
+
   it('shows an English name, and a student with no parent', async () => {
     server.use(
       http.get(route('students/:id'), () =>
