@@ -4,11 +4,43 @@ One file for the state of the project. **Next** comes first: the backlog, every 
 
 ## Contents
 
+0. [Now · Before the client interview](#now)
 1. [Next · Backlog](#backlog) (was `docs/backlog.md`)
 2. [Next · Known limits (details)](#known-limits) (was `docs/known-limits.md`)
 3. [Next · Plan for fixing the limits](#limits-plan) (was `docs/limits-plan.md`)
 4. [Next · v1 notes](#v1-next) (was `docs/v1-next.md`)
 5. [Done · Progress log](#done) (was `docs/progress.md`)
+
+<a id="now"></a>
+
+## Now: before the client interview
+
+Written Nov 19. Everything that doesn't need the client goes first, in five batches (one session each, run one after another on `main`; nothing is pushed until all five are done). Numbers are the backlog's. Tick a batch here and log it in Done.
+
+- [ ] **A · Small fixes:** #13 "save anyway" on session moves · #23 lock on `PUT /members/:id/scopes` · #25 one token-creation helper · #27 audit row in the same transaction on routes outside a workspace · #22 two tabs refreshing at once don't sign out (grace window) · #36 e2e groups without `force` · #37 drop cloned test databases · #38 `@dafter/i18n` loads in Node ESM · #39 `run-dafter` screenshots can sign in · reorder subjects and grades.
+- [ ] **B · Students and groups:** #9 more than one guardian in the UI · #16 "primary guardian only" per student · #12 move one session to another room · #14 dashboard: archived groups and a custom date range.
+- [ ] **C · Money that doesn't wait on the interview:** #4 nightly balance check · #5 students see their own balance · #6 cash summary by person and date range · #7 (first half) a per-center start day for fee reminders · #15 exam scores: CSV export, then import.
+- [ ] **D · Messages (*hard part: outbox*):** #17 a late "absent" for a second child reaches the parent · #18 SMS length counter on the wording editor · #21 batch the send-time re-check by session.
+- [ ] **E · Scale and PWA:** #11 cursor pagination (groups, students, message log) · #32 daily jobs batched per workspace · #33 offline screen in the PWA.
+
+### Waits on the client
+
+**The center interview** (questions in `product.md` → Open questions):
+- #1 Per-session and package-of-N fee plans.
+- #2 Proration for mid-month joins.
+- #3 Cash handover (who collects the money decides the model).
+- #7 (second half) Fee reminder amount per teacher instead of the center-wide balance.
+- #10 Whether teachers see every student in the center.
+
+**"WhatsApp, SMS or both?"** (the same interview):
+- #19 The outbox id as the provider's idempotency key.
+- #20 `whatsapp_opt_in` and pre-approved WhatsApp templates.
+
+**The first paying center:**
+- #26 Own sending domain for login emails (Ziad buys a domain).
+- #28 A paid host or VPS (Vercel Hobby is non-commercial).
+- #29 An always-on worker (failed texts retry within minutes, not an hour).
+- #31 LISTEN/NOTIFY for the live list (needs a long-running host).
 
 <a id="backlog"></a>
 
