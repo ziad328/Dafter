@@ -48,7 +48,6 @@ test("owner rewrites the cancellation message, and the parent gets the center's 
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   const group = await api.post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [

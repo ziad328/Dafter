@@ -1,33 +1,38 @@
-import { enterWorkspace, expect, openNav, ownerApi, signIn, STAFF, test } from './fixtures';
-
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
+import {
+  enterWorkspace,
+  expect,
+  freshCenter,
+  openNav,
+  ownerApi,
+  signIn,
+  STAFF,
+  test,
+} from './fixtures';
 
 test("assistant hands over today's cash summary, and the owner sees it", async ({
   page,
   request,
-  lang,
   t,
 }) => {
   // The teacher's group and a student, then a cash payment taken by the assistant.
-  const teacher = await ownerApi(request, CENTER.ar, STAFF.teacher);
-  const [subject] = await teacher.get('subjects');
-  const [grade] = await teacher.get('grade-levels');
+  const c = await freshCenter(request, 'سنتر التسليم', ['teacher', 'assistant']);
+  const { subject, grade } = c;
+  const teacher = await ownerApi(request, c.name, STAFF.teacher);
   const group = await teacher.post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 30_000,
     slots: [{ weekday: 2, startTime: '19:00', endTime: '20:00' }],
   });
   const n = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');
-  const owner = await ownerApi(request, CENTER.ar);
+  const owner = c.api;
   const student = await owner.post('students', {
     nameAr: `دافع ${n}`,
     gradeLevelId: grade.id,
     guardian: { phone: `011${n}`, relation: 'father', preferredLocale: 'ar', whatsappOptIn: false },
   });
   await owner.post(`students/${student.id}/enrollments`, { groupId: group.id });
-  const assistant = await ownerApi(request, CENTER.ar, STAFF.assistant);
+  const assistant = await ownerApi(request, c.name, STAFF.assistant);
   const payment = await assistant.post(
     'payments',
     { studentId: student.id, groupId: group.id, amountPiastres: 30_000, method: 'cash' },
@@ -36,7 +41,7 @@ test("assistant hands over today's cash summary, and the owner sees it", async (
   expect(payment.receiptNo).toBeGreaterThan(0);
 
   await signIn(page, t, STAFF.assistant);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await openNav(page, t, t.nav.cashSummary);
   await expect(page).toHaveURL(/\/cash-summary$/);
   await expect(page.getByRole('heading', { name: t.cashSummary.title })).toBeVisible();
@@ -51,7 +56,7 @@ test("assistant hands over today's cash summary, and the owner sees it", async (
 
   await page.context().clearCookies();
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await page.goto('/cash-summary');
   await expect(page.getByRole('row', { name: new RegExp(`دافع ${n}`) })).toBeVisible();
   expect(await page.getByRole('region').count()).toBeGreaterThanOrEqual(2);

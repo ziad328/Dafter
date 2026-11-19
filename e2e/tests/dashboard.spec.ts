@@ -1,6 +1,4 @@
-import { expect, openNav, ownerApi, signIn, STAFF, test, enterWorkspace } from './fixtures';
-
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
+import { enterWorkspace, expect, freshCenter, openNav, signIn, STAFF, test } from './fixtures';
 
 test('the owner opens the dashboard and finds a group with its exam average; a teacher sees no money', async ({
   page,
@@ -8,13 +6,11 @@ test('the owner opens the dashboard and finds a group with its exam average; a t
   lang,
   t,
 }) => {
-  const api = await ownerApi(request, CENTER.ar);
+  const c = await freshCenter(request, 'سنتر اللوحة', ['teacher']);
+  const { api, subject, grade } = c;
   const n = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');
-  const [subject] = await api.get('subjects');
-  const [grade] = await api.get('grade-levels');
   const label = `لوحة ${n}`;
   const group = await api.post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     label,
@@ -37,7 +33,7 @@ test('the owner opens the dashboard and finds a group with its exam average; a t
   });
 
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await openNav(page, t, t.nav.dashboard);
   await expect(page.getByRole('heading', { name: t.dashboard.title })).toBeVisible();
   await expect(page.getByTestId('money-trend')).toBeVisible();
@@ -52,7 +48,7 @@ test('the owner opens the dashboard and finds a group with its exam average; a t
   // A teacher in the same center: the dashboard, never the money.
   await page.context().clearCookies();
   await signIn(page, t, STAFF.teacher);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await page.goto('/dashboard');
   await expect(page.getByRole('heading', { name: t.dashboard.title })).toBeVisible();
   await expect(page.getByTestId('money-trend')).toHaveCount(0);

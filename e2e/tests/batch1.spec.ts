@@ -1,7 +1,7 @@
 import {
   enterWorkspace,
   expect,
-  GROUP_CONFLICT,
+  freshCenter,
   openNav,
   ownerApi,
   PASSWORD,
@@ -11,23 +11,10 @@ import {
   test,
 } from './fixtures';
 
-// Restoring in the seeded center may meet the owner's other groups: answered with Save anyway.
-test.use({ expectedErrors: GROUP_CONFLICT });
-
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
-
-test('owner archives a group, and it leaves the active list', async ({
-  page,
-  request,
-  lang,
-  t,
-}) => {
-  const api = await ownerApi(request, CENTER.ar);
-  const [subject] = await api.get('subjects');
-  const [grade] = await api.get('grade-levels');
+test('owner archives a group, and it leaves the active list', async ({ page, request, t }) => {
+  const { name: center, api, subject, grade } = await freshCenter(request, 'سنتر الأرشيف');
   const label = `أرشيف ${Math.floor(Math.random() * 1e6)}`;
   const group = await api.post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     label,
@@ -35,7 +22,7 @@ test('owner archives a group, and it leaves the active list', async ({
   });
 
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, center);
   await page.goto(`/groups/${group.id}/edit`);
   await page.getByRole('button', { name: t.groups.archive }).click();
   await page.getByRole('button', { name: t.groups.confirmArchive }).click();

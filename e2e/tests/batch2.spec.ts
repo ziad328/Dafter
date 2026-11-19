@@ -60,7 +60,6 @@ test('a corrected absence is not sent, a move names the old time, and primary on
   const soon = h! * 60 + m! + 5;
   const weekdayOf = (d: string) => new Date(`${d}T12:00:00Z`).getUTCDay();
   const group = await api.post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [

@@ -1,15 +1,14 @@
 import {
+  enterWorkspace,
   expect,
-  PASSWORD,
+  freshCenter,
+  openNav,
   signIn,
   STAFF,
   test,
-  openNav,
   workspaceChip,
-  enterWorkspace,
 } from './fixtures';
 
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const MONA = { ar: 'دروس منى حسن', en: 'Mona Hassan Lessons' };
 
 test('a cancelled session shows in the message log; the owner switches messages off and on', async ({
@@ -19,17 +18,8 @@ test('a cancelled session shows in the message log; the owner switches messages 
   t,
 }) => {
   // Data through the API as the center owner: a group meeting tomorrow, one enrolled student.
-  const login = await request.post('/api/v1/auth/login', {
-    data: { login: STAFF.owner, password: PASSWORD },
-  });
-  const auth = { authorization: `Bearer ${(await login.json()).accessToken}` };
-  const workspaces = (await (
-    await request.get('/api/v1/workspaces', { headers: auth })
-  ).json()) as { id: string; nameAr: string }[];
-  const headers = { ...auth, 'x-workspace-id': workspaces.find((w) => w.nameAr === CENTER.ar)!.id };
-  const get = async (url: string) => (await request.get(`/api/v1/${url}`, { headers })).json();
-  const post = async (url: string, data?: object) =>
-    (await request.post(`/api/v1/${url}`, { headers, data })).json();
+  const c = await freshCenter(request, 'سنتر الرسائل', ['teacher']);
+  const { get, post } = c.api;
 
   const tomorrow = new Date(
     Date.parse(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date())) +
@@ -40,7 +30,6 @@ test('a cancelled session shows in the message log; the owner switches messages 
   const [subject] = await get('subjects');
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [
@@ -67,7 +56,7 @@ test('a cancelled session shows in the message log; the owner switches messages 
 
   // The owner's log, reached from Home.
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await openNav(page, t, t.nav.messages);
   const item = page.getByTestId('message-log').getByRole('listitem').filter({ hasText: name });
   await expect(item).toContainText(t.messages.triggers.session_cancelled);

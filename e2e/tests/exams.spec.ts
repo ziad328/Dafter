@@ -1,6 +1,4 @@
-import { expect, ownerApi, signIn, STAFF, test, enterWorkspace } from './fixtures';
-
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
+import { enterWorkspace, expect, freshCenter, signIn, STAFF, test } from './fixtures';
 
 test('a teacher grades an exam and sends it to parents; the student sees the grade', async ({
   page,
@@ -11,12 +9,12 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
 }) => {
   // Two browsers and an email round trip, like the student-app flow.
   test.setTimeout(60_000);
-  const api = await ownerApi(request, CENTER.ar);
+  const c = await freshCenter(request, 'سنتر الامتحانات');
+  const { api } = c;
   const n = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   const group = await api.post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     label: `امتحانات ${n}`,
@@ -37,7 +35,7 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
   await student(yousef, `015${String(Number(n) + 1).padStart(8, '0')}`);
 
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await page.goto(`/groups/${group.id}/exams`);
   await expect(page.getByText(t.exams.empty)).toBeVisible();
   await page.getByRole('button', { name: t.exams.new }).click();

@@ -1,6 +1,5 @@
-import { expect, PASSWORD, STAFF, test, enterWorkspace } from './fixtures';
+import { enterWorkspace, expect, freshCenter, PASSWORD, STAFF, test } from './fixtures';
 
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 type Hook = { __dafterScan?: (text: string) => Promise<void> };
 const cairo = (opts: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', ...opts }).format(new Date());
@@ -24,28 +23,13 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
     `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
   // Data through the API as the owner (who teaches the group); the screens under test are below.
-  const login = await request.post('/api/v1/auth/login', {
-    data: { login: STAFF.owner, password: PASSWORD },
-  });
-  const token = (await login.json()).accessToken as string;
-  const auth = { authorization: `Bearer ${token}` };
-  const workspaces = (await (
-    await request.get('/api/v1/workspaces', { headers: auth })
-  ).json()) as {
-    id: string;
-    nameAr: string;
-  }[];
-  const ws = workspaces.find((w) => w.nameAr === CENTER.ar)!.id;
-  const headers = { ...auth, 'x-workspace-id': ws };
-  const get = async (url: string) => (await request.get(`/api/v1/${url}`, { headers })).json();
-  const post = async (url: string, data?: object) =>
-    (await request.post(`/api/v1/${url}`, { headers, data })).json();
+  const c = await freshCenter(request, 'سنتر الحضور');
+  const { get, post } = c.api;
 
   const [subject] = await get('subjects');
   const subjectName = (lang === 'en' ? subject.nameEn : subject.nameAr) as string;
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [{ weekday, startTime: hhmm(startMin), endTime: '23:59' }],
@@ -78,7 +62,7 @@ test('teacher shows the rotating QR; a student scans; the list updates live; clo
   await page.getByLabel(t.auth.login.login).fill(STAFF.owner);
   await page.getByLabel(t.auth.login.password).fill(PASSWORD);
   await page.getByRole('button', { name: t.auth.login.submit }).click();
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await page.goto(`/sessions/${sessionId}/live`);
   const qr = page.getByTestId('session-qr');
   await expect(qr).toBeVisible();

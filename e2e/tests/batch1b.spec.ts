@@ -1,11 +1,9 @@
-import type { APIRequestContext } from '@playwright/test';
 import {
   choose,
   enterWorkspace,
   expect,
+  freshCenter,
   openNav,
-  ownerApi,
-  PASSWORD,
   signIn,
   STAFF,
   test,
@@ -24,26 +22,9 @@ const addDays = (date: string, n: number) =>
 const weekStart = (date: string) => addDays(date, -((new Date(date).getUTCDay() + 1) % 7));
 const weekdayOf = (date: string) => new Date(date).getUTCDay();
 
-/** A fresh center owned by the seeded owner, so these tests never touch shared groups. */
-async function freshCenter(request: APIRequestContext, prefix: string) {
-  const name = `${prefix} ${Math.floor(Math.random() * 1e8)}`;
-  const login = await request.post('/api/v1/auth/login', {
-    data: { login: STAFF.owner, password: PASSWORD },
-  });
-  await request.post('/api/v1/workspaces', {
-    headers: { authorization: `Bearer ${(await login.json()).accessToken}` },
-    data: { type: 'center', nameAr: name },
-  });
-  const api = await ownerApi(request, name);
-  const [subject] = await api.get('subjects');
-  const [grade] = await api.get('grade-levels');
-  return { name, api, subject, grade };
-}
-
 test('a new student joins a full group after the confirm', async ({ page, request, lang, t }) => {
   const c = await freshCenter(request, 'سنتر السعة');
   const group = await c.api.post('groups', {
-    force: true,
     subjectId: c.subject.id,
     gradeLevelId: c.grade.id,
     capacity: 1,
@@ -91,7 +72,6 @@ test('moving a session onto the teacher’s other session is refused', async ({
   const later = addDays(tomorrow, 1);
   const make = (weekday: number, startTime: string, endTime: string, label: string) =>
     c.api.post('groups', {
-      force: true,
       subjectId: c.subject.id,
       gradeLevelId: c.grade.id,
       label,

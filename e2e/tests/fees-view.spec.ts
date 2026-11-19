@@ -1,18 +1,11 @@
-import { enterWorkspace, expect, openNav, ownerApi, signIn, STAFF, test } from './fixtures';
+import { enterWorkspace, expect, freshCenter, openNav, signIn, STAFF, test } from './fixtures';
 
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
-
-test('owner opens the fees view and finds a student who owes', async ({
-  page,
-  request,
-  lang,
-  t,
-}) => {
-  const api = await ownerApi(request, CENTER.ar);
+test('owner opens the fees view and finds a student who owes', async ({ page, request, t }) => {
+  const c = await freshCenter(request, 'سنتر الرسوم');
+  const { api } = c;
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   const group = await api.post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 50_000,
@@ -27,7 +20,7 @@ test('owner opens the fees view and finds a student who owes', async ({
   await api.post(`students/${student.id}/enrollments`, { groupId: group.id });
 
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await openNav(page, t, t.nav.fees);
   await expect(page).toHaveURL(/\/fees$/);
   await expect(page.getByRole('heading', { name: t.feesView.title })).toBeVisible();

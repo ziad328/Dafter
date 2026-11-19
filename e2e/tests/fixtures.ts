@@ -154,3 +154,43 @@ export async function ownerApi(
     patch: (url: string, data?: object) => request.patch(`/api/v1/${url}`, { headers, data }),
   };
 }
+
+/**
+ * A fresh center owned by the seeded owner, with the seeded teacher and assistant joined when
+ * asked (the assistant scoped to the teacher). API-built groups here never meet another test's or
+ * another run's groups, so they are saved without `force` and the teacher check stays on.
+ */
+export async function freshCenter(
+  request: APIRequestContext,
+  prefix: string,
+  staff: ('teacher' | 'assistant')[] = [],
+) {
+  const name = `${prefix} ${Math.floor(Math.random() * 1e8)}`;
+  const bearer = async (login: string) => {
+    const res = await request.post('/api/v1/auth/login', { data: { login, password: PASSWORD } });
+    return { authorization: `Bearer ${(await res.json()).accessToken}` };
+  };
+  await request.post('/api/v1/workspaces', {
+    headers: await bearer(STAFF.owner),
+    data: { type: 'center', nameAr: name },
+  });
+  const api = await ownerApi(request, name);
+  const join = async (role: 'teacher' | 'assistant', teacherMembershipIds?: string[]) => {
+    const { token } = await api.post('invites', { role, teacherMembershipIds });
+    const accept = await request.post(`/api/v1/invites/${token}/accept`, {
+      headers: await bearer(STAFF[role]),
+    });
+    expect(accept.ok()).toBe(true);
+  };
+  if (staff.includes('teacher')) await join('teacher');
+  if (staff.includes('assistant')) {
+    const members = (await api.get('members')) as { id: string; role: string }[];
+    await join(
+      'assistant',
+      members.filter((m) => m.role === 'teacher').map((m) => m.id),
+    );
+  }
+  const [subject] = await api.get('subjects');
+  const [grade] = await api.get('grade-levels');
+  return { name, api, subject, grade };
+}

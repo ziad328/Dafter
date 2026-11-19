@@ -1,15 +1,5 @@
-import {
-  choose,
-  enterWorkspace,
-  expect,
-  ownerApi,
-  PASSWORD,
-  signIn,
-  STAFF,
-  test,
-} from './fixtures';
+import { choose, enterWorkspace, expect, freshCenter, signIn, STAFF, test } from './fixtures';
 
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const egp = (lang: 'ar' | 'en', pounds: number) =>
   new Intl.NumberFormat(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en', {
     style: 'currency',
@@ -29,24 +19,11 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
     navigator.share = async (d) => void ((window as { shared?: ShareData }).shared = d);
   });
   // Data through the API: a 500 EGP monthly group and an enrolled student (billed on enroll).
-  const login = await request.post('/api/v1/auth/login', {
-    data: { login: STAFF.owner, password: PASSWORD },
-  });
-  const auth = { authorization: `Bearer ${(await login.json()).accessToken}` };
-  const workspaces = (await (
-    await request.get('/api/v1/workspaces', { headers: auth })
-  ).json()) as {
-    id: string;
-    nameAr: string;
-  }[];
-  const headers = { ...auth, 'x-workspace-id': workspaces.find((w) => w.nameAr === CENTER.ar)!.id };
-  const get = async (url: string) => (await request.get(`/api/v1/${url}`, { headers })).json();
-  const post = async (url: string, data?: object) =>
-    (await request.post(`/api/v1/${url}`, { headers, data })).json();
+  const c = await freshCenter(request, 'سنتر الفواتير');
+  const { get, post } = c.api;
   const [subject] = await get('subjects');
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 50_000,
@@ -61,7 +38,7 @@ test('owner records a payment, prints its receipt, and reverses it', async ({
   await post(`students/${student.id}/enrollments`, { groupId: group.id });
 
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await page.goto(`/students/${student.id}`);
   const balance = page.getByTestId('balance');
   await expect(balance).toContainText(egp(lang, 500));
@@ -104,11 +81,11 @@ test('a payment from Today: find the student, the amount is what they owe, save,
   lang,
   t,
 }) => {
-  const { get, post } = await ownerApi(request, CENTER.ar);
+  const c = await freshCenter(request, 'سنتر الدفع');
+  const { get, post } = c.api;
   const [subject] = await get('subjects');
   const [grade] = await get('grade-levels');
   const group = await post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 40_000,
@@ -123,7 +100,7 @@ test('a payment from Today: find the student, the amount is what they owe, save,
   await post(`students/${student.id}/enrollments`, { groupId: group.id });
 
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await page.getByRole('button', { name: t.today.recordPayment, exact: true }).click();
   const sheet = page.getByRole('dialog');
   await sheet.getByRole('searchbox', { name: t.students.search }).fill(`سلمى ${n}`);

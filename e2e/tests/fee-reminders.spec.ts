@@ -45,7 +45,6 @@ test('the daily tick sends a fee reminder, and it shows in the message log', asy
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   const group = await api.post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     monthlyFeePiastres: 25_000,

@@ -1,4 +1,13 @@
-import { choose, enterWorkspace, expect, openNav, ownerApi, signIn, STAFF, test } from './fixtures';
+import {
+  choose,
+  enterWorkspace,
+  expect,
+  freshCenter,
+  openNav,
+  signIn,
+  STAFF,
+  test,
+} from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
@@ -45,12 +54,12 @@ test('owner registers a student straight into a group, with a discount', async (
   lang,
   t,
 }) => {
-  const { get, post } = await ownerApi(request, CENTER.ar);
+  const c = await freshCenter(request, 'سنتر التسجيل');
+  const { get, post } = c.api;
   const [subject] = await get('subjects');
   const grades = (await get('grade-levels')) as { id: string; nameAr: string; nameEn: string }[];
   const grade = grades.at(-1)!;
   await post('groups', {
-    force: true,
     subjectId: subject.id,
     gradeLevelId: grade.id,
     slots: [{ weekday: 3, startTime: '16:00', endTime: '17:30' }],
@@ -60,7 +69,7 @@ test('owner registers a student straight into a group, with a discount', async (
   const name = `حسن ${n}`;
 
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, c.name);
   await page.goto('/students/new');
   await page.getByLabel(t.students.nameAr, { exact: true }).fill(name);
   // Picking the group fills the grade.

@@ -53,7 +53,6 @@ test("a teacher reads their own groups' messages with masked phones, and can't o
   const [grade] = await api.get('grade-levels');
   const groupOn = (date: string, teacherMembershipId?: string) =>
     api.post('groups', {
-      force: true,
       teacherMembershipId,
       subjectId: subject.id,
       gradeLevelId: grade.id,
