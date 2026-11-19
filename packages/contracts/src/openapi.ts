@@ -534,7 +534,7 @@ export function buildOpenApi() {
           operationId: 'moveSession',
           tags: ['sessions'],
           description:
-            'Owner, or the teacher of the group. Only a scheduled session moves; TEACHER_BOOKED when the teacher has another session at the new time.',
+            'Owner, or the teacher of the group. Only a scheduled session moves; TEACHER_BOOKED (date, startTime, endTime) when the teacher has another session at the new time; resend with force: true to save anyway.',
           security: [{ bearer: [] }],
           requestParams: { path: z.object({ id: z.uuid() }) },
           requestBody: { required: true, content: json(moveSessionRequest) },

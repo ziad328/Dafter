@@ -105,7 +105,7 @@ export class SessionsRepository extends TenantRepository {
         )
         .returning({ id: sessions.id });
       if (!rows.length) return false;
-      await this.checkTeacher(tx, workspaceId, id);
+      if (!to.force) await this.checkTeacher(tx, workspaceId, id);
       await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved', old!.startsAt);
       return true;
     }).catch(roomBooked);

@@ -1816,7 +1816,7 @@
       "patch": {
         "operationId": "moveSession",
         "tags": ["sessions"],
-        "description": "Owner, or the teacher of the group. Only a scheduled session moves; TEACHER_BOOKED when the teacher has another session at the new time.",
+        "description": "Owner, or the teacher of the group. Only a scheduled session moves; TEACHER_BOOKED (date, startTime, endTime) when the teacher has another session at the new time; resend with force: true to save anyway.",
         "security": [
           {
             "bearer": []
@@ -4077,6 +4077,9 @@
           "endTime": {
             "type": "string",
             "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "force": {
+            "type": "boolean"
           }
         },
         "required": ["date", "startTime", "endTime"]

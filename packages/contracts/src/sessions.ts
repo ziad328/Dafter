@@ -18,7 +18,13 @@ export const listSessionsQuery = z
 
 /** Move a session: a new local date and times in the workspace timezone. */
 export const moveSessionRequest = z
-  .object({ date: localDate, startTime: clockTime, endTime: clockTime })
+  .object({
+    date: localDate,
+    startTime: clockTime,
+    endTime: clockTime,
+    // Skips the teacher check (TEACHER_BOOKED); the room check (ROOM_BOOKED) still runs.
+    force: z.boolean().optional(),
+  })
   .refine((m) => m.endTime > m.startTime, { path: ['endTime'], message: 'SLOT_ENDS_BEFORE_START' })
   .meta({ id: 'MoveSessionRequest' });
 

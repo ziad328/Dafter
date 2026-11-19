@@ -296,10 +296,12 @@ function MoveForm({
     },
   });
   const { errors } = formState;
-  const onSubmit = handleSubmit(async (body) => {
-    const res = await move({ id: s.id, moveSessionRequest: body });
-    if (res.data) onDone();
-  });
+  const save = (force?: boolean) =>
+    handleSubmit(async (body) => {
+      const res = await move({ id: s.id, moveSessionRequest: { ...body, force } });
+      if (res.data) onDone();
+    });
+  const onSubmit = save();
   // TEACHER_BOOKED says which of the teacher's sessions is in the way.
   const clash = errorDetails(moved.error, 'TEACHER_BOOKED');
   const moveError = clash
@@ -343,6 +345,17 @@ function MoveForm({
         />
       </div>
       <FormError message={moveError} />
+      {clash && (
+        <Button
+          type="button"
+          size="sm"
+          className="justify-self-start"
+          disabled={moved.isLoading}
+          onClick={() => void save(true)()}
+        >
+          {t('timetable.saveAnyway')}
+        </Button>
+      )}
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={moved.isLoading}>
           {t('timetable.save')}

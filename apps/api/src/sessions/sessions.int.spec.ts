@@ -229,6 +229,14 @@ describe('cancel and move', () => {
     ]);
     const after = await f.owner('GET', 'sessions?from=2026-11-22&to=2026-11-22');
     expect(after.json().map((s: { startsAt: string }) => s.startsAt)).toEqual([sun.startsAt]);
+    // force: true saves past the warning (two groups forced into one hour can still move).
+    const forced = await f.owner('PATCH', `sessions/${sun.id}`, {
+      date: '2026-11-21',
+      startTime: '17:00',
+      endTime: '18:00',
+      force: true,
+    });
+    expect([forced.statusCode, forced.json().startsAt]).toEqual([200, '2026-11-21T15:00:00.000Z']);
 
     // Touching is fine; another teacher's session at the same time is fine.
     const touch = { date: '2026-11-21', startTime: '17:30', endTime: '18:30' };

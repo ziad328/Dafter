@@ -329,17 +329,20 @@ describe('timetable', () => {
     await expect.poll(() => screen.queryByLabelText(tr('timetable.date'))).toBeNull();
   });
 
-  it('says when the teacher is booked at the new time', async () => {
-    withWeek([session(today, 'scheduled')]);
+  it('says when the teacher is booked at the new time, and moves it anyway', async () => {
+    const s = session(today, 'scheduled');
+    withWeek([s]);
     server.use(
-      http.patch(route('sessions/:id'), () =>
-        Response.json(
-          {
-            code: 'TEACHER_BOOKED',
-            details: { date: '2026-11-21', startTime: '16:00', endTime: '17:30' },
-          },
-          { status: 409 },
-        ),
+      http.patch(route('sessions/:id'), async ({ request }) =>
+        ((await request.json()) as { force?: boolean }).force
+          ? Response.json(s)
+          : Response.json(
+              {
+                code: 'TEACHER_BOOKED',
+                details: { date: '2026-11-21', startTime: '16:00', endTime: '17:30' },
+              },
+              { status: 409 },
+            ),
       ),
     );
     const { user } = await renderAt('/timetable', { lang: 'en' });
@@ -349,6 +352,8 @@ describe('timetable', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('The teacher has another session on Saturday, November 21');
     expect(alert).toHaveTextContent(/4:00\sPM – 5:30\sPM/);
+    await user.click(screen.getByRole('button', { name: tr('timetable.saveAnyway') }));
+    await expect.poll(() => screen.queryByLabelText(tr('timetable.date'))).toBeNull();
   });
 
   it('shows a failed move, and closes the form', async () => {

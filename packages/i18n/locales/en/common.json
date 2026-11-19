@@ -254,7 +254,8 @@
     },
     "moved": "Rescheduled",
     "actions": "Session actions",
-    "teacherBookedAt": "The teacher has another session on {day} {time}"
+    "teacherBookedAt": "The teacher has another session on {day} {time}",
+    "saveAnyway": "Move anyway"
   },
   "students": {
     "sections": {

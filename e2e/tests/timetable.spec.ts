@@ -4,6 +4,7 @@ import {
   expect,
   GROUP_CONFLICT,
   openNav,
+  ownerApi,
   PASSWORD,
   signIn,
   STAFF,
@@ -11,7 +12,12 @@ import {
   test,
 } from './fixtures';
 
-test.use({ expectedErrors: GROUP_CONFLICT });
+test.use({
+  expectedErrors: [
+    ...GROUP_CONFLICT,
+    `409 ${process.env.E2E_BASE_URL ?? 'http://localhost:5173'}/api/v1/sessions`,
+  ],
+});
 
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
@@ -98,4 +104,50 @@ test('owner sees generated sessions, then moves and cancels one', async ({
   await moved.getByRole('button', { name: t.timetable.confirmCancel }).click();
   await expect(moved.getByText(t.timetable.status.cancelled)).toBeVisible();
   await expect(moved.getByRole('button', { name: t.timetable.actions })).toHaveCount(0);
+});
+
+test('two groups forced into the same hour still move, with Move anyway', async ({
+  page,
+  request,
+  t,
+}) => {
+  const center = `سنتر النقل ${Math.floor(Math.random() * 1e8)}`;
+  const login = await request.post('/api/v1/auth/login', {
+    data: { login: STAFF.owner, password: PASSWORD },
+  });
+  await request.post('/api/v1/workspaces', {
+    headers: { authorization: `Bearer ${(await login.json()).accessToken}` },
+    data: { type: 'center', nameAr: center },
+  });
+  const api = await ownerApi(request, center);
+  const [subject] = await api.get('subjects');
+  const [grade] = await api.get('grade-levels');
+  const tomorrow = addDays(cairoDate(new Date()), 1);
+  const slots = [{ weekday: new Date(tomorrow).getUTCDay(), startTime: '10:00', endTime: '11:00' }];
+  // The owner saved the second group past the warning: both meet at 10:00.
+  await api.post('groups', { subjectId: subject.id, gradeLevelId: grade.id, slots });
+  await api.post('groups', { force: true, subjectId: subject.id, gradeLevelId: grade.id, slots });
+
+  await signIn(page, t, STAFF.owner);
+  await enterWorkspace(page, t, center);
+  await openNav(page, t, t.nav.timetable);
+  if (weekStart(tomorrow) !== weekStart(cairoDate(new Date())))
+    await page.getByRole('button', { name: t.timetable.nextWeek }).click();
+
+  // Half an hour later still overlaps the other group: a warning, then Move anyway.
+  const card = page
+    .getByRole('listitem')
+    .filter({ hasText: range('10:00', '11:00') })
+    .first();
+  await card.getByRole('button', { name: t.timetable.actions }).click();
+  await card.getByRole('button', { name: t.timetable.move }).click();
+  await card.getByLabel(t.timetable.start).fill('10:30');
+  await card.getByLabel(t.timetable.end).fill('11:30');
+  await card.getByRole('button', { name: t.timetable.save }).click();
+  await expect(
+    card.getByRole('alert').filter({ hasText: t.timetable.teacherBookedAt.split('{')[0]!.trim() }),
+  ).toBeVisible();
+  await card.getByRole('button', { name: t.timetable.saveAnyway }).click();
+  const moved = page.getByRole('listitem').filter({ hasText: range('10:30', '11:30') });
+  await expect(moved.getByText(t.timetable.moved)).toBeVisible();
 });

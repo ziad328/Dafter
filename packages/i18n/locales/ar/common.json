@@ -254,7 +254,8 @@
     },
     "moved": "موعد معدّل",
     "actions": "إجراءات الحصة",
-    "teacherBookedAt": "المدرّس عنده حصة أخرى يوم {day} {time}"
+    "teacherBookedAt": "المدرّس عنده حصة أخرى يوم {day} {time}",
+    "saveAnyway": "انقل على أي حال"
   },
   "students": {
     "sections": {
