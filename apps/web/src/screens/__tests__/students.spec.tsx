@@ -300,10 +300,12 @@ describe('student page', () => {
     await user.click(
       (await screen.findAllByRole('option', { name: tr('students.locales.en') }))[0]!,
     );
+    await user.click(screen.getByRole('checkbox', { name: tr('students.primaryGuardianOnly') }));
     await user.click(screen.getByRole('button', { name: tr('students.save') }));
     await expect
       .poll(() => call(`PATCH /api/v1/students/${student.id}`)?.body)
       .toMatchObject({
+        primaryGuardianOnly: true,
         guardian: { phone: '01200000001' },
         extraGuardians: [
           { phone: '01200000003', relation: 'father', preferredLocale: 'en', whatsappOptIn: true },

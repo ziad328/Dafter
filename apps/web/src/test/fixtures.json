@@ -360,6 +360,7 @@
       "status": "active",
       "activated": false,
       "deviceBound": false,
+      "primaryGuardianOnly": false,
       "guardians": [
         {
           "id": "56f63d43-a508-4738-a112-87849a2a8507",
@@ -387,6 +388,7 @@
       "status": "active",
       "activated": false,
       "deviceBound": false,
+      "primaryGuardianOnly": false,
       "guardians": [
         {
           "id": "032ddd83-ec22-462f-9e7d-df6e6f5ba313",
@@ -414,6 +416,7 @@
       "status": "active",
       "activated": false,
       "deviceBound": false,
+      "primaryGuardianOnly": false,
       "guardians": [
         {
           "id": "4ec363bf-4c61-4272-875c-4d8c7f6df098",
@@ -442,6 +445,7 @@
     "status": "active",
     "activated": false,
     "deviceBound": false,
+    "primaryGuardianOnly": false,
     "guardians": [
       {
         "id": "56f63d43-a508-4738-a112-87849a2a8507",
@@ -635,8 +639,7 @@
     "absence": true,
     "sessionChange": true,
     "examResult": true,
-    "feeOverdue": false,
-    "primaryOnly": false
+    "feeOverdue": false
   },
   "phone": []
 }

@@ -127,6 +127,13 @@
       "when": 1795056491135,
       "tag": "0017_curriculum_status",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795060574102,
+      "tag": "0018_student_primary_guardian_only",
+      "breakpoints": true
     }
   ]
 }

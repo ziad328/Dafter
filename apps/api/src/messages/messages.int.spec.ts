@@ -101,14 +101,12 @@ describe('message settings', () => {
       sessionChange: true,
       examResult: true,
       feeOverdue: false,
-      primaryOnly: false,
     });
     const off = {
       absence: false,
       sessionChange: false,
       examResult: false,
       feeOverdue: false,
-      primaryOnly: false,
     };
     expect((await c.assistant('PUT', 'message-settings', off)).json().code).toBe('FORBIDDEN');
     expect((await c.owner('PUT', 'message-settings', off)).json()).toEqual(off);

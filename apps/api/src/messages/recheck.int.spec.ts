@@ -52,7 +52,6 @@ const settings = {
   sessionChange: true,
   examResult: true,
   feeOverdue: true,
-  primaryOnly: false,
 };
 
 async function setup() {
@@ -243,7 +242,7 @@ describe('late corrections', () => {
 });
 
 describe('primary guardian only', () => {
-  it('messages only the primary guardian when switched on, every guardian when off', async () => {
+  it("messages only the student's primary guardian when they say so, every guardian when not", async () => {
     const { c, rows, enroll, session } = await setup();
     const student = await enroll('01295000041');
     const [second] = await withTenant(testDb().db, c.workspaceId, async (tx) => {
@@ -260,8 +259,9 @@ describe('primary guardian only', () => {
     await c.teacher('POST', `sessions/${await session('2026-11-28')}/cancel`);
     expect(await rows('session_cancelled')).toHaveLength(2);
 
-    await c.owner('PUT', 'message-settings', { ...settings, primaryOnly: true });
-    expect((await c.owner('GET', 'message-settings')).json().primaryOnly).toBe(true);
+    // Per student: an assistant sets it on the student's page.
+    const set = await c.assistant('PATCH', `students/${student}`, { primaryGuardianOnly: true });
+    expect(set.json().primaryGuardianOnly).toBe(true);
     await c.teacher('POST', `sessions/${await session('2026-12-05')}/cancel`);
     const both = await rows('session_cancelled');
     expect(both).toHaveLength(3);

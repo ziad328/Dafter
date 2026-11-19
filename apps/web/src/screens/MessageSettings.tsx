@@ -14,10 +14,10 @@ import { errorKey } from '@/lib/session';
 
 const TOGGLES: (keyof Settings)[] = ['absence', 'sessionChange', 'examResult', 'feeOverdue'];
 // Short labels; the details sit in a hint line under them (audit 3 M3).
-const HINTS: (keyof Settings)[] = ['absence', 'feeOverdue', 'primaryOnly'];
+const HINTS: (keyof Settings)[] = ['absence', 'feeOverdue'];
 
 /**
- * When parent messages go out, to whom, and their wording: the owner's page, one tap away from
+ * When parent messages go out and their wording (who gets them is set per student): the owner's page, one tap away from
  * the log so the log opens first (audit 3 M1).
  */
 export default function MessageSettings() {
@@ -64,14 +64,7 @@ export default function MessageSettings() {
       <Panel className="grid gap-3 p-5">
         <h2 className="font-semibold">{t('messages.settings')}</h2>
         {settings.isLoading && <Skeleton />}
-        {shown && (
-          <>
-            {TOGGLES.map((key) => switchFor(key))}
-            {/* Who gets them, not when: a heading of its own. */}
-            <h3 className="mt-2 text-sm font-semibold">{t('messages.recipients')}</h3>
-            {switchFor('primaryOnly')}
-          </>
-        )}
+        {shown && TOGGLES.map((key) => switchFor(key))}
         <FormError
           message={(saving.error ?? settings.error) && t(errorKey(saving.error ?? settings.error))}
         />

@@ -1450,14 +1450,12 @@ export type MessageSettingsOutput = {
   sessionChange: boolean;
   examResult: boolean;
   feeOverdue: boolean;
-  primaryOnly: boolean;
 };
 export type MessageSettings = {
   absence: boolean;
   sessionChange: boolean;
   examResult: boolean;
   feeOverdue: boolean;
-  primaryOnly?: boolean;
 };
 export type SentMessage = {
   id: string;
@@ -1496,6 +1494,7 @@ export type Student = {
   school: string | null;
   status: 'active' | 'archived';
   guardians: Guardian[];
+  primaryGuardianOnly: boolean;
   activated: boolean;
   deviceBound: boolean;
   balancePiastres: number;
@@ -1516,6 +1515,7 @@ export type CreateStudentRequest = {
   school?: string;
   guardian: GuardianInput;
   extraGuardians?: GuardianInput[];
+  primaryGuardianOnly?: boolean;
 };
 export type UpdateStudentRequest = {
   nameAr?: string;
@@ -1526,6 +1526,7 @@ export type UpdateStudentRequest = {
   status?: 'active' | 'archived';
   guardian?: GuardianInput;
   extraGuardians?: GuardianInput[];
+  primaryGuardianOnly?: boolean;
 };
 export type Enrollment = {
   id: string;

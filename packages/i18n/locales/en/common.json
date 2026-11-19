@@ -305,6 +305,8 @@
     "otherGuardian": "Other parent",
     "addGuardian": "Add another parent",
     "removeGuardian": "Remove this parent",
+    "primaryGuardianOnly": "Messages to the primary parent only",
+    "primaryGuardianOnlyHint": "The other parents stay on file but get no messages about this student.",
     "sharedGuardian": "This parent number is used by other students; the student will share the same parent:",
     "cancelEdit": "Back",
     "more": "More details"
@@ -474,8 +476,7 @@
       "absence": "Student absent",
       "sessionChange": "Session cancelled or moved",
       "examResult": "Exam result",
-      "feeOverdue": "Unpaid fees",
-      "primaryOnly": "Main guardian only"
+      "feeOverdue": "Unpaid fees"
     },
     "teacherView": "Messages about your own groups only; parent phones are hidden except the last 3 digits.",
     "ownerOnly": "Only the workspace owner can change these settings.",
@@ -544,12 +545,10 @@
       "trigger_off": "Not sent: this kind of message was switched off before it was due.",
       "not_absent": "Not sent: attendance was corrected after the session closed."
     },
-    "recipients": "Who gets them?",
     "settingsTitle": "Message settings",
     "toggleHints": {
       "absence": "Sent when the session is closed.",
-      "feeOverdue": "A reminder from the 7th of the month.",
-      "primaryOnly": "Instead of every guardian on file."
+      "feeOverdue": "A reminder from the 7th of the month."
     }
   },
   "members": {

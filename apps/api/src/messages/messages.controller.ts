@@ -129,13 +129,13 @@ export class MessagesRepository extends TenantRepository {
         .from(workspaces)
         .where(eq(workspaces.id, workspaceId)),
     );
+    // Picked one by one: an old save may still hold the retired center-wide `primaryOnly`.
+    const m = row?.messages ?? {};
     return {
-      absence: true,
-      sessionChange: true,
-      examResult: true,
-      feeOverdue: false,
-      primaryOnly: false,
-      ...row?.messages,
+      absence: m.absence ?? true,
+      sessionChange: m.sessionChange ?? true,
+      examResult: m.examResult ?? true,
+      feeOverdue: m.feeOverdue ?? false,
     };
   }
 

@@ -40,9 +40,8 @@ export const messageSettings = z
     sessionChange: z.boolean(),
     examResult: z.boolean(),
     feeOverdue: z.boolean(),
-    // Only the primary guardian of each student gets messages (default off: every guardian).
-    // A default, so a save from a page loaded before this switch existed still validates.
-    primaryOnly: z.boolean().default(false),
+    // "Primary guardian only" is now each student's `primaryGuardianOnly`; an old page's
+    // `primaryOnly` is dropped as an unknown key.
   })
   .meta({ id: 'MessageSettings' });
 

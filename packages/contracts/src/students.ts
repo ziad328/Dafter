@@ -53,6 +53,8 @@ export const createStudentFields = z.object({
   guardian: guardianInput,
   // Replaces the student's other parents when sent; left out, they stay as they are.
   extraGuardians: extraGuardians.optional(),
+  // Parent messages go to the primary guardian only (default off: every guardian).
+  primaryGuardianOnly: z.boolean().optional(),
 });
 
 export const createStudentRequest = createStudentFields
@@ -71,6 +73,7 @@ export const updateStudentRequest = z
     guardian: guardianInput,
     // Replaces the other (non-primary) parents; needs `guardian` too.
     extraGuardians,
+    primaryGuardianOnly: z.boolean(),
   })
   .partial()
   .superRefine(checkGuardians)
@@ -109,6 +112,8 @@ export const student = z
     school: z.string().nullable(),
     status: studentStatus,
     guardians: z.array(guardian),
+    // Parent messages go to the primary guardian only (all of them when none is primary).
+    primaryGuardianOnly: z.boolean(),
     // The student has activated the app (linked to a login) / has a bound phone.
     activated: z.boolean(),
     deviceBound: z.boolean(),

@@ -9,7 +9,7 @@ import {
   test,
 } from './fixtures';
 
-test('a corrected absence is not sent, a move names the old time, and primary only is saved', async ({
+test('a corrected absence is not sent, and a move names the old time', async ({
   page,
   request,
   lang,
@@ -117,13 +117,4 @@ test('a corrected absence is not sent, a move names the old time, and primary on
   const log = page.getByTestId('message-log');
   await expect(log.getByText(t.messages.skipReason.not_absent)).toBeVisible();
   await expect(log.getByRole('listitem')).toHaveCount(1);
-
-  // Primary guardian only: saved, and still on after a reload.
-  await page.getByRole('link', { name: t.messages.settingsTitle }).click();
-  const primary = page.getByRole('checkbox', { name: t.messages.toggles.primaryOnly });
-  await expect(primary).not.toBeChecked();
-  await primary.check();
-  await expect.poll(async () => (await api.get('message-settings')).primaryOnly).toBe(true);
-  await page.reload();
-  await expect(page.getByRole('checkbox', { name: t.messages.toggles.primaryOnly })).toBeChecked();
 });

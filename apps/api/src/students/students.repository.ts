@@ -363,6 +363,7 @@ export class StudentsRepository extends TenantRepository {
         gradeLevel: { id: gradeLevels.id, nameAr: gradeLevels.nameAr, nameEn: gradeLevels.nameEn },
         school: students.school,
         status: students.status,
+        primaryGuardianOnly: students.primaryGuardianOnly,
         activated: sql<boolean>`${students.userId} is not null`,
         deviceBound: sql<boolean>`exists (select 1 from ${studentDevices} where ${studentDevices.userId} = ${students.userId} and ${studentDevices.revokedAt} is null)`,
         balancePiastres: balance.mapWith(Number),

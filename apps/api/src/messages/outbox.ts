@@ -12,13 +12,14 @@ export const TOGGLE: Record<Trigger, 'absence' | 'sessionChange' | 'examResult' 
 };
 
 /**
- * `settings.messages.primaryOnly`: only each student's primary guardian (alias `sg`) is messaged;
+ * `students.primary_guardian_only`: only that student's primary guardian (alias `sg`) is messaged;
  * a student with no primary keeps all their guardians, so no family goes silent. Off by default.
+ * Per student: a parent shared by two siblings is texted for the one that allows it.
  */
-const guardianFilter = (workspaceId: string) => sql`
+const guardianFilter = sql`
   and (sg.is_primary
-    or not coalesce((select (pw.settings->'messages'->>'primaryOnly')::boolean
-      from workspaces pw where pw.id = ${workspaceId}), false)
+    or not (select ps.primary_guardian_only from students ps
+      where ps.workspace_id = sg.workspace_id and ps.id = sg.student_id)
     or not exists (select 1 from student_guardians p
       where p.workspace_id = sg.workspace_id and p.student_id = sg.student_id and p.is_primary))`;
 
@@ -60,7 +61,7 @@ async function enqueue(
     join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
     where s.workspace_id = ${workspaceId} and s.id = ${sessionId}
       and coalesce((w.settings->'messages'->>${TOGGLE[trigger]})::boolean, true)
-      ${guardianFilter(workspaceId)}
+      ${guardianFilter}
     group by sg.guardian_id, s.id, s.starts_at, w.timezone, w.name_ar, w.name_en, sub.name_ar, sub.name_en
     on conflict (workspace_id, dedupe_key) do nothing`);
   // New messages only: a repeat hits the dedupe key and counts 0.
@@ -158,7 +159,7 @@ export async function enqueueExamResults(tx: Tx, workspaceId: string, examId: st
     join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
     where ex.workspace_id = ${workspaceId} and ex.id = ${examId}
       and coalesce((w.settings->'messages'->>${TOGGLE.exam_result})::boolean, true)
-      ${guardianFilter(workspaceId)}
+      ${guardianFilter}
     group by sg.guardian_id, ex.id, w.id, sub.id
     on conflict (workspace_id, dedupe_key) do nothing`);
   return res.rowCount ?? 0;
@@ -206,7 +207,7 @@ export async function enqueueFeeOverdue(tx: Tx, workspaceId: string, now: Date) 
       and st.status = 'active'
     join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
     where extract(day from ctx.local) >= ${OVERDUE_FROM_DAY}
-      ${guardianFilter(workspaceId)}
+      ${guardianFilter}
     group by sg.guardian_id, ctx.local, ctx.name_ar, ctx.name_en, ctx.timezone
     on conflict (workspace_id, dedupe_key) do nothing`);
   return res.rowCount ?? 0;

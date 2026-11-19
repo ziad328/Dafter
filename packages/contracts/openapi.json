@@ -4281,10 +4281,6 @@
           },
           "feeOverdue": {
             "type": "boolean"
-          },
-          "primaryOnly": {
-            "default": false,
-            "type": "boolean"
           }
         },
         "required": ["absence", "sessionChange", "examResult", "feeOverdue"]
@@ -4340,6 +4336,9 @@
             "items": {
               "$ref": "#/components/schemas/GuardianInput"
             }
+          },
+          "primaryGuardianOnly": {
+            "type": "boolean"
           }
         },
         "required": ["nameAr", "gradeLevelId", "guardian"]
@@ -4431,6 +4430,9 @@
             "items": {
               "$ref": "#/components/schemas/GuardianInput"
             }
+          },
+          "primaryGuardianOnly": {
+            "type": "boolean"
           }
         }
       },
@@ -6316,6 +6318,9 @@
               "$ref": "#/components/schemas/Guardian"
             }
           },
+          "primaryGuardianOnly": {
+            "type": "boolean"
+          },
           "activated": {
             "type": "boolean"
           },
@@ -6337,6 +6342,7 @@
           "school",
           "status",
           "guardians",
+          "primaryGuardianOnly",
           "activated",
           "deviceBound",
           "balancePiastres"
@@ -6553,13 +6559,9 @@
           },
           "feeOverdue": {
             "type": "boolean"
-          },
-          "primaryOnly": {
-            "default": false,
-            "type": "boolean"
           }
         },
-        "required": ["absence", "sessionChange", "examResult", "feeOverdue", "primaryOnly"],
+        "required": ["absence", "sessionChange", "examResult", "feeOverdue"],
         "additionalProperties": false
       }
     },

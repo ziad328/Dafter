@@ -61,6 +61,7 @@ const toForm = (s: Student): FormValues => {
       whatsappOptIn: g?.whatsappOptIn ?? true,
     },
     extraGuardians: s.guardians.filter((x) => x !== g).map(guardianForm),
+    primaryGuardianOnly: s.primaryGuardianOnly,
   };
 };
 
@@ -418,6 +419,20 @@ function StudentFormBody({
                     </div>
                   );
                 })}
+                <div className="grid">
+                  <label className="flex min-h-10 items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-5 shrink-0 accent-ink"
+                      aria-describedby="hint-primary-only"
+                      {...register('primaryGuardianOnly')}
+                    />
+                    {t('students.primaryGuardianOnly')}
+                  </label>
+                  <p id="hint-primary-only" className="-mt-2 ps-8 text-xs text-muted-foreground">
+                    {t('students.primaryGuardianOnlyHint')}
+                  </p>
+                </div>
               </fieldset>
             )}
             {extras.fields.length < 3 && (

@@ -374,6 +374,8 @@ export const students = pgTable(
     // normalizeArabic(name_ar + name_en), written by the API on every save.
     nameSearch: text('name_search').notNull(),
     status: studentStatus('status').notNull().default('active'),
+    // Parent messages go to the primary guardian only (a student with no primary keeps all).
+    primaryGuardianOnly: boolean('primary_guardian_only').notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [
