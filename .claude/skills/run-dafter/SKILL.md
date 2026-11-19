@@ -44,7 +44,7 @@ node .claude/skills/run-dafter/driver.mjs smoke
 |---|---|
 | `status` | Is the API (`/health`) and web up? Exit 1 if not. |
 | `smoke` | API: health, Vite proxy, unknown route returns `{"code":"NOT_FOUND"}`. Browser at 375 px: Arabic RTL, no horizontal scroll, switch to English persists across reload, no console errors or failed requests. Screenshots `.shots/smoke-ar.png`, `.shots/smoke-en.png`. Exit 1 on any failure. |
-| `shot [route] --locale ar\|en --width 375 --out file.png` | Full-page screenshot of a route (no leading slash: `shot app/groups`; omit for the home page). Prints `lang`, `dir`, status text, overflow and console errors as JSON. |
+| `shot [route] --locale ar\|en --width 375 --out file.png [--as owner\|teacher\|assistant\|<phone>] [--workspace <Arabic name>]` | Full-page screenshot of a route (no leading slash: `shot groups`; omit for the home page). `--as` signs in first as a seeded staff member (dev password) and opens `--workspace` (default «سنتر النور»), so signed-in screens can be shot. Prints `lang`, `dir`, status text, overflow and console errors as JSON. |
 | `stop` | Kills whatever listens on :3000 and :5173. Postgres keeps running. |
 
 Look at the screenshots (Read the PNG) before declaring a screen done. Extend `smoke` with each new user flow.

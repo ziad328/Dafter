@@ -47,7 +47,19 @@ export async function createTestDb(): Promise<TestDb> {
 
   const url = withDatabase(base, name);
   const { db, pool } = createDb(url);
-  return { db, url, close: () => pool.end() };
+  // Dropped when the file is done, so a long watch session doesn't fill the container's disk.
+  // FORCE ends any connection the file left open (a pg-boss pool, an app not closed).
+  const close = async () => {
+    await pool.end();
+    const drop = new Client({ connectionString: withDatabase(base, 'postgres') });
+    await drop.connect();
+    try {
+      await drop.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+    } finally {
+      await drop.end();
+    }
+  };
+  return { db, url, close };
 }
 
 /** Registers a per-file database; call at the top of a test file. */

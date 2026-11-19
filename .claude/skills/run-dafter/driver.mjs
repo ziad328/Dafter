@@ -4,6 +4,8 @@
 //   node .claude/skills/run-dafter/driver.mjs status
 //   node .claude/skills/run-dafter/driver.mjs smoke
 //   node .claude/skills/run-dafter/driver.mjs shot [route] [--locale ar|en] [--width 375] [--out file.png]
+//     [--as owner|teacher|assistant|<phone>] [--workspace <Arabic name>]
+//     --as signs in first (seeded staff, dev password) and opens --workspace (default: سنتر النور).
 //     route has no leading slash ("app/groups"); Git Bash rewrites "/..." into a Windows path.
 //   node .claude/skills/run-dafter/driver.mjs stop
 import { execSync } from 'node:child_process';
@@ -14,6 +16,10 @@ const API = 'http://localhost:3000';
 const WEB = 'http://localhost:5173';
 const SHOTS = resolve(process.env.DAFTER_SHOTS ?? '.shots');
 const LOCALE_KEY = 'dafter.locale'; // apps/web/src/i18n.ts
+const WORKSPACE_KEY = 'dafter.workspace'; // apps/web/src/api/base.ts
+// Seeded by `pnpm db:reset` (e2e/tests/fixtures.ts STAFF).
+const STAFF = { owner: '01000000001', teacher: '01000000002', assistant: '01000000003' };
+const PASSWORD = 'dafter-dev-123';
 
 const [cmd = 'help', ...rest] = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -140,6 +146,23 @@ async function smoke() {
   }
 }
 
+/**
+ * Signs in through the API on the page's own context, so the refresh cookie is the browser's:
+ * the app then restores the session on load like after a reload. The workspace goes where the
+ * app keeps it.
+ */
+async function signIn(page, login, workspaceNameAr) {
+  const res = await page.request.post(`${WEB}/api/v1/auth/login`, { data: { login, password: PASSWORD } });
+  if (!res.ok()) throw new Error(`Sign-in as ${login} failed: ${res.status()} ${await res.text()}`);
+  const { accessToken } = await res.json();
+  const list = await page.request.get(`${WEB}/api/v1/workspaces`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  const ws = (await list.json()).find((w) => w.nameAr === workspaceNameAr);
+  if (!ws) throw new Error(`${login} has no workspace named ${workspaceNameAr}`);
+  await page.context().addInitScript(([key, id]) => localStorage.setItem(key, id), [WORKSPACE_KEY, ws.id]);
+}
+
 async function shot() {
   const path = (positional[0] ?? '').replace(/^\/+/, '');
   // Git Bash rewrites a leading "/" argument into "C:/Program Files/Git/...".
@@ -151,6 +174,8 @@ async function shot() {
   const browser = await launchBrowser();
   try {
     const { page, errors } = await openPage(browser, { locale, width: flag('width', 375) });
+    const as = flag('as');
+    if (as) await signIn(page, STAFF[as] ?? as, flag('workspace', 'سنتر النور'));
     await page.goto(new URL(path, `${WEB}/`).href, { waitUntil: 'networkidle' });
     await page.locator('#root > *').first().waitFor({ timeout: 15000 });
     await page.screenshot({ path: out, fullPage: true });
@@ -184,7 +209,7 @@ function stop() {
 
 const commands = { status, smoke, shot, stop };
 if (!commands[cmd]) {
-  console.log('commands: status | smoke | shot [route] [--locale ar|en] [--width 375] [--out file] | stop');
+  console.log('commands: status | smoke | shot [route] [--locale ar|en] [--width 375] [--out file] [--as owner] [--workspace name] | stop');
   process.exit(cmd === 'help' ? 0 : 1);
 }
 await commands[cmd]();
