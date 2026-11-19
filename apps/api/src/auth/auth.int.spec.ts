@@ -11,6 +11,7 @@ import { REFRESH_COOKIE } from './auth.controller.js';
 import { hashToken } from './tokens.js';
 import {
   LOGIN_MAX_FAILURES_PER_IP,
+  REFRESH_GRACE_MS,
   REGISTER_PER_HOUR,
   RESET_TTL_MS,
   RESETS_PER_HOUR,
@@ -240,7 +241,8 @@ describe('refresh rotation', () => {
     const { rt: first } = await registered();
     const second = refreshCookie(await post('refresh', undefined, first))!.value;
 
-    // An attacker replays the first token: rejected, and the cookie is cleared.
+    // An attacker replays the first token after the grace window: rejected, cookie cleared.
+    clock.advance(REFRESH_GRACE_MS + 1);
     const replay = await post('refresh', undefined, first);
     expect(replay.statusCode).toBe(401);
     expect(refreshCookie(replay)!.value).toBe('');
@@ -252,6 +254,7 @@ describe('refresh rotation', () => {
     const { phone, rt: laptop } = await registered();
     const phoneRt = refreshCookie(await post('login', { login: phone, password }))!.value;
     await post('refresh', undefined, laptop);
+    clock.advance(REFRESH_GRACE_MS + 1);
     await post('refresh', undefined, laptop); // reuse on the laptop family
     expect((await post('refresh', undefined, phoneRt)).statusCode).toBe(200);
   });
@@ -264,13 +267,35 @@ describe('refresh rotation', () => {
     expect((await post('refresh', undefined, rt)).statusCode).toBe(401);
   });
 
-  it('lets only one of two concurrent refreshes with the same token succeed', async () => {
+  it('keeps two tabs refreshing at the same moment signed in, each with its own token', async () => {
     const { rt } = await registered();
     const results = await Promise.all([
       post('refresh', undefined, rt),
       post('refresh', undefined, rt),
     ]);
-    expect(results.map((r) => r.statusCode).sort()).toEqual([200, 401]);
+    expect(results.map((r) => r.statusCode)).toEqual([200, 200]);
+    const [a, b] = results.map((r) => refreshCookie(r)!.value);
+    expect(a).not.toBe(b);
+    expect((await post('refresh', undefined, a)).statusCode).toBe(200);
+    expect((await post('refresh', undefined, b)).statusCode).toBe(200);
+  });
+
+  it('allows the just-rotated token only inside the grace window', async () => {
+    const { rt } = await registered();
+    const next = refreshCookie(await post('refresh', undefined, rt))!.value;
+    clock.advance(REFRESH_GRACE_MS - 1);
+    expect((await post('refresh', undefined, rt)).statusCode).toBe(200);
+    clock.advance(2);
+    // Past the window it is reuse: the family goes, the newer token with it.
+    expect((await post('refresh', undefined, rt)).statusCode).toBe(401);
+    expect((await post('refresh', undefined, next)).statusCode).toBe(401);
+  });
+
+  it('never reopens a family after logout, even inside the grace window', async () => {
+    const { rt } = await registered();
+    const next = refreshCookie(await post('refresh', undefined, rt))!.value;
+    await post('logout', undefined, next);
+    expect((await post('refresh', undefined, rt)).statusCode).toBe(401);
   });
 });
 

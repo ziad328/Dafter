@@ -19,6 +19,8 @@ import { hashToken, issueToken } from './tokens.js';
 
 export const ACCESS_TTL_S = 15 * 60;
 export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// Two tabs refreshing at once send the same cookie; the second within this window is not reuse.
+export const REFRESH_GRACE_MS = 30_000;
 // Per login: stops guessing one account's password. Per IP, far higher: a center's shared Wi-Fi
 // must not lock every staff member out after one person's typos (audit 3 A3), yet one machine
 // still can't spray passwords across many accounts.
@@ -104,7 +106,12 @@ export class AuthService {
   async refresh(token: string | undefined): Promise<Session> {
     if (!token) throw new AppError('UNAUTHENTICATED');
     const next = this.newRefresh();
-    const result = await this.repo.rotateRefresh(hashToken(token), this.clock.now(), next);
+    const result = await this.repo.rotateRefresh(
+      hashToken(token),
+      this.clock.now(),
+      next,
+      REFRESH_GRACE_MS,
+    );
     if (typeof result === 'string') throw new AppError('UNAUTHENTICATED');
     const user = await this.repo.findUserById(result.userId);
     if (!user) throw new AppError('UNAUTHENTICATED');

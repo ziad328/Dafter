@@ -264,3 +264,14 @@ Tests move a fake clock to the end of a window; with `now()` they would have to 
 
 **3. What does a fixed window give up, and when would you change it?**
 Someone can use the full limit just before the window ends and again just after, so up to twice the limit in a short burst. For login (5 tries) that is still tiny. A sliding window or a token bucket fixes it at the cost of more state per key; worth it only if abuse shows up.
+
+## Refresh grace window (two tabs at once)
+
+**1. Two tabs refresh at the same moment with the same cookie. Why did that sign the user out, and what changed?**
+Rotation revokes a token as soon as it is used, and a revoked token coming back looks like theft, so the whole family was revoked. Now a token rotated less than 30 seconds ago, whose family still has a live token, gets another new token in the same family instead. The row lock makes the two requests run one after the other, so the second one sees the first one's rotation.
+
+**2. Why check "the family still has a live token" instead of adding a column for why a token was revoked?**
+Logout and reuse detection revoke every token in the family, while a normal rotation leaves the new one live. So "no live token" already means the family was ended on purpose, and the grace window can never reopen it. No migration needed.
+
+**3. What does the grace window give up?**
+A stolen token works for up to 30 seconds after the real user's rotation, and the theft is not detected in that time. Auth0's "reuse interval" makes the same trade. A cross-tab lock in the browser (`navigator.locks`) only covers tabs of one browser profile, so the server-side window is the one that always works.

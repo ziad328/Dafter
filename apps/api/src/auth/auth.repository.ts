@@ -34,12 +34,17 @@ export class AuthRepository {
 
   /**
    * Swaps the presented token for a new one in the same family, under a row lock so two
-   * concurrent uses cannot both succeed. A revoked token means reuse: the whole family is revoked.
+   * concurrent uses run one after the other. A revoked token means reuse, and the whole family is
+   * revoked, except inside the grace window: a token rotated less than `graceMs` ago whose family
+   * still has a live token is the second of two tabs refreshing at once (both sent the same
+   * cookie), so it gets its own new token in the family instead of signing the user out. After a
+   * logout or a detected reuse the family has no live token, so the window never reopens it.
    */
   async rotateRefresh(
     tokenHash: string,
     now: Date,
     next: { tokenHash: string; expiresAt: Date },
+    graceMs: number,
   ): Promise<{ userId: string } | 'invalid' | 'reused'> {
     return this.db.transaction(async (tx) => {
       const [row] = await tx
@@ -49,6 +54,25 @@ export class AuthRepository {
         .for('update');
       if (!row) return 'invalid';
       if (row.revokedAt) {
+        if (row.revokedAt.getTime() > now.getTime() - graceMs) {
+          const [live] = await tx
+            .select({ id: refreshTokens.id })
+            .from(refreshTokens)
+            .where(
+              and(
+                eq(refreshTokens.familyId, row.familyId),
+                isNull(refreshTokens.revokedAt),
+                gt(refreshTokens.expiresAt, now),
+              ),
+            )
+            .limit(1);
+          if (live) {
+            await tx
+              .insert(refreshTokens)
+              .values({ userId: row.userId, familyId: row.familyId, ...next });
+            return { userId: row.userId };
+          }
+        }
         await revokeFamily(tx, row.familyId, now);
         return 'reused';
       }

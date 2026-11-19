@@ -58,8 +58,8 @@ const raw = fetchBaseQuery({
 type Result = Awaited<ReturnType<typeof raw>>;
 type Api = Parameters<typeof raw>[1];
 
-// The refresh token rotates and reuse revokes the whole family, so two refreshes in flight
-// would sign the user out. Every caller shares this one promise.
+// The refresh token rotates on every use: requests in one tab share this one refresh. Two tabs
+// refreshing at once are covered by the API's 30-second grace window on the rotated token.
 let refreshing: Promise<Result> | null = null;
 
 function refreshOnce(api: Api, extra: object): Promise<Result> {
