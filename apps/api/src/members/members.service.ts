@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   CreateInviteRequest,
@@ -10,7 +9,7 @@ import type {
   UpdateMemberRequest,
   Workspace,
 } from '@dafter/contracts';
-import { hashToken } from '../auth/auth.service.js';
+import { hashToken, issueToken } from '../auth/tokens.js';
 import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';
 import { MembersRepository } from './members.repository.js';
@@ -42,14 +41,13 @@ export class MembersService {
     requireOwner(role);
     const teacherMembershipIds = [...new Set(body.teacherMembershipIds ?? [])];
     await this.checkTeachers(workspaceId, teacherMembershipIds);
-    const token = randomBytes(32).toString('base64url');
-    const expiresAt = new Date(this.clock.now().getTime() + INVITE_TTL_MS);
+    const { token, tokenHash, expiresAt } = issueToken(this.clock.now(), INVITE_TTL_MS);
     const { id } = await this.repo.createInvite(
       workspaceId,
       membershipId,
       body.role,
       teacherMembershipIds,
-      hashToken(token),
+      tokenHash,
       expiresAt,
     );
     return {
@@ -63,9 +61,8 @@ export class MembersService {
 
   async resetLink(workspaceId: string, role: Role, memberId: string): Promise<StaffResetLink> {
     requireOwner(role);
-    const token = randomBytes(32).toString('base64url');
-    const expiresAt = new Date(this.clock.now().getTime() + STAFF_RESET_TTL_MS);
-    const result = await this.repo.issueReset(workspaceId, memberId, hashToken(token), expiresAt);
+    const { token, tokenHash, expiresAt } = issueToken(this.clock.now(), STAFF_RESET_TTL_MS);
+    const result = await this.repo.issueReset(workspaceId, memberId, tokenHash, expiresAt);
     if (result === 'not_found') throw new AppError('NOT_FOUND');
     if (result === 'not_allowed') throw new AppError('RESET_NOT_ALLOWED');
     return { token, expiresAt: expiresAt.toISOString() };

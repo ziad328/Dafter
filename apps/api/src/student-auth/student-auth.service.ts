@@ -7,7 +7,8 @@ import type {
   OtpVerifyRequest,
   StudentInvitePreview,
 } from '@dafter/contracts';
-import { AuthService, hashToken, type Session } from '../auth/auth.service.js';
+import { AuthService, type Session } from '../auth/auth.service.js';
+import { hashToken } from '../auth/tokens.js';
 import { RateLimiter, RateLimitStore } from '../auth/rate-limiter.js';
 import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';

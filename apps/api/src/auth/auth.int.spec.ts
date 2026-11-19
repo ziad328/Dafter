@@ -8,8 +8,8 @@ import { createApp } from '../app.js';
 import { FakeClock } from '../clock.js';
 import { ConsoleMailer } from '../student-auth/mailer.js';
 import { REFRESH_COOKIE } from './auth.controller.js';
+import { hashToken } from './tokens.js';
 import {
-  hashToken,
   LOGIN_MAX_FAILURES_PER_IP,
   REGISTER_PER_HOUR,
   RESET_TTL_MS,

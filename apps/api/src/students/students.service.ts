@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type CreateEnrollmentRequest,
@@ -10,7 +9,7 @@ import {
   type StudentInvite,
   type UpdateStudentRequest,
 } from '@dafter/contracts';
-import { hashToken } from '../auth/auth.service.js';
+import { issueToken } from '../auth/tokens.js';
 import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';
 import { GroupsService } from '../groups/groups.service.js';
@@ -116,10 +115,9 @@ export class StudentsService {
   async createInvite(ctx: Ctx, studentId: string): Promise<StudentInvite> {
     const student = await this.get(ctx, studentId);
     if (student.activated) throw new AppError('STUDENT_ALREADY_ACTIVATED');
-    const token = randomBytes(32).toString('base64url');
     const now = this.clock.now();
-    const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
-    await this.repo.createInvite(ctx.workspaceId, studentId, hashToken(token), now, expiresAt);
+    const { token, tokenHash, expiresAt } = issueToken(now, INVITE_TTL_MS);
+    await this.repo.createInvite(ctx.workspaceId, studentId, tokenHash, now, expiresAt);
     return { token, expiresAt: expiresAt.toISOString() };
   }
 

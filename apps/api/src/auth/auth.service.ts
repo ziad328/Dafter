@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { hash, verify } from '@node-rs/argon2';
@@ -15,6 +15,7 @@ import { AppError } from '../errors.js';
 import { Mailer } from '../student-auth/mailer.js';
 import { AuthRepository, type User } from './auth.repository.js';
 import { RateLimiter, RateLimitStore } from './rate-limiter.js';
+import { hashToken, issueToken } from './tokens.js';
 
 export const ACCESS_TTL_S = 15 * 60;
 export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -34,9 +35,6 @@ const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
 // Compared against when the login matches no user, so both paths take the same argon2 time.
 const DUMMY_HASH = hash('dafter-no-such-user');
-
-/** Refresh tokens are 256 random bits, so a fast SHA-256 is enough; argon2 is for guessable passwords. */
-export const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
 export interface Session extends AuthResponse {
   refreshToken: string;
@@ -122,12 +120,8 @@ export class AuthService {
     await this.resets.take([`email:${email.toLowerCase()}`, `ip:${ip}`]);
     const user = await this.repo.findUserByLogin(email);
     if (!user?.passwordHash) return;
-    const token = randomBytes(32).toString('base64url');
-    await this.repo.insertPasswordReset({
-      userId: user.id,
-      tokenHash: hashToken(token),
-      expiresAt: new Date(this.clock.now().getTime() + RESET_TTL_MS),
-    });
+    const { token, tokenHash, expiresAt } = issueToken(this.clock.now(), RESET_TTL_MS);
+    await this.repo.insertPasswordReset({ userId: user.id, tokenHash, expiresAt });
     const link = `${appUrl}/reset/${token}`;
     // Not awaited: a slow provider would otherwise tell an attacker that the email exists.
     void this.mailer
@@ -185,12 +179,7 @@ export class AuthService {
   }
 
   private newRefresh() {
-    const token = randomBytes(32).toString('base64url');
-    return {
-      token,
-      tokenHash: hashToken(token),
-      expiresAt: new Date(this.clock.now().getTime() + REFRESH_TTL_MS),
-    };
+    return issueToken(this.clock.now(), REFRESH_TTL_MS);
   }
 }
 
