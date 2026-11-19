@@ -74,7 +74,7 @@ The full MVP (v1.0) has seven modules; the v0 due November 30 is a lean subset o
 
 Sign up with phone or email and a password, create a center or independent workspace, invite teachers and assistants by link, switch workspaces from the header.
 
-- [ ] An invited assistant who opens the link joins with the role and teachers chosen in the invite.
+- [x] An invited assistant who opens the link joins with the role and teachers chosen in the invite. (Done Nov 15, Limits Batch 3.)
 - [x] A user in two workspaces only ever sees data from the one currently selected.
 
 #### 2. Groups and schedules
