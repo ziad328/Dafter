@@ -17,7 +17,7 @@ One file for the state of the project. **Next** comes first: the backlog, every 
 
 Written Nov 19. Everything that doesn't need the client goes first, in five batches (one session each, run one after another on `main`; nothing is pushed until all five are done). Numbers are the backlog's. Tick a batch here and log it in Done.
 
-- [ ] **A · Small fixes:** #13 "save anyway" on session moves · #23 lock on `PUT /members/:id/scopes` · #25 one token-creation helper · #27 audit row in the same transaction on routes outside a workspace · #22 two tabs refreshing at once don't sign out (grace window) · #36 e2e groups without `force` · #37 drop cloned test databases · #38 `@dafter/i18n` loads in Node ESM · #39 `run-dafter` screenshots can sign in · reorder subjects and grades.
+- [x] **A · Small fixes** (done Nov 19; #27 stays in the backlog, see its row): #13 "save anyway" on session moves · #23 lock on `PUT /members/:id/scopes` · #25 one token-creation helper · #27 audit row in the same transaction on routes outside a workspace · #22 two tabs refreshing at once don't sign out (grace window) · #36 e2e groups without `force` · #37 drop cloned test databases · #38 `@dafter/i18n` loads in Node ESM · #39 `run-dafter` screenshots can sign in · reorder subjects and grades.
 - [ ] **B · Students and groups:** #9 more than one guardian in the UI · #16 "primary guardian only" per student · #12 move one session to another room · #14 dashboard: archived groups and a custom date range.
 - [ ] **C · Money that doesn't wait on the interview:** #4 nightly balance check · #5 students see their own balance · #6 cash summary by person and date range · #7 (first half) a per-center start day for fee reminders · #15 exam scores: CSV export, then import.
 - [ ] **D · Messages (*hard part: outbox*):** #17 a late "absent" for a second child reaches the parent · #18 SMS length counter on the wording editor · #21 batch the send-time re-check by session.
@@ -65,7 +65,7 @@ Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, 
 10. Decide whether teachers see every student in the center. _(centers)_
 11. Cursor pagination: groups and students (first 50) and the message log (first 100). _(later)_
 12. Moving one session to another room. _(later)_
-13. Session moves have no "save anyway", so two groups forced into the same time block each other's moves.
+13. ~~Session moves have no "save anyway", so two groups forced into the same time block each other's moves.~~ Done Nov 19: `force` on `PATCH /sessions/:id`, «انقل على أي حال». _(done)_
 14. Dashboard: archived groups are left out; no custom date range. _(later)_
 15. Exam scores: CSV export, then import. _(centers)_
 
@@ -80,12 +80,12 @@ Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, 
 
 ### Accounts and staff
 
-22. Two tabs refreshing at the same moment sign the user out. _(later)_
-23. `PUT /members/:id/scopes` has no lock. _(later)_
+22. ~~Two tabs refreshing at the same moment sign the user out.~~ Done Nov 19: a 30-second grace window on the just-rotated refresh token. _(done)_
+23. ~~`PUT /members/:id/scopes` has no lock.~~ Done Nov 19: checked and written under the members lock. _(done)_
 24. Removing a member doesn't sign them out of their other centers' tabs (by design).
-25. The same token-creation code is copied in three places (staff invite, reset link, student invite). _(later)_
+25. ~~The same token-creation code is copied in three places (staff invite, reset link, student invite).~~ Done Nov 19: `issueToken` in `auth/tokens.ts`. _(done)_
 26. Brevo's free tier caps login emails per day; centers need their own sending domain. _(centers)_
-27. Routes outside a workspace (sign-in, invite accept, check-in) write their audit row in a separate transaction. _(later)_
+27. Routes outside a workspace (sign-in, invite accept, check-in) write their audit row in a separate transaction. Looked at Nov 19 and left: not a small fix (see Known limits). _(later)_
 
 ### Hosting and scale
 
@@ -100,10 +100,10 @@ Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, 
 
 34. Two flaky tests to watch: `students.spec.ts` [ar] and `student-app.spec.ts` under load.
 35. Message and fee-reminder e2e tests skip themselves at night and on the 1st–6th of the month.
-36. Every API-built e2e group sends `force`, so only `teacher-slots.spec.ts` exercises the teacher check.
-37. Cloned test databases are never dropped. _(later)_
-38. `@dafter/i18n` can't load in Node ESM, so e2e imports the locale JSON directly. _(later)_
-39. The `run-dafter` screenshot command can't sign in. _(later)_
+36. ~~Every API-built e2e group sends `force`, so only `teacher-slots.spec.ts` exercises the teacher check.~~ Done Nov 19: they live in fresh centers (`freshCenter`) and never send it. _(done)_
+37. ~~Cloned test databases are never dropped.~~ Done Nov 19. _(done)_
+38. ~~`@dafter/i18n` can't load in Node ESM, so e2e imports the locale JSON directly.~~ Done Nov 19. _(done)_
+39. ~~The `run-dafter` screenshot command can't sign in.~~ Done Nov 19: `shot … --as owner`. _(done)_
 
 <a id="known-limits"></a>
 
@@ -125,7 +125,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | The `oasdiff` breaking-change check ignores new error codes (the web shows `errors.INTERNAL` for one it doesn't know), and a commit with a `BREAKING CHANGE` footer skips it | An old PWA shows a generic error for a new code until it updates | — |
 | Rate limits (login, codes, check-ins: 10 a minute per phone, 300 per session) are rows in PostgreSQL (`rate_limits`, since Nov 17) | Shared by every instance and kept across restarts; the cost is one or two small queries per login and scan, and a fixed window lets up to twice the limit through around a window edge | later (Redis or a sliding window only if those queries show up in latency) |
 | Every job loops over all workspaces in one pass (sessions, charges, outbox) | Slow with thousands of workspaces | later |
-| Test harness: cloned test databases are never dropped, and the global setup always starts a container | Slower local runs only | later |
+| Test harness: the global setup always starts a container | Slower local runs only | later |
 
 ### Auth and accounts
 
@@ -134,13 +134,11 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | The demo's staff password is public (`dafter-dev-123`) | Anyone can change demo data; reseed with `pnpm demo:seed:neon` | — (demo only) |
 | Brevo's free tier sends from one verified address and has a daily cap | Login codes stop for the day if the cap is hit | centers (own domain) |
 | Register limit skips loopback (`127.0.0.1`) so local tools and tests can sign up freely | None in production (clients are never loopback behind Vercel) | — |
-| Two tabs refreshing at the same moment log the user out (reuse detection); single-flight only covers one tab | Rare surprise sign-out | later (short grace window if it bites) |
-| Routes outside a workspace (sign-in, invite accept, check-in) still write their audit row in its own transaction after the handler | A crash in between loses that row | later |
+| A just-rotated refresh token still works for 30 seconds while its family is live (two tabs refreshing at once); a thief replaying it in that window isn't detected | Theft detection starts 30 s late | — (by design) |
+| Routes outside a workspace (sign-in, invite accept, check-in) still write their audit row in its own transaction after the handler. One transaction is not a small fix: a failed sign-in or refresh must still commit its rate-limit hit and reuse revocation, and check-in learns its workspace mid-handler | A crash in between loses that row | later |
 | A tenant write holds its connection and row locks until the audit row commits; handlers must not run repository calls in parallel (`requestTx` savepoints share one connection) | Slightly longer locks; a rule to keep | — |
-| Invites: duplicated token-creation code (staff invite, reset link, student invite) | Three copies of the same 3 lines | later |
 | Removing a member doesn't sign them out: their open tabs get 404 on the next request; their refresh tokens still work for their other centers | By design (one account, many centers) | — |
 | A removed teacher's groups keep them as teacher (flagged "No teacher") until the owner picks another; their sessions still show their name | The owner must reassign by hand | — |
-| `PUT /members/:id/scopes` checks the teachers without a lock: a teacher removed at the same moment can be left in a scope | A stale scope row, removed by the next save | later |
 | A phone reset from center A also unbinds it at center B (one shared login) | By design, but surprising | — (documented) |
 | Anyone holding an invite link can claim that record (single use, 72 h) | Same trust model as staff invites | — (documented) |
 | `DEV_FAKE_PHONE=1` with `DEMO_DEPLOY=1` (the public demo) shows a workspace's sent parent messages, full phones, to all its staff, teachers included. `DEV_MAIL_INBOX` is refused in production at startup | Never set `DEMO_DEPLOY` on a deploy with real users | — (documented) |
@@ -153,10 +151,10 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Rooms: a session can't be moved to another room on its own; only the group's room changes (for its future sessions) | A one-off room swap means moving the group | later |
 | Rooms: a group above the room's seats gets a warning on the form, not an error | The owner decides | — |
 | Rooms work in independent workspaces too (the data model said centers only) | Harmless; the screen sits under More for everyone | — |
-| Curriculum: the order can't be changed; a new subject or grade goes to the end of the list | A center that adds «KG» sees it after «الصف الثالث الثانوي» | later (move up/down) |
+| Curriculum: a new subject or grade goes to the end; the owner moves it with up/down, one step at a time | Many taps for a long move | — |
 | Curriculum: a rename changes the name everywhere, on old groups, sessions and the student app too | Usually what a center wants (a typo fix); sent messages keep their text | — |
 | A full group is a confirm, not a hard stop (`force: true` adds anyway) | Staff can still over-fill on purpose | — |
-| A teacher clash on a group's slots is a warning the owner can save past (`force`); twin groups saved that way then refuse each other's session moves (`TEACHER_BOOKED`, moves have no force) | Move such a session to a free hour, or save the groups apart | — |
+| A teacher clash on a group's slots or a session move is a warning the owner can save past (`force`) | Double-booking on purpose stays possible | — |
 | The teacher check uses each group's current teacher; a past session keeps no teacher of its own | A teacher change re-labels old sessions | — |
 | `GET /groups/:id/sessions` not built | Not needed by the timetable | later |
 | No cursor pagination (groups, students: first 50) | Big centers can't see everyone | later |
@@ -220,10 +218,9 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| `@dafter/i18n` index can't load in Node ESM (JSON imports lack `with { type: 'json' }`), so e2e imports the locale JSON directly | Small workaround | later |
-| The `run-dafter` screenshot command doesn't sign in | Only public screens can be shot | later |
 | Message e2e is skipped during Cairo quiet hours (22:00–08:00) | Night runs check less | — |
-| `fee-reminders.spec.ts` is skipped from the 1st to the 6th of the month (Cairo), and makes a new workspace for the seeded owner on every run | Early-month runs check less; the dev owner's workspace list grows (until `pnpm db:reset`) | — |
+| Playwright's `webServer` waits only for the web port: on a cold start (no `pnpm dev` running) the first tests can hit the API before it is up and fail with 502 from the Vite proxy | A cold full run can fail its first ~12 tests; start `pnpm dev` first, or wait on `:3000/health` | later (a second `webServer` entry for the API) |
+| `fee-reminders.spec.ts` is skipped from the 1st to the 6th of the month (Cairo). Most specs build their data in a fresh center (`freshCenter`), so the seeded owner, teacher and assistant gain workspaces on every run | Early-month runs check less; the dev workspace lists grow (until `pnpm db:reset`) | — |
 | `students.spec.ts` [ar] "assistant adds a student…" failed once in the full run (2 workers, `toHaveCount`), then passed alone; CI retries once | Possible flake | later (watch; if it repeats, look at what the count waits on) |
 | The GitHub CLI (`gh`) isn't installed on the dev laptop; CI status is read from the public Actions API with `curl` | No PR or log commands from Claude Code | — |
 | Web spec `student-app.spec.tsx` "keeps the invite link ready to copy" read the stored invite before the effect wrote it (failed once on CI); it now polls | Fixed in the test; watch for others like it | — |
@@ -430,3 +427,4 @@ Tick a task when done, with a one-line note (what was done, anything left). Spli
 - [x] **Limits leftover: teacher double-booking on group slots (Nov 16):** Note: done, no migration. Creating a group, new slots, a new teacher or a restore answer `TEACHER_BOOKED` (weekday, startTime, endTime) when the teacher has another active group meeting at an overlapping local time (touching is fine); `force: true` saves anyway. One overlap query (`firstClash`) serves the room and teacher checks; the room is checked first (it can't be forced); the teacher check takes the same advisory lock as session moves, so two saves at once can't both take the hour. Web: «المدرس عنده مجموعة أخرى يوم السبت 4:00 م – 5:30 م. حفظ على أي حال؟» with Save anyway, which sends the form as it is now (or repeats a restore). E2E: API-built groups send `force`, and the form specs in the seeded center use `submitGroup` (answers the warning) with `GROUP_CONFLICT` expected. Tests: 2 integration tests (clash, touching, other teacher, force, new slots, reassign, restore, two saves at once), 2 web specs, `teacher-slots.spec.ts` (ar/en, 375 px, fresh center). Code review fixes: Save anyway uses the current form, slots read once, the shared query, the e2e origin. Left: forced twins block each other's session moves; the e2e setups always force.
 - [x] **Audit 3 leftovers: invite sender and rate limits in PostgreSQL (Nov 17):** *Hard part (auth).* Note: done; migration `0016_invite_sender_rate_limits`. `invites.created_by_membership_id` (nullable, composite FK to `memberships (workspace_id, id)`) is written on create, and `GET /invites` returns `invitedBy` (the sender's name, null for older invites), shown as «أرسلها …» on the staff screen. Rate limits moved from process memory to a global `rate_limits` table (key, count, reset_at): `RateLimiter` keeps its rules but is async over a `RateLimitStore` (`PgRateLimitStore` in the app, `MemoryRateLimitStore` for hand-built unit tests); each hit is one upsert, and `take` only counts a key under its limit, so 20 parallel takes on a limit of 5 let exactly 5 through. Keys are prefixed with the limiter's name (`login`, `login-ip`, `register`, `reset`, `otp-email`, `otp-ip`, `invite-preview-ip`, `checkin-phone`, `checkin-session`); register and password-reset requests now use `take`. Times come from `Clock`. The daily job (`/internal/tick?daily=1` and the worker's `monthly-charges`) sweeps expired rows. Playwright's `global-setup.ts` clears the table before a local run, since counters now outlast `pnpm dev` (CI starts from a fresh database). Locally, a locked-out login no longer clears on restart: `pnpm db:reset`, or delete from `rate_limits`.
 - [x] **Curriculum editing (Nov 19), backlog #8:** Note: done; migration `0017_curriculum_status` (`status` active/archived on `subjects` and `grade_levels`, unique workspace + Arabic name). Contract: `CurriculumEntry` (with `status`) for the lists, `createCurriculumRequest` (`nameAr`, optional `nameEn` that defaults to the Arabic) and `updateCurriculumRequest` (rename, archive, restore); new codes `CURRICULUM_NAME_TAKEN` (409) and `CURRICULUM_ITEM_NOT_FOUND` (404); the routes are tagged `groups`, so a rename refreshes cached groups. API: a new `curriculum` module (`GET`/`POST /subjects`, `PATCH /subjects/:id`, the same for `/grade-levels`), owner only for writes; a new item goes to the end; a newly picked archived subject or grade is `GROUP_REFERENCE_INVALID` / `STUDENT_REFERENCE_INVALID`, while groups and students that already use it keep it on save. Web: `/curriculum` «المواد والصفوف» under More (owner): subjects and grades as two pills, rows with the other language's name, «⋯» for edit and archive/restore, a sheet to add; the group and student forms hide archived items except the one already chosen. Tests: 5 integration tests (both tables: CRUD, roles, duplicate, blank, 404, another center; archived on groups and students), 10 web specs, `curriculum.spec.ts` (ar/en, 375 px). Left: no reordering (see Known limits).
+- [x] **Batch A · Small fixes (Nov 19), backlog #13, #22, #23, #25, #36–#39 and curriculum order:** Note: done, no migration. `PATCH /sessions/:id` takes `force` (skips `TEACHER_BOOKED`; the room check stays) and the move form offers «انقل على أي حال» (`b4f8b41`). `PUT /members/:id/scopes` checks the member and the teachers and writes in one transaction after the active-owner lock that `PATCH /members/:id` takes, so a teacher removed at the same moment is never left in a scope (`1a3fe91`). `issueToken(now, ttlMs)` in `auth/tokens.ts` issues refresh tokens, staff invites, reset links and student invites (`d71f034`). *Hard part (auth):* a refresh token revoked less than 30 s ago whose family still has a live token gets a new token in the family instead of revoking it, so two tabs refreshing at once stay signed in; after logout or a detected reuse the family has no live token, so the window never reopens it (`93ff77d`, 3 interview questions). `@dafter/i18n` imports its JSON `with { type: 'json' }` and e2e imports the package (`c4c3456`). E2E: a shared `freshCenter(request, prefix, staff)` fixture (joins the seeded teacher and assistant when asked); every API-built group lives in one and none sends `force` (`cb13f5a`). Cloned test databases are dropped `WITH (FORCE)` on close; `run-dafter shot … --as owner [--workspace]` signs in first (`63e1e43`). `PUT /subjects/order` and `/grade-levels/order` (owner, the whole list, `CURRICULUM_ORDER_STALE` 409 when the ids are not exactly the list) and up/down buttons on `/curriculum` (`aecdb04`). Tests: integration tests (forced move, scope race with a removal, grace window inside/outside/after logout, reorder incl. stale/foreign/role), a harness drop test, 2 web specs, e2e «Move anyway» (`timetable.spec.ts`) and reorder (`curriculum.spec.ts`), ar/en at 375 px. Left: #27 stays (see Known limits); the dev API reads `@dafter/contracts` from `dist`, so a running `pnpm dev` needs a restart (or `pnpm --filter @dafter/contracts build`) after a contract change.
