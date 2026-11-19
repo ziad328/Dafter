@@ -1,5 +1,5 @@
-import ar from '../locales/ar/common.json';
-import en from '../locales/en/common.json';
+import ar from '../locales/ar/common.json' with { type: 'json' };
+import en from '../locales/en/common.json' with { type: 'json' };
 
 export const locales = ['ar', 'en'] as const;
 export type Locale = (typeof locales)[number];

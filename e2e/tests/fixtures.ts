@@ -5,9 +5,9 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
-// Direct JSON imports: Node ESM needs the attribute, and @dafter/i18n's index only works under Vite.
-import ar from '../../packages/i18n/locales/ar/common.json' with { type: 'json' };
-import en from '../../packages/i18n/locales/en/common.json' with { type: 'json' };
+import { resources } from '@dafter/i18n';
+
+const { ar, en } = { ar: resources.ar.common, en: resources.en.common };
 
 /** Seeded by `pnpm db:reset`; every staff user has the dev password. */
 export const STAFF = { owner: '01000000001', teacher: '01000000002', assistant: '01000000003' };
