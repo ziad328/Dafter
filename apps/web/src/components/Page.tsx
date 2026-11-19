@@ -26,13 +26,8 @@ export function PageHeader({
   );
 }
 
-const TONES = [
-  'bg-ink-soft text-ink',
-  'bg-violet-soft text-violet',
-  'bg-teal-soft text-teal',
-  'bg-amber-soft text-amber',
-  'bg-rose-soft text-rose',
-];
+// One accent and one neutral (60/30/10): status colours never decorate.
+const TONES = ['bg-ink-soft text-ink', 'bg-violet-soft text-violet'];
 
 // Words most centers start with: «سنتر النور» and «سنتر الأمل» would both read «سن» (audit 3 A9).
 const GENERIC = new Set(['سنتر', 'دروس', 'مركز', 'center', 'centre']);

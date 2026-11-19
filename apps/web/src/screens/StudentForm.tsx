@@ -555,7 +555,7 @@ function PhoneMatches({
   );
   if (!valid || !matches?.length) return null;
   return (
-    <div role="status" className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+    <div role="status" className="rounded-md bg-late-soft p-3 text-sm text-foreground">
       <p>{message}</p>
       <ul className="mt-1 grid gap-1">
         {matches.map((s) => (

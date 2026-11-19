@@ -286,7 +286,7 @@ function Bars({
               className={cn(
                 'w-full rounded-t-md',
                 axis && 'rounded-t-sm',
-                i === items.length - 1 ? 'bg-ink' : 'bg-ink/30',
+                i === items.length - 1 ? 'bg-chart-1' : 'bg-chart-1/30',
                 b.value === null && 'bg-muted',
               )}
               // A value above the bar takes 1rem of the column's height.

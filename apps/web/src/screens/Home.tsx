@@ -241,7 +241,9 @@ function SetupChecklist({ steps }: { steps: SetupStep[] }) {
               <span
                 className={cn(
                   'grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold',
-                  s.done ? 'bg-present text-white' : 'bg-card text-ink ring-1 ring-ink/30',
+                  s.done
+                    ? 'bg-present text-primary-foreground'
+                    : 'bg-card text-ink ring-1 ring-ink/30',
                 )}
               >
                 {s.done ? <Check className="size-4" aria-hidden /> : <bdi>{i + 1}</bdi>}
@@ -290,9 +292,9 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
     return (
       <section
         aria-labelledby="next-session"
-        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-linear-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] px-4 py-3 text-sm text-white shadow-card"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-linear-to-br from-hero to-hero-2 px-4 py-3 text-sm text-white shadow-card"
       >
-        <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium">
+        <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-medium text-primary-foreground">
           {t('today.next')}
         </span>
         <h2 id="next-session" className="text-base font-semibold">
@@ -307,17 +309,17 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
     <section
       aria-labelledby="next-session"
       className={cn(
-        'relative grid overflow-hidden rounded-3xl bg-linear-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] text-white shadow-card',
+        'relative grid overflow-hidden rounded-3xl bg-linear-to-br from-hero to-hero-2 text-white shadow-card',
         waiting ? 'gap-3 p-5' : 'gap-5 p-6 sm:p-7',
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -end-16 -top-16 size-56 rounded-full bg-white/10 blur-2xl"
+        className="pointer-events-none absolute -end-16 -top-16 size-56 rounded-full bg-ink/35 blur-3xl"
       />
       <div className="relative flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span className="flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-medium backdrop-blur">
-          {open && <span className="size-2 animate-live rounded-full bg-white" />}
+        <span className="flex items-center gap-2 rounded-full bg-ink px-3 py-1 font-medium text-primary-foreground">
+          {open && <span className="size-2 animate-live rounded-full bg-primary-foreground" />}
           {open ? t('today.inProgress') : t('today.next')}
         </span>
         {timing && <span className="text-white/85">{timing}</span>}
@@ -342,7 +344,7 @@ function NextSession({ session: s, tz }: { session: Session; tz: string }) {
         <Button
           asChild
           size="lg"
-          className="relative h-13 justify-self-start bg-white px-8 text-base font-semibold text-[#3a4024] shadow-lg transition-transform hover:scale-[1.02] hover:bg-white active:scale-[0.98]"
+          className="relative h-13 justify-self-start bg-ink px-8 text-base font-semibold text-primary-foreground shadow-lg shadow-ink/30 transition-transform hover:scale-[1.02] hover:bg-ink active:scale-[0.98]"
         >
           <Link to={`/sessions/${s.id}/live`} state={{ from: '/' }}>
             <Play aria-hidden className="fill-current" />
@@ -420,7 +422,7 @@ function WeekChart({ week }: { week: StatsDay[] }) {
                   <div
                     className={cn(
                       'w-full rounded-t-lg transition-[height] duration-700 ease-out',
-                      i === week.length - 1 ? 'bg-ink' : 'bg-ink/30',
+                      i === week.length - 1 ? 'bg-chart-1' : 'bg-chart-1/30',
                     )}
                     style={{
                       height: grown ? `${Math.max(pct, 4)}%` : '0%',
@@ -512,12 +514,8 @@ function DayList({ sessions, next, tz }: { sessions: Session[]; next?: Session; 
   );
 }
 
-const ACTION_TONES = [
-  'bg-ink-soft text-ink',
-  'bg-violet-soft text-violet',
-  'bg-teal-soft text-teal',
-  'bg-amber-soft text-amber',
-];
+// One accent and one neutral (60/30/10): status colours never decorate.
+const ACTION_TONES = ['bg-ink-soft text-ink', 'bg-violet-soft text-violet'];
 
 /** The daily jobs at the door, one tap each. */
 function QuickActions({ role }: { role?: string }) {

@@ -3,7 +3,7 @@
 // Usage (from the repo root):
 //   node .claude/skills/run-dafter/driver.mjs status
 //   node .claude/skills/run-dafter/driver.mjs smoke
-//   node .claude/skills/run-dafter/driver.mjs shot [route] [--locale ar|en] [--width 375] [--out file.png]
+//   node .claude/skills/run-dafter/driver.mjs shot [route] [--locale ar|en] [--width 375] [--theme light|dark] [--out file.png]
 //     [--as owner|teacher|assistant|<phone>] [--workspace <Arabic name>]
 //     --as signs in first (seeded staff, dev password) and opens --workspace (default: سنتر النور).
 //     route has no leading slash ("app/groups"); Git Bash rewrites "/..." into a Windows path.
@@ -61,8 +61,12 @@ async function launchBrowser() {
 }
 
 /** A phone-sized page with the locale preset and console errors collected. */
-async function openPage(browser, { locale, width = 375 }) {
-  const context = await browser.newContext({ viewport: { width: Number(width), height: 812 } });
+async function openPage(browser, { locale, width = 375, theme }) {
+  const context = await browser.newContext({
+    viewport: { width: Number(width), height: 812 },
+    // The app follows the phone's light/dark setting until the viewer picks one.
+    ...(theme && { colorScheme: theme }),
+  });
   await context.addInitScript(
     ([key, value]) => {
       if (value && !sessionStorage.getItem('driver-init')) {
@@ -173,7 +177,7 @@ async function shot() {
   mkdirSync(SHOTS, { recursive: true });
   const browser = await launchBrowser();
   try {
-    const { page, errors } = await openPage(browser, { locale, width: flag('width', 375) });
+    const { page, errors } = await openPage(browser, { locale, width: flag('width', 375), theme: flag('theme', undefined) });
     const as = flag('as');
     if (as) await signIn(page, STAFF[as] ?? as, flag('workspace', 'سنتر النور'));
     await page.goto(new URL(path, `${WEB}/`).href, { waitUntil: 'networkidle' });
@@ -209,7 +213,7 @@ function stop() {
 
 const commands = { status, smoke, shot, stop };
 if (!commands[cmd]) {
-  console.log('commands: status | smoke | shot [route] [--locale ar|en] [--width 375] [--out file] [--as owner] [--workspace name] | stop');
+  console.log('commands: status | smoke | shot [route] [--locale ar|en] [--width 375] [--theme light|dark] [--out file] [--as owner] [--workspace name] | stop');
   process.exit(cmd === 'help' ? 0 : 1);
 }
 await commands[cmd]();

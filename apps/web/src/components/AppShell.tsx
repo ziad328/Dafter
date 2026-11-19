@@ -98,9 +98,9 @@ export function AccountActions({ className, dark }: { className?: string; dark?:
   const other = i18n.language === 'ar' ? 'en' : 'ar';
   if (dark) {
     // The sidebar: one row of icon buttons instead of three full-width rows (audit 3 N3).
-    const icon = 'text-white/70 hover:bg-white/10 hover:text-white';
+    const icon = 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground';
     return (
-      <div className={cn('flex items-center gap-1 border-t border-white/10 pt-3', className)}>
+      <div className={cn('flex items-center gap-1 border-t border-sidebar-border pt-3', className)}>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -150,7 +150,7 @@ function Wordmark({ dark }: { dark?: boolean }) {
       to="/"
       className={cn(
         'flex items-center gap-2 text-2xl font-bold tracking-tight',
-        dark ? 'text-white' : 'text-ink',
+        dark ? 'text-sidebar-foreground' : 'text-foreground',
       )}
     >
       <img src="/icons/icon.svg" alt="" className="size-9 rounded-lg" />
@@ -170,13 +170,17 @@ function WorkspaceChip({ className, dark }: { className?: string; dark?: boolean
       aria-label={t('nav.switchWorkspace')}
       className={cn(
         'flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors focus-visible:outline-2',
-        dark ? 'bg-white/8 text-white hover:bg-white/12' : 'border bg-card hover:bg-ink-soft',
+        dark
+          ? 'bg-secondary text-sidebar-foreground hover:bg-sidebar-accent'
+          : 'border bg-card hover:bg-ink-soft',
         className,
       )}
     >
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold">{workspaceName(ws, i18n.language)}</span>
-        <span className={cn('block text-xs', dark ? 'text-white/60' : 'text-muted-foreground')}>
+        <span
+          className={cn('block text-xs', dark ? 'text-sidebar-muted' : 'text-muted-foreground')}
+        >
           {workspaceRole(t, ws)}
         </span>
       </span>
@@ -229,8 +233,9 @@ function TopBar() {
 
 const sideLink = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/8 hover:text-white',
-    isActive && 'bg-ink text-primary-foreground shadow-lg shadow-ink/30 hover:bg-ink',
+    'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+    isActive &&
+      'bg-ink text-primary-foreground shadow-md shadow-ink/25 hover:bg-ink hover:text-primary-foreground',
   );
 
 const tabLink = ({ isActive }: { isActive: boolean }) =>
@@ -248,7 +253,7 @@ function TabIcon({ icon: Icon }: { icon: LucideIcon }) {
   );
 }
 
-/** Staff screens: a navy sidebar on laptops, bottom tabs on phones. */
+/** Staff screens: a sidebar on laptops (white in light, charcoal in dark), bottom tabs on phones. */
 export function AppShell() {
   const { t } = useTranslation();
   const { main, more } = useNavItems();
@@ -258,12 +263,12 @@ export function AppShell() {
   return (
     <div className="min-h-dvh bg-background font-sans text-foreground lg:flex">
       {hasWorkspace && (
-        <aside className="hidden w-68 shrink-0 flex-col gap-6 bg-navy px-4 py-6 lg:sticky lg:top-0 lg:flex lg:h-dvh print:hidden">
+        <aside className="hidden w-68 shrink-0 flex-col gap-6 border-e border-sidebar-border bg-sidebar px-4 py-6 text-sidebar-foreground lg:sticky lg:top-0 lg:flex lg:h-dvh print:hidden">
           <Wordmark dark />
           <WorkspaceChip dark />
           {/* The same three short sections as More (audit 3 N3); scrolls on a short screen, with
-            a bar that floats over the olive and shows only while scrolling. */}
-          <ScrollArea tone="light" className="-mx-1 min-h-0" viewportClassName="px-1">
+            a bar that floats over the sidebar and shows only while scrolling. */}
+          <ScrollArea className="-mx-1 min-h-0" viewportClassName="px-1">
             <nav aria-label={t('nav.label')} className="grid gap-4">
               {[undefined, ...SECTIONS].map((section) => {
                 const items = section ? more.filter((i) => i.section === section) : main;
@@ -272,7 +277,7 @@ export function AppShell() {
                   <div key={section ?? 'main'} className="grid gap-0.5">
                     {section && (
                       // Not a heading: the page's own h1/h2 outline stays the page's.
-                      <p className="px-3 pb-1 text-xs font-semibold text-white/50">
+                      <p className="px-3 pb-1 text-xs font-semibold text-sidebar-muted">
                         {t(`nav.sections.${section}`)}
                       </p>
                     )}

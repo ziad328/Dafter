@@ -88,7 +88,7 @@ export default function Students() {
           onClick={() => setOwes(!owes)}
           className={cn(
             'h-9 rounded-full border px-4 text-sm font-medium transition-colors',
-            owes ? 'border-rose bg-rose text-white' : 'bg-card hover:bg-rose-soft',
+            owes ? 'border-rose bg-rose text-primary-foreground' : 'bg-card hover:bg-rose-soft',
           )}
         >
           {t('students.owes')}

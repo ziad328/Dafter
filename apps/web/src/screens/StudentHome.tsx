@@ -112,9 +112,11 @@ function NextSession() {
     return (
       <section
         aria-label={t('today.next')}
-        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-gradient-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] px-4 py-3 text-sm text-white shadow-card"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-linear-to-br from-hero to-hero-2 px-4 py-3 text-sm text-white shadow-card"
       >
-        <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs">{t('today.next')}</span>
+        <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs text-primary-foreground">
+          {t('today.next')}
+        </span>
         <h2 className="text-base font-semibold">
           {itemName(next.subject, lang)}
           {next.groupLabel && ` · ${next.groupLabel}`}
@@ -128,7 +130,7 @@ function NextSession() {
   return (
     <section
       aria-label={t('today.next')}
-      className="grid gap-1 rounded-3xl bg-gradient-to-br from-[#3a4024] via-[#5d6838] to-[#785f50] p-5 text-white shadow-card"
+      className="grid gap-1 rounded-3xl bg-linear-to-br from-hero to-hero-2 p-5 text-white shadow-card"
     >
       <span className="text-sm opacity-80">{t('today.next')}</span>
       <h2 className="text-xl font-bold">

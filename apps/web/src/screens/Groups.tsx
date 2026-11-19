@@ -180,9 +180,5 @@ export default function Groups() {
   );
 }
 
-const TONES = [
-  'bg-ink-soft text-ink',
-  'bg-violet-soft text-violet',
-  'bg-teal-soft text-teal',
-  'bg-amber-soft text-amber',
-];
+// One accent and one neutral (60/30/10): status colours never decorate.
+const TONES = ['bg-ink-soft text-ink', 'bg-violet-soft text-violet'];

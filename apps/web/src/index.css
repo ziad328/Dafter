@@ -19,6 +19,9 @@
   --color-late-soft: var(--late-soft);
   --color-absent-soft: var(--absent-soft);
   --color-navy: var(--navy);
+  --color-hero: var(--hero);
+  --color-hero-2: var(--hero-2);
+  --color-sidebar-muted: var(--sidebar-muted);
   --color-violet: var(--violet);
   --color-violet-soft: var(--violet-soft);
   --color-teal: var(--teal);
@@ -27,7 +30,7 @@
   --color-amber-soft: var(--amber-soft);
   --color-rose: var(--rose);
   --color-rose-soft: var(--rose-soft);
-  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 10px 30px -14px rgb(16 24 40 / 0.18);
+  --shadow-card: 0 1px 2px rgb(31 33 36 / 0.05), 0 8px 24px -14px rgb(31 33 36 / 0.16);
   --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-flash: flash 1.6s ease-out both;
   --animate-live: live 1.8s ease-out infinite;
@@ -103,104 +106,116 @@
 }
 
 /*
- * Dafter's palette ("Nature Harmony"): olive for actions on a pale sage paper, a deep olive
- * sidebar, and earthy accents (brown, olive, khaki, terracotta) for stat tiles and charts. The
- * token names (ink, violet, teal, amber, rose) are kept so screens did not change.
+ * Dafter's palette ("Charcoal and Ember"): 60% neutral (warm paper, white cards, charcoal text),
+ * 30% one orange accent for actions, the current place and data, 10% status colours (present,
+ * late, absent) used only where they mean something. Light is the main theme; dark mirrors it on
+ * charcoal. The token names (ink, violet, teal, amber, rose, navy) are kept so screens did not
+ * change: ink is the orange, teal a second orange, violet and navy charcoal, amber the data yellow.
  */
 :root {
   --radius: 0.75rem;
-  --ink: #5d6838;
-  --ink-soft: #e8ebdc;
-  --paper: #eef0eb;
-  --rule: #dde1d3;
-  --graphite: #23271a;
-  --margin-red: #b4533c;
-  --present: #4f7a32;
-  --present-soft: #e2edd6;
-  --late: #94650f;
-  --late-soft: #f4ebd2;
-  --absent-soft: #f5e2db;
-  --navy: #3a4024;
-  --violet: #785f50;
-  --violet-soft: #efe6df;
-  --teal: #717a45;
-  --teal-soft: #eaedda;
-  --amber: #8f8440;
-  --amber-soft: #f0eed8;
-  --rose: #b4533c;
-  --rose-soft: #f5e2db;
+  --ink: #c8580c;
+  --ink-soft: #fdeee3;
+  --paper: #f6f5f3;
+  --rule: #e7e4df;
+  --graphite: #1f2124;
+  --margin-red: #c53030;
+  --present: #2f855a;
+  --present-soft: #e3f2e9;
+  --late: #b7791f;
+  --late-soft: #fbf0db;
+  --absent-soft: #fbe5e3;
+  --navy: #1f2124;
+  --violet: #3d4148;
+  --violet-soft: #eeedeb;
+  --teal: #e8701a;
+  --teal-soft: #fdeee3;
+  --amber: #b7791f;
+  --amber-soft: #fbf0db;
+  --rose: #c53030;
+  --rose-soft: #fbe5e3;
+  --hero: #1f2124;
+  --hero-2: #2e3135;
 
   --background: var(--paper);
   --foreground: var(--graphite);
-  --card: #fbfbf7;
+  --card: #ffffff;
   --card-foreground: var(--graphite);
-  --popover: #fbfbf7;
+  --popover: #ffffff;
   --popover-foreground: var(--graphite);
   --primary: var(--ink);
   --primary-foreground: #ffffff;
-  --secondary: var(--ink-soft);
-  --secondary-foreground: var(--ink);
-  --muted: #e7e9df;
-  --muted-foreground: #5f6455;
+  --secondary: #efedea;
+  --secondary-foreground: var(--graphite);
+  --muted: #efedea;
+  --muted-foreground: #6b6e74;
   --accent: var(--ink-soft);
   --accent-foreground: var(--ink);
   --destructive: var(--margin-red);
   --border: var(--rule);
-  --input: #cdd2c0;
-  --ring: #a3ad78;
-  --chart-1: var(--ink);
-  --chart-2: var(--present);
-  --chart-3: var(--late);
+  --input: #d9d5cf;
+  --ring: #f0a46b;
+  --chart-1: #e8701a;
+  --chart-2: #3d4148;
+  --chart-3: #f2b230;
   --chart-4: var(--margin-red);
-  --chart-5: #5f6455;
-  --sidebar: #fbfbf7;
+  --chart-5: #9a9da3;
+  --sidebar: #ffffff;
   --sidebar-foreground: var(--graphite);
   --sidebar-primary: var(--ink);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: var(--ink-soft);
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--rule);
-  --sidebar-ring: #a3ad78;
+  --sidebar-ring: #f0a46b;
+  --sidebar-muted: #8a8d93;
 }
 
 /*
- * Dark mode: a soft deep olive, not black, so the app stays calm at night without feeling heavy.
- * The olive gets lighter to keep contrast; the soft accents become dim tints of the same hues.
+ * Dark mode: the charcoal of the reference dashboard, cards a step lighter, and the orange at
+ * full strength with charcoal text on it.
  */
 .dark {
   color-scheme: dark;
-  --ink: #b3c07c;
-  --ink-soft: #384026;
-  --paper: #22261a;
-  --rule: #3c4330;
-  --graphite: #e8eade;
-  --margin-red: #e08a72;
-  --present: #92c46c;
-  --present-soft: #2e3c24;
-  --late: #ddb35c;
-  --late-soft: #3e3820;
-  --absent-soft: #452c25;
-  --navy: #1a1e11;
-  --violet: #c9a690;
-  --violet-soft: #3e3229;
-  --teal: #b3c07c;
-  --teal-soft: #333a23;
-  --amber: #d5cb88;
-  --amber-soft: #3c3a24;
-  --rose: #e08a72;
-  --rose-soft: #452c25;
+  --ink: #f07f22;
+  --ink-soft: #3a2a1e;
+  --paper: #1c1e21;
+  --rule: #34383d;
+  --graphite: #ececec;
+  --margin-red: #f07167;
+  --present: #5fc48a;
+  --present-soft: #1f3529;
+  --late: #f2b230;
+  --late-soft: #3b3120;
+  --absent-soft: #40262a;
+  --navy: #17181b;
+  --violet: #c9ccd1;
+  --violet-soft: #2e3135;
+  --teal: #f59a4d;
+  --teal-soft: #3a2a1e;
+  --amber: #f2b230;
+  --amber-soft: #3b3120;
+  --rose: #f07167;
+  --rose-soft: #40262a;
+  --hero: #2b2e33;
+  --hero-2: #3a2a1e;
 
-  --card: #2c3122;
-  --popover: #2c3122;
-  --primary-foreground: #1c2012;
-  --muted: #343a29;
-  --muted-foreground: #b0b4a2;
-  --input: #4a5238;
-  --ring: #7d8a4f;
-  --sidebar: #2c3122;
-  --sidebar-primary-foreground: #1c2012;
-  --sidebar-ring: #7d8a4f;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 10px 30px -14px rgb(0 0 0 / 0.45);
+  --card: #26292d;
+  --popover: #26292d;
+  --primary-foreground: #1c1e21;
+  --secondary: #2e3135;
+  --muted: #2e3135;
+  --muted-foreground: #9da1a7;
+  --input: #43474d;
+  --ring: #b8611c;
+  --chart-1: #f07f22;
+  --chart-2: #c9ccd1;
+  --sidebar: #17181b;
+  --sidebar-primary-foreground: #1c1e21;
+  --sidebar-border: #2b2e33;
+  --sidebar-ring: #b8611c;
+  --sidebar-muted: #7d8187;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.25), 0 10px 30px -14px rgb(0 0 0 / 0.55);
 }
 
 @layer base {
