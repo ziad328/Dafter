@@ -8,10 +8,11 @@ import { type MoveSessionRequest, moveSessionRequest, type Session } from '@daft
 import {
   useCancelSessionMutation,
   useGetCurrentWorkspaceQuery,
+  useListRoomsQuery,
   useListSessionsQuery,
   useMoveSessionMutation,
 } from '@/api/generated';
-import { Field, FormError, Skeleton } from '@/components/Field';
+import { Field, FormError, SelectField, Skeleton } from '@/components/Field';
 import { FilterPicker, uniqueOptions } from '@/components/FilterChips';
 import { PageHeader, Panel, Sheet } from '@/components/Page';
 import { Button } from '@/components/ui/button';
@@ -287,6 +288,10 @@ function MoveForm({
 }) {
   const { t, i18n } = useTranslation();
   const [move, moved] = useMoveSessionMutation();
+  // Active rooms, and this session's own room even if it was archived since.
+  const rooms = (useListRoomsQuery().data ?? []).filter(
+    (r) => r.status === 'active' || r.id === s.room?.id,
+  );
   const { register, handleSubmit, formState } = useForm<MoveSessionRequest>({
     resolver: zodResolver(moveSessionRequest),
     defaultValues: {
@@ -344,6 +349,26 @@ function MoveForm({
           {...register('endTime')}
         />
       </div>
+      {rooms.length > 0 && (
+        // This session only; the group's room (for its other sessions) is set on the group.
+        <SelectField
+          label={t('groups.room')}
+          // Set only once the list is in: before that roomId stays out and the room is kept.
+          defaultValue={s.room?.id ?? 'none'}
+          // "none" is a real option, so the room can be taken off (the "" one is the placeholder).
+          {...register('roomId', {
+            setValueAs: (v: string | null) => (v && v !== 'none' ? v : null),
+          })}
+        >
+          <option value="">{t('groups.noRoom')}</option>
+          <option value="none">{t('groups.noRoom')}</option>
+          {rooms.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </SelectField>
+      )}
       <FormError message={moveError} />
       {clash && (
         <Button

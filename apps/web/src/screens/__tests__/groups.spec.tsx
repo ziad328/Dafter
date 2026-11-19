@@ -329,6 +329,50 @@ describe('timetable', () => {
     await expect.poll(() => screen.queryByLabelText(tr('timetable.date'))).toBeNull();
   });
 
+  it('moves one session to another room, or out of any room', async () => {
+    const room = (id: string, name: string, status = 'active') => ({
+      id,
+      name,
+      capacity: null,
+      status,
+    });
+    const [r1, r2, r3] = [1, 2, 3].map((i) => `00000000-0000-4000-8000-00000000000${i}`);
+    const s = session(today, 'scheduled', { room: { id: r2, name: 'قاعة 2' } });
+    withWeek([s]);
+    server.use(
+      http.get(route('rooms'), () =>
+        Response.json([
+          room(r1, 'قاعة 1'),
+          room(r2, 'قاعة 2', 'archived'),
+          room(r3, 'قاعة 3', 'archived'),
+        ]),
+      ),
+    );
+    const { user } = await renderAt('/timetable');
+    const open = async () => {
+      await user.click(await screen.findByRole('button', { name: tr('timetable.actions') }));
+      await user.click(screen.getByRole('button', { name: tr('timetable.move') }));
+      await user.click(await screen.findByRole('combobox', { name: tr('groups.room') }));
+    };
+    await open();
+    // Active rooms and the session's own archived one; another archived room is left out.
+    expect(screen.getByRole('option', { name: 'قاعة 2' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'قاعة 3' })).toBeNull();
+    await user.click(screen.getByRole('option', { name: 'قاعة 1' }));
+    await user.click(screen.getByRole('button', { name: tr('timetable.save') }));
+    await expect
+      .poll(() => call(`PATCH /api/v1/sessions/${s.id}`)?.body)
+      .toMatchObject({ roomId: r1 });
+    await expect.poll(() => screen.queryByLabelText(tr('timetable.date'))).toBeNull();
+    sent.length = 0;
+    await open();
+    await user.click(screen.getAllByRole('option', { name: tr('groups.noRoom') })[0]!);
+    await user.click(screen.getByRole('button', { name: tr('timetable.save') }));
+    await expect
+      .poll(() => call(`PATCH /api/v1/sessions/${s.id}`)?.body)
+      .toMatchObject({ roomId: null });
+  });
+
   it('says when the teacher is booked at the new time, and moves it anyway', async () => {
     const s = session(today, 'scheduled');
     withWeek([s]);

@@ -16,7 +16,7 @@ export const listSessionsQuery = z
   })
   .meta({ id: 'ListSessionsQuery' });
 
-/** Move a session: a new local date and times in the workspace timezone. */
+/** Move a session: a new local date and times in the workspace timezone, and maybe a room. */
 export const moveSessionRequest = z
   .object({
     date: localDate,
@@ -24,6 +24,9 @@ export const moveSessionRequest = z
     endTime: clockTime,
     // Skips the teacher check (TEACHER_BOOKED); the room check (ROOM_BOOKED) still runs.
     force: z.boolean().optional(),
+    // This session only, in another active room (null: no room). Left out, the room stays.
+    // A room change alone sends parents nothing.
+    roomId: z.uuid().nullable().optional(),
   })
   .refine((m) => m.endTime > m.startTime, { path: ['endTime'], message: 'SLOT_ENDS_BEFORE_START' })
   .meta({ id: 'MoveSessionRequest' });

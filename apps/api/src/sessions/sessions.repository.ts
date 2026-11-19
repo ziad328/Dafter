@@ -67,33 +67,42 @@ export class SessionsRepository extends TenantRepository {
     });
   }
 
-  /** Moves a scheduled session to a future local time and tells the parents; false when the new start has passed. */
+  /**
+   * Moves a scheduled session to a future local time and/or another room (`roomId`; null takes it
+   * out of any room). Parents are told only when the time changes. False when the new start has
+   * passed; ROOM_NOT_FOUND for an unknown or archived room; ROOM_BOOKED when it is taken then.
+   */
   move(workspaceId: string, id: string, to: MoveSessionRequest, now: Date) {
     return this.inTenant(workspaceId, async (tx) => {
-      // Saving the same time again is a no-op: no update, no "session moved" message to parents.
-      const [same] = await tx
-        .select({ id: sessions.id })
+      const [cur] = await tx
+        .select({
+          // The old start, for «حصة السبت 4:00 م أصبحت الأحد 5:00 م».
+          startsAt: sessions.startsAt,
+          roomId: sessions.roomId,
+          sameTime: sql<boolean>`${sessions.startsAt} = ${local(to.date, to.startTime)}
+            and ${sessions.endsAt} = ${local(to.date, to.endTime)}`,
+        })
         .from(sessions)
         .innerJoin(workspaces, eq(workspaces.id, sessions.workspaceId))
-        .where(
-          and(
-            this.scheduled(workspaceId, id),
-            sql`${sessions.startsAt} = ${local(to.date, to.startTime)}`,
-            sql`${sessions.endsAt} = ${local(to.date, to.endTime)}`,
-          ),
-        );
-      if (same) return true;
-      await this.lockTeacher(tx, workspaceId, id);
-      // The old start, for «حصة السبت 4:00 م أصبحت الأحد 5:00 م».
-      const [old] = await tx
-        .select({ startsAt: sessions.startsAt })
-        .from(sessions)
         .where(this.scheduled(workspaceId, id));
+      if (!cur) return false;
+      const newRoom = to.roomId !== undefined && to.roomId !== cur.roomId;
+      // Saving the same time and room again is a no-op: no update, no message to parents.
+      if (cur.sameTime && !newRoom) return true;
+      if (newRoom && to.roomId) {
+        const [room] = await tx
+          .select({ status: rooms.status })
+          .from(rooms)
+          .where(and(eq(rooms.workspaceId, workspaceId), eq(rooms.id, to.roomId)));
+        if (room?.status !== 'active') throw new AppError('ROOM_NOT_FOUND');
+      }
+      if (!cur.sameTime) await this.lockTeacher(tx, workspaceId, id);
       const rows = await tx
         .update(sessions)
         .set({
           startsAt: local(to.date, to.startTime),
           endsAt: local(to.date, to.endTime),
+          ...(newRoom && { roomId: to.roomId }),
         })
         .from(workspaces)
         .where(
@@ -105,8 +114,10 @@ export class SessionsRepository extends TenantRepository {
         )
         .returning({ id: sessions.id });
       if (!rows.length) return false;
+      // A room swap alone keeps the teacher's hour, and the parents' message is about time.
+      if (cur.sameTime) return true;
       if (!to.force) await this.checkTeacher(tx, workspaceId, id);
-      await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved', old!.startsAt);
+      await enqueueSessionChange(tx, workspaceId, id, now, 'session_moved', cur.startsAt);
       return true;
     }).catch(roomBooked);
   }

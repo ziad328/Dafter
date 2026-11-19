@@ -201,6 +201,49 @@ describe('groups in rooms', () => {
     expect(ok.json().room.id).toBe(r1);
   });
 
+  it('moves one session to another room: no text to parents, booked and archived rooms refused', async () => {
+    const { c, room, group, sessionsOn } = await setup();
+    const [r1, r2, r3] = [await room('قاعة 1'), await room('قاعة 2'), await room('قاعة 3')];
+    const a = (await group(r1, [SAT('16:00', '17:30')])).json();
+    await group(r2, [SAT('16:30', '17:00')]);
+    const student = (
+      await c.owner('POST', 'students', {
+        nameAr: 'طالب القاعة',
+        gradeLevelId: a.gradeLevel.id,
+        guardian: {
+          phone: '01288800001',
+          relation: 'mother',
+          preferredLocale: 'ar',
+          whatsappOptIn: true,
+        },
+      })
+    ).json();
+    await c.owner('POST', `students/${student.id}/enrollments`, { groupId: a.id });
+    const sa = (await sessionsOn('2026-11-28')).find((s) => s.groupId === a.id)!;
+    const same = { date: '2026-11-28', startTime: '16:00', endTime: '17:30' };
+    const move = (roomId: string | null) =>
+      c.owner('PATCH', `sessions/${sa.id}`, { ...same, roomId });
+
+    const booked = await move(r2);
+    expect([booked.statusCode, booked.json().code]).toEqual([409, 'ROOM_BOOKED']);
+    await c.owner('PATCH', `rooms/${r3}`, { name: 'قاعة 3', status: 'archived' });
+    for (const id of [r3, '00000000-0000-4000-8000-000000000000'])
+      expect((await move(id)).json().code).toBe('ROOM_NOT_FOUND');
+
+    await c.owner('PATCH', `rooms/${r3}`, { name: 'قاعة 3', status: 'active' });
+    const moved = await move(r3);
+    expect(moved.statusCode).toBe(200);
+    expect(moved.json()).toMatchObject({ room: { id: r3 }, startsAt: sa.startsAt });
+    // The group keeps its room for the other sessions.
+    const next = (await sessionsOn('2026-12-05')).find((s) => s.groupId === a.id)!;
+    expect(next.room!.id).toBe(r1);
+    expect((await move(r3)).statusCode).toBe(200);
+    expect((await move(null)).json().room).toBeNull();
+    // Left out, the room stays; a room swap alone texts nobody.
+    expect((await c.owner('PATCH', `sessions/${sa.id}`, same)).json().room).toBeNull();
+    expect((await c.owner('GET', 'messages')).json()).toEqual([]);
+  });
+
   it('generates a session without a room when a moved session already holds it', async () => {
     const { c, room, group, sessionsOn } = await setup();
     const r1 = await room('قاعة 1');

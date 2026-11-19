@@ -1255,6 +1255,7 @@ export type MoveSessionRequest = {
   startTime: string;
   endTime: string;
   force?: boolean;
+  roomId?: string | null;
 };
 export type OpenSession = {
   sessionId: string;
