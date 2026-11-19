@@ -1,12 +1,337 @@
-# Progress — v0 (Nov 13 – Nov 30, 2026)
+# Progress: what's next and what's done
+
+One file for the state of the project. **Next** comes first: the backlog, every known limit with its details, the limit-fixing plan and the v1 notes. **Done** follows: the full log of every finished task (tick tasks there).
+
+## Contents
+
+1. [Next · Backlog](#backlog) (was `docs/backlog.md`)
+2. [Next · Known limits (details)](#known-limits) (was `docs/known-limits.md`)
+3. [Next · Plan for fixing the limits](#limits-plan) (was `docs/limits-plan.md`)
+4. [Next · v1 notes](#v1-next) (was `docs/v1-next.md`)
+5. [Done · Progress log](#done) (was `docs/progress.md`)
+
+<a id="backlog"></a>
+
+## Backlog: what's left or could be better
+
+Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, `progress.md#v1-next`, the UX audits and `product.md`, after Limits Batch 4 and the teacher double-booking check. One line each; the details and reasons stay in `progress.md#known-limits`. The tag in brackets is when it should be fixed: **centers** = before a real center uses it, **later** = when scale or a real need shows up. The UI and UX audit has its own list in `ux.md#audit-3`.
+
+### Money (Batch 5, waits on the center interviews)
+
+1. Per-session and package-of-N fee plans. _(centers)_
+2. Proration for students who join mid-month. _(centers)_
+3. Cash handover: the owner marks a staff member's day as received and sees who hasn't handed over. _(centers)_
+4. A nightly balance check that logs any drift. _(later)_
+5. Students see their own balance. _(later)_
+6. Cash summary: filter by person and a date range. _(later)_
+7. Fee reminders: a per-center start day (fixed on the 7th today) and a per-teacher amount. _(centers)_
+
+### Groups, students, curriculum
+
+8. Editing the curriculum (subjects, grade levels). _(centers)_
+9. More than one guardian per student in the UI. _(centers)_
+10. Decide whether teachers see every student in the center. _(centers)_
+11. Cursor pagination: groups and students (first 50) and the message log (first 100). _(later)_
+12. Moving one session to another room. _(later)_
+13. Session moves have no "save anyway", so two groups forced into the same time block each other's moves.
+14. Dashboard: archived groups are left out; no custom date range. _(later)_
+15. Exam scores: CSV export, then import. _(centers)_
+
+### Messages
+
+16. "Primary guardian only" per student, not one switch for the whole center. _(later)_
+17. A late "absent" for a second child texts nothing when the guardian already got that session's message. _(later)_
+18. An SMS length counter on the wording editor (one Arabic SMS is 70 characters). _(later)_
+19. The outbox id as the provider's idempotency key, so a crash can't resend a text. _(later)_
+20. Check `whatsapp_opt_in` and switch to approved templates when WhatsApp comes. _(later)_
+21. The send-time re-check runs one or two queries per message; group them by session. _(later)_
+
+### Accounts and staff
+
+22. Two tabs refreshing at the same moment sign the user out. _(later)_
+23. `PUT /members/:id/scopes` has no lock. _(later)_
+24. Removing a member doesn't sign them out of their other centers' tabs (by design).
+25. The same token-creation code is copied in three places (staff invite, reset link, student invite). _(later)_
+26. Brevo's free tier caps login emails per day; centers need their own sending domain. _(centers)_
+27. Routes outside a workspace (sign-in, invite accept, check-in) write their audit row in a separate transaction. _(later)_
+
+### Hosting and scale
+
+28. Vercel Hobby is non-commercial only: a paying center needs a paid host or a VPS. _(centers)_
+29. No always-on worker: a failed text can wait up to an hour. _(centers)_
+30. ~~Rate limits live in memory per instance.~~ Done Nov 17: they live in PostgreSQL (`rate_limits`). _(done)_
+31. The live attendance list polls the database every second; move to LISTEN/NOTIFY. _(later)_
+32. Daily jobs loop over every workspace in one pass. _(later)_
+33. No offline screen in the PWA. _(later)_
+
+### Tests and tooling
+
+34. Two flaky tests to watch: `students.spec.ts` [ar] and `student-app.spec.ts` under load.
+35. Message and fee-reminder e2e tests skip themselves at night and on the 1st–6th of the month.
+36. Every API-built e2e group sends `force`, so only `teacher-slots.spec.ts` exercises the teacher check.
+37. Cloned test databases are never dropped. _(later)_
+38. `@dafter/i18n` can't load in Node ESM, so e2e imports the locale JSON directly. _(later)_
+39. The `run-dafter` screenshot command can't sign in. _(later)_
+
+<a id="known-limits"></a>
+
+## Known limits and open issues
+
+Everything we know is missing, unchecked or a deliberate shortcut, in one place. Sources: the "Left:" notes in `progress.md`, `shortcut:` comments in the code, and the session reports and reviews from Days 1–15. Fixed items are removed; new ones are added by the `task-finish` skill. The order to fix them in is `docs/progress.md#limits-plan`.
+
+**Fix by:** **D17** = Day 17 deploy · **v0** = before the v0 tag (Nov 30) · **centers** = before a real center uses it · **later** = when scale or a real need shows up.
+
+### Deploy and infrastructure
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| The demo runs on Vercel Hobby: personal, non-commercial use only; 4 active CPU-hours a month; functions end after 300 s | Fine for the demo; a paying center needs a paid host or a VPS | centers |
+| No always-on worker on Vercel: messages leave right after their write (`OUTBOX_SEND_INLINE`); held ones go at the 08:00 Cairo daily cron; retries wait for the hourly cron-job.org call (optional) | A failed send can wait up to an hour (or a day without cron-job.org) | centers (VPS with pg-boss) |
+| CI's `migrate` job applies migrations to Neon after the tests on `main`; Vercel waits for it only if its Deployment Checks require that check (a dashboard setting). Until promotion the old code runs on the new schema | A migration must only add (drop in a later push); without the Deployment Check, a build can go live before its migration | — (documented in `operations.md#deploy`) |
+| The live list polls the database every second per open teacher screen | Up to 1 s delay; Neon stays awake while a class is live | later (LISTEN/NOTIFY on a long-running host) |
+| The first request after a quiet spell starts NestJS (cold start) | About 1–2 s wait | — |
+| The `oasdiff` breaking-change check ignores new error codes (the web shows `errors.INTERNAL` for one it doesn't know), and a commit with a `BREAKING CHANGE` footer skips it | An old PWA shows a generic error for a new code until it updates | — |
+| Rate limits (login, codes, check-ins: 10 a minute per phone, 300 per session) are rows in PostgreSQL (`rate_limits`, since Nov 17) | Shared by every instance and kept across restarts; the cost is one or two small queries per login and scan, and a fixed window lets up to twice the limit through around a window edge | later (Redis or a sliding window only if those queries show up in latency) |
+| Every job loops over all workspaces in one pass (sessions, charges, outbox) | Slow with thousands of workspaces | later |
+| Test harness: cloned test databases are never dropped, and the global setup always starts a container | Slower local runs only | later |
+
+### Auth and accounts
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| The demo's staff password is public (`dafter-dev-123`) | Anyone can change demo data; reseed with `pnpm demo:seed:neon` | — (demo only) |
+| Brevo's free tier sends from one verified address and has a daily cap | Login codes stop for the day if the cap is hit | centers (own domain) |
+| Register limit skips loopback (`127.0.0.1`) so local tools and tests can sign up freely | None in production (clients are never loopback behind Vercel) | — |
+| Two tabs refreshing at the same moment log the user out (reuse detection); single-flight only covers one tab | Rare surprise sign-out | later (short grace window if it bites) |
+| Routes outside a workspace (sign-in, invite accept, check-in) still write their audit row in its own transaction after the handler | A crash in between loses that row | later |
+| A tenant write holds its connection and row locks until the audit row commits; handlers must not run repository calls in parallel (`requestTx` savepoints share one connection) | Slightly longer locks; a rule to keep | — |
+| Invites: duplicated token-creation code (staff invite, reset link, student invite) | Three copies of the same 3 lines | later |
+| Removing a member doesn't sign them out: their open tabs get 404 on the next request; their refresh tokens still work for their other centers | By design (one account, many centers) | — |
+| A removed teacher's groups keep them as teacher (flagged "No teacher") until the owner picks another; their sessions still show their name | The owner must reassign by hand | — |
+| `PUT /members/:id/scopes` checks the teachers without a lock: a teacher removed at the same moment can be left in a scope | A stale scope row, removed by the next save | later |
+| A phone reset from center A also unbinds it at center B (one shared login) | By design, but surprising | — (documented) |
+| Anyone holding an invite link can claim that record (single use, 72 h) | Same trust model as staff invites | — (documented) |
+| `DEV_FAKE_PHONE=1` with `DEMO_DEPLOY=1` (the public demo) shows a workspace's sent parent messages, full phones, to all its staff, teachers included. `DEV_MAIL_INBOX` is refused in production at startup | Never set `DEMO_DEPLOY` on a deploy with real users | — (documented) |
+
+### Groups, sessions and students
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| Rooms: a session generated at a time a moved session already holds in the room gets no room (shown without one) instead of failing | The owner fixes that one session by hand | — |
+| Rooms: a session can't be moved to another room on its own; only the group's room changes (for its future sessions) | A one-off room swap means moving the group | later |
+| Rooms: a group above the room's seats gets a warning on the form, not an error | The owner decides | — |
+| Rooms work in independent workspaces too (the data model said centers only) | Harmless; the screen sits under More for everyone | — |
+| Curriculum (subjects, grades) can't be edited | Centers with other subjects are stuck | centers |
+| A full group is a confirm, not a hard stop (`force: true` adds anyway) | Staff can still over-fill on purpose | — |
+| A teacher clash on a group's slots is a warning the owner can save past (`force`); twin groups saved that way then refuse each other's session moves (`TEACHER_BOOKED`, moves have no force) | Move such a session to a free hour, or save the groups apart | — |
+| The teacher check uses each group's current teacher; a past session keeps no teacher of its own | A teacher change re-labels old sessions | — |
+| `GET /groups/:id/sessions` not built | Not needed by the timetable | later |
+| No cursor pagination (groups, students: first 50) | Big centers can't see everyone | later |
+| Teachers see every student in the workspace | Privacy choice not settled | centers |
+| The UI handles one guardian per student (the API allows more) | Second parent needs the API | centers |
+
+### Attendance and student app
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| The QR screen's wake lock needs the Screen Wake Lock API (iOS 16.4+, Chrome 84+); older phones may still dim | Rare on current phones | — |
+| A student on a video call can relay the QR | Known weakness of rotating QR (tech.md#architecture) | — (documented) |
+| No offline screen when the API is unreachable | The PWA shows errors | later |
+
+### Money
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| Only monthly fees: no per-session or package-of-N plans (product module 5) | Centers that charge per session can't use the ledger yet | centers (after the interviews) |
+| No proration for mid-month joins | A student who joins on the 25th pays the full month | centers |
+| No nightly balance check | Drift would go unnoticed (the ledger is append-only) | later |
+| Students don't see their balance | Parents ask the center | later |
+| Fee model (one monthly fee per group) and who sees money are guesses | May change after center interviews | centers |
+| Cash summary: no "handed over" step; the owner can't mark a day as received or see who hasn't handed over | The handover itself is still on paper | centers |
+| Cash summary: a reversal counts on the day it was made, so voiding an older payment can make a day's total negative | Shown as is (real money out); can surprise at first | — |
+| Cash summary: the owner sees every staff member on one page, with no filter by person or a date range (one day at a time) | Fine for a small center | later |
+| Cash summary: checked at 375 px in Playwright only; the printed page / saved PDF and a real phone are not checked by eye | Print layout may need tweaks | centers |
+| Cash summary: payments sit under whoever recorded them; one assistant typing in another's takings shows under the wrong person | Rare; fix by reversing and re-entering | — |
+
+### Exams and dashboard (v1)
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| No CSV import or export of exam scores | Big groups are typed by hand | centers (export first, import later) |
+| A corrected score resends the same sentence with «تصحيح:» only | Parents don't see the old score | — |
+| Dashboard: 8, 13 or 26 weeks; money is always the last 6 months; no free date range | No custom term dates | later |
+| Dashboard: archived groups are left out | Last term's groups disappear | later (include them with a filter) |
+| Dashboard bars are plain CSS, no chart library | No tooltips or axis | — |
+| The exam grid, "My grades", the dashboard and the fee-reminder switch were checked by the 375 px tests only | Not checked by eye on a real phone | centers |
+
+### Messages (Day 15)
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| `whatsapp_opt_in` is not checked | Fine with the console adapter; must be checked before WhatsApp | later (with WhatsApp) |
+| "Primary guardian only" is one switch for the whole center, not per student | A family that wants both parents texted can't have it while the switch is on | later |
+| A late "absent" for a sibling whose guardian was already told about that session sends nothing (one message per guardian per session) | The second child's absence isn't texted | later |
+| "Absent" corrected to "present" after the message went out sends nothing (no apology text) | The parent keeps the wrong message | — |
+| A late "absent" on a session that ended more than 2 days ago texts nobody | Old fixes are record-keeping only | — |
+| The send-time re-check runs one or two queries per row (batches of 50) | Slower sends with big batches | later (group by session) |
+| At-least-once delivery: a crash between the provider call and the commit resends | Duplicate text in a rare crash | later (outbox id as the provider's idempotency key) |
+| Custom wording is free text for the console and SMS stage; WhatsApp only sends pre-approved templates | With WhatsApp, centers will pick from approved texts instead of writing their own | later (with WhatsApp) |
+| An edit to the wording also changes messages already queued (they are filled at send time) | Usually what a center wants (a typo fix); the log shows the text actually sent | — |
+| No length check against SMS segments (500 characters allowed; one SMS is 70 Arabic characters) | Long Arabic texts cost several SMS once a paid provider is used | later (a counter on the screen) |
+| A teacher's message log shows their groups' session and exam messages (phones masked to the last 3 digits), never fee reminders; the matching is by the group's current teacher | After a teacher change, the new teacher sees the group's older messages | — |
+| The message log shows the newest 100, no pagination or search | Older messages are hidden | later |
+| Messages queued before Nov 15 (part 2 of the limits plan) skip the send-time re-check and a move among them keeps the old wording | Only rows already waiting at the deploy | — |
+| Fee reminders start on the 7th, fixed in code; the amount is the center-wide balance | No per-center day; a teacher-collected fee shows the total | centers |
+
+### Tooling
+
+| Limit | Impact | Fix by |
+|:--|:--|:--|
+| `@dafter/i18n` index can't load in Node ESM (JSON imports lack `with { type: 'json' }`), so e2e imports the locale JSON directly | Small workaround | later |
+| The `run-dafter` screenshot command doesn't sign in | Only public screens can be shot | later |
+| Message e2e is skipped during Cairo quiet hours (22:00–08:00) | Night runs check less | — |
+| `fee-reminders.spec.ts` is skipped from the 1st to the 6th of the month (Cairo), and makes a new workspace for the seeded owner on every run | Early-month runs check less; the dev owner's workspace list grows (until `pnpm db:reset`) | — |
+| `students.spec.ts` [ar] "assistant adds a student…" failed once in the full run (2 workers, `toHaveCount`), then passed alone; CI retries once | Possible flake | later (watch; if it repeats, look at what the count waits on) |
+| The GitHub CLI (`gh`) isn't installed on the dev laptop; CI status is read from the public Actions API with `curl` | No PR or log commands from Claude Code | — |
+| Web spec `student-app.spec.tsx` "keeps the invite link ready to copy" read the stored invite before the effect wrote it (failed once on CI); it now polls | Fixed in the test; watch for others like it | — |
+| `student-app.spec.ts` timed out once (40 s) with the full suite on 6 workers, then passed alone | Possible flake under load | later (watch in CI) |
+
+<a id="limits-plan"></a>
+
+## Plan: fixing the known limits
+
+Written Nov 15 from `docs/progress.md#known-limits`. That file stays the full list; this one groups the limits into batches that each fit one or two sessions, in the order they should be done before a real center uses Dafter. Each batch follows the usual flow (contract, migration, API, web, tests at every layer, docs). When a row is fixed, delete it from `progress.md#known-limits` and tick it here.
+
+**Size:** S = a few hours · M = about a day · L = more than a day. *Hard part* = explain first, add interview questions after.
+
+### Batch 1 · Quick wins on screens people use daily (S each, mostly web)
+
+Nothing here needs the center interviews. Good filler between bigger features.
+
+- [x] **Archive a group from the UI.** Done Nov 15. An "Archive" / "Restore" action on the group page (the API already takes `status`). Archived groups drop out of Today and the timetable.
+- [x] **Late threshold setting.** Done Nov 15 (on a new `/settings` screen). A number field on the workspace settings («يُعتبر متأخرًا بعد … دقيقة»), saved to `settings.lateAfterMinutes` (default 15, 0–120).
+- [x] **Keep the QR screen awake.** Done Nov 15. `navigator.wakeLock.request('screen')` while the live session is open, released on close or tab hide; no-op where unsupported.
+- [x] **Group capacity on enroll.** Done Nov 15. `GROUP_FULL` when active enrollments reach `capacity`; staff can still add after a confirm (`force: true`), on the student page and the new-student form.
+- [x] **Teacher double-booking on move.** Done Nov 15 (moves only). Moving a session to a time when the teacher has another non-cancelled session returns `TEACHER_BOOKED`. The same check on group slots waits: the e2e tests create many groups for one seeded teacher at Saturday 16:00, so it needs those fixtures moved to distinct times first.
+- [x] **Room capacity hint.** Done Nov 15. A warning (not an error) on the group form when the group's capacity is above the room's.
+- [x] **Dashboard range.** Done Nov 15. A `weeks` query param (8 default; 8, 13 or 26) and an 8 / 13 / 26 switch on the screen; money stays at 6 months.
+
+### Batch 2 · Messages that are always right (M, *hard part: outbox*)
+
+Do this **after editable templates** (same files: `messages/templates.ts`, the outbox insert and the sender).
+
+- [x] **Re-check at send time.** Done Nov 15 (absences too: a child marked present before the send is dropped). The sender re-reads the balance for `fee_overdue` rows and marks them `skipped` when it is zero; a row whose trigger was switched off since it was queued is `skipped` too. New status `skipped` in the log, with the reason.
+- [x] **Late corrections reach parents.** Done Nov 15. A manual "absent" after close queues the absence message (same dedupe key, so a second change does nothing); a change from absent to present after the message went out sends nothing (documented).
+- [x] **Primary guardian only.** Done Nov 15. A `settings.messages.primaryOnly` switch (default off: today's behaviour).
+- [x] **Moved session says from when.** Done Nov 15. The `session_moved` template gets the old time («حصة السبت 4:00 م أصبحت الأحد 5:00 م»).
+
+### Batch 3 · Staff management (M, *hard part: auth and tenancy*)
+
+- [x] **Invite carries the assistant's teachers** Done Nov 15. (the next feature in `docs/progress.md#v1-next`). Accepting writes the membership and its scopes in one transaction, which also removes the separate scope-check transaction and the extra workspace read.
+- [x] **`PATCH /members/:id`** Done Nov 15 (no global sign-out: the tenant guard locks them out on the next request): change a role, or remove a member (`status = removed`, sessions and memberships revoked, their groups stay with a "no teacher" warning until reassigned). Owner only; the last owner can't be removed.
+- [x] **Audit in the same transaction** Done Nov 15 (tenant routes; sign-in and invite accept keep their own). as the write it records (the interceptor gets the request's transaction instead of opening its own), so a failed audit row rolls the write back.
+
+### Batch 4 · Before real users: safety and operations (M)
+
+- [x] **Rate limit `POST /check-ins`** per device and per session (for example 10 a minute), with the same in-memory limiter as login.
+- [x] **"Too early to open."** Opening a session more than 30 minutes before its start returns `SESSION_TOO_EARLY`.
+- [x] **Demo-only switches off by default in production.** `DEV_FAKE_PHONE` read from the environment only on the demo deploy; a startup check refuses `DEV_MAIL_INBOX` when `NODE_ENV=production`.
+- [x] **Breaking-change check in CI.** `oasdiff breaking` between `main`'s `openapi.json` and the PR's.
+- [x] **Migrations as a step, not a habit.** A GitHub Actions job on `main` that runs the Neon migration (secret `NEON_DATABASE_URL_UNPOOLED`) before Vercel's build is promoted, so a push can't deploy code ahead of its schema.
+- [x] **Teachers and the message log.** A teacher sees the messages of their own groups, with phones masked except the last 3 digits.
+
+### Batch 5 · Money, after the center interviews (L)
+
+Wait for the answers to the open questions in `docs/product.md` (who collects, per month or per session).
+
+- [ ] Per-session and package-of-N fee plans.
+- [ ] Proration for mid-month joins (a setting: full month, half month after the 15th, or by sessions left).
+- [ ] Cash handover: the owner marks a staff member's day as received; the summary shows who hasn't handed over.
+- [ ] CSV export of exam scores (then import).
+- [ ] A nightly balance check (sum of entries vs. the sum shown) that logs any drift.
+
+### Later, when scale or a host change asks for it
+
+Rate limits in Redis, LISTEN/NOTIFY for the live list, cursor pagination (groups, students, message log), batching the jobs per workspace, dropping cloned test databases, curriculum editing, more than one guardian in the UI, an offline screen in the PWA. These need a long-running host (the VPS stage) or real traffic to justify them.
+
+### Not fixes, by design
+
+Rooms in independent workspaces, the one shared student login across centers, invite links as bearer tokens, the rotating QR's video-call weakness, the public demo password, and the cash summary counting a reversal on its own day. Each is documented in `progress.md#known-limits` with its reason.
+
+<a id="v1-next"></a>
+
+## v1: open limits, issues and the next feature
+
+Written on Nov 15 after exams, the dashboard and fee reminders (`93662a4`, `cc3c81d`, `c8f02e1`, `8a94d29`, `0ad9c04`). `docs/progress.md#known-limits` stays the full list; this page is the short list from that work, plus the start prompt for the next session.
+
+### Limits from the v1 features so far
+
+| Feature | Limit | Impact | Fix idea |
+|:--|:--|:--|:--|
+| Fee reminders | A reminder held by quiet hours still goes out if the parent paid in between | A rare wrong money text | The sender re-reads the balance for `fee_overdue` rows and skips them when it is zero |
+| Fee reminders | They start on the 7th, fixed in code | No per-center day | A `feeOverdueDay` in `settings.messages` |
+| Fee reminders | The amount is the student's balance across the whole center | A teacher-collected fee shows the total | Decide after the center interviews ("who collects the fee?") |
+| Exams | No CSV import or export of scores | Big groups are typed by hand | Export first (cheap), import later |
+| Exams | A correction resends the same sentence with «تصحيح:» only | Parents don't see the old score | Fine for now |
+| Dashboard | Last 8 weeks and 6 months only, no date range | No term view | A `weeks` query param (max 26) |
+| Dashboard | Archived groups are left out | Last term's groups disappear | Include them with a filter |
+| Dashboard | Bars are plain CSS, no chart library | No tooltips or axis | Fine for now |
+
+### Issues found while testing
+
+- **`students.spec.ts` [ar] flake:** "assistant adds a student…" failed once in the full Playwright run (2 workers, `toHaveCount`), then passed on its own. CI retries once. Watch it; if it repeats, look at what the count waits on.
+- ~~**No Playwright for background jobs:**~~ fixed Nov 15: `.env.example` (so CI too) sets a dev-only `CRON_SECRET=dev-cron-secret`, Playwright loads the root `.env`, and `fee-reminders.spec.ts` runs `/internal/tick?daily=1` and finds the reminder in the message log.
+- **Not checked by eye on a real phone:** the exam grid, "My grades", the dashboard and the new switch were only checked by the 375 px tests.
+
+### Done since
+
+- **End-of-day cash summary (Nov 15, `91e7790`):** `GET /stats/cash-summary` and the print-ready `/cash-summary` page. Limits are in `docs/progress.md#known-limits` (Money).
+- **Fee reminders in Playwright (Nov 15, `fb0f79f`):** the dev `CRON_SECRET` and `fee-reminders.spec.ts`.
+- **Neon owner password reset (Nov 15):** done by Ziad; the live smoke test passes after it.
+- **Editable message templates (Nov 15):** per trigger and language under «نص الرسائل» on `/messages`, filled at send time.
+- **Rooms and the room conflict check (Nov 15):** migration `0013_rooms`, `ROOM_BOOKED`, `/rooms`, the room picker. Limits in `docs/progress.md#known-limits` (Groups).
+
+### What's left of the MVP (`docs/product.md`)
+
+| Module | Gap | Waits on |
+|:--|:--|:--|
+| 1. Accounts | ~~An invite carries the assistant's teachers~~ done Nov 15 (limits plan, Batch 3) | — |
+| 5. Fees | Per-session and package-of-N fee plans | The center interviews (open questions in `product.md`) |
+
+Outside the code: the demo video and the center interviews. Done by Ziad on Nov 16: the manual iPhone and Android try, and deleting the local `.env.vercel-secrets`. The rest of the open work is numbered in `docs/progress.md#backlog`.
+
+### Next feature
+
+**An invite that carries the assistant's teachers** (module 1: "An invited assistant who opens the link joins with the role and teachers chosen in the invite"). Today the owner ticks an assistant's teachers after they join. The invite gets the chosen teacher memberships, and accepting it writes the assistant scopes in the same transaction as the membership.
+
+### Start prompt for a new session
+
+Copy everything in the block into a new Claude Code session opened in `D:\Frontend\Dafter`:
+
+```text
+Read CLAUDE.md and follow the start-of-session protocol, then read docs/progress.md#v1-next.
+
+Task: build the next v1 feature of Dafter, an invite that carries the assistant's teachers (docs/product.md, module 1: "An invited assistant who opens the link joins with the role and teachers chosen in the invite"). Work on branch main, as the rest of the project does.
+
+Before coding, give me a short plan and wait for my OK. Cover:
+- The data: where the chosen teachers live on the invite (a column or a join table), and that accepting writes the membership and its assistant scopes in one transaction, under the invite's single-use lock.
+- Rules: only the owner picks teachers; only for an assistant invite; teachers must be owner or teacher memberships of the same workspace; a teacher who left before the invite is accepted is skipped, not an error.
+- The contract, the migration, the endpoint changes, the invite screen (pick teachers when the role is assistant) and the ar/en keys.
+
+Then build it in the project's order: contract (`pnpm contracts:gen`), migration, API, web. Tests at every layer: integration tests plus isolation tests, web specs, and a Playwright test of the user flow in ar and en at 375 px. Done means `pnpm test` passes with 100% line coverage in every package, the full Playwright suite passes with 2 workers (`cd e2e && npx playwright test --workers=2`), `docs/progress.md` has a ticked entry, and `docs/progress.md#known-limits` is updated. Commit with a Conventional Commit message and push; apply the migration to Neon as the db-migration skill says and check the live site (`pnpm e2e:live`).
+```
+
+<a id="done"></a>
+
+## Progress — v0 (Nov 13 – Nov 30, 2026)
 
 Tick a task when done, with a one-line note (what was done, anything left). Split tasks here if they outgrow their day.
 
-## Setup
+### Setup
 
 - [x] **Setup (Nov 12):** CLAUDE.md, docs/ from the plan doc, 11 project skills, official `frontend-design` and `webapp-testing` skills. Note: skills live only in `.claude/skills/`, not duplicated in CLAUDE.md.
 
-## Week 1: foundations and accounts
+### Week 1: foundations and accounts
 
 - [x] **Day 1 (Nov 13):** pnpm + Turborepo monorepo, shared tsconfig/ESLint/Prettier, lefthook pre-commit, NestJS (Fastify) and Vite React skeletons, empty packages, Docker Compose with PostgreSQL 17, `.env.example`. Note: done; TypeScript pinned to ~6.0 (typescript-eslint and Nest CLI do not support TS 7 yet), `/health` + 2 tests, worker runs in-process via `RUN_WORKER`. Left: no ESLint React plugin yet (add with Day 3 lint rules).
 - [x] **Day 2 (Nov 14):** Drizzle setup and first migration (users, refresh_tokens, workspaces, memberships, assistant_scopes, invites, audit_log), seed script, Testcontainers harness that clones a template database per worker, GitHub Actions CI (lint, typecheck, unit, integration). Note: done (done Nov 13); harness clones the template per test file, 6 schema tests; `@dafter/db` builds to CJS `dist` for the API. Moved to Day 5: RLS policies (needs the app-role vs table-owner decision). Left: CI not yet run on GitHub (no remote).
@@ -17,7 +342,7 @@ Tick a task when done, with a one-line note (what was done, anything left). Spli
 - [x] **Day 6b (moved into Day 7, before Playwright):** web: shadcn init, router, register, login, accept-invite and workspace-switcher screens; in-memory access token with single-flight refresh in `baseQuery`; `X-Workspace-Id` from the selected workspace. Note: done (Nov 13); shadcn (radix, RTL) Button/Input/Label/Card (the CLI pulled in an unrelated `cn` npm package, replaced with clsx + tailwind-merge); lazy routes `/login`, `/register`, `/invite/:token`, `/workspaces` (list, switch, create), `/` placeholder; `baseQuery` refreshes before the first call after a reload and once per 401 burst (3 Vitest cases); switching workspace resets the RTK cache; smoke driver ignores the expected signed-out refresh 401; flow checked by hand at 375 px in ar/en. Left: `nameEn` not on the create form; two tabs can still race a refresh; local dev DB needed `pnpm db:migrate` for the Day 5 role.
 - [x] **Day 7 (Nov 19, half day):** Playwright setup and a smoke test for login and workspace switch; fix anything left from the week. Note: done (Nov 13); `e2e/` package with `@playwright/test` on the installed Chrome (`channel: 'chrome'`, no download), `ar` and `en` projects at 375 px, reuses a running `pnpm dev` or starts it; smoke test logs in as the teacher, switches سنتر النور → her new seeded independent workspace, checks role, reload, no horizontal scroll and no console/network errors; CI `e2e` job (Compose DB, `db:reset`, `pnpm e2e`, report on failure). Leftovers fixed: `nameEn` on the create form, inline placeholder favicon (was a 404). Left: e2e CI job not yet seen green on GitHub; register rate limit moved to Day 17 (per-IP limits need `trustProxy` first); `@dafter/i18n` index can't load in Node ESM (JSON imports lack `with { type: 'json' }`), so e2e imports the locale JSON directly.
 
-## Week 2: the core loop
+### Week 2: the core loop
 
 - [x] **Day 8 (Nov 20):** subjects and grade levels seeded with the Egyptian curriculum, groups and group slots (contracts, API, screens). Note: done (Nov 13); migration `0002_groups` (subjects, grade_levels, groups, group_slots with composite `(workspace_id, id)` FKs and RLS); each new workspace gets its own curriculum copy (16 subjects, 12 grades) in the create transaction; `GET /subjects`, `GET /grade-levels`, `GET/POST /groups`, `GET/PATCH /groups/:id` (PATCH replaces slots); policy: owner all, teacher own, assistant reads assigned teachers' groups; out of scope = `GROUP_NOT_FOUND`; `TenantGuard` now also sets `membershipId`; Zod rejects overlapping slots; `/groups` list and form screens; 10 integration tests (incl. first per-resource 404s), Playwright groups flow in ar/en. Left: no archive button in the UI (API supports `status`), curriculum not editable yet, no pagination on groups, times shown as 24-hour `HH:MM`.
 - [x] **Day 9 (Nov 21):** session generation as a pg-boss scheduled job (4 weeks ahead, uses the `Clock` service), cancel and move a session, weekly timetable screen. Note: done (Nov 13); migration `0003_sessions` (RLS, unique `(workspace, group, slot_starts_at)` so moved/cancelled occurrences are never regenerated); generation is one `INSERT … SELECT … ON CONFLICT DO NOTHING` with `AT TIME ZONE workspaces.timezone` (PostgreSQL handles Cairo DST), run in the group create/update transaction and daily by pg-boss 12 (`0 2 * * *` Cairo, plus once at start, one `withTenant` per workspace); new slots or archive drop untouched future sessions first; `GET /sessions?from&to` (≤31 days, group view), `POST /sessions/:id/cancel`, `PATCH /sessions/:id` (local date + times; `SESSION_NOT_FOUND`/`SESSION_NOT_SCHEDULED`/`SESSION_TIME_INVALID`); `/timetable` screen (Saturday-first week, move form, two-tap cancel); 12 integration tests incl. DST, Playwright flow in ar/en. `@opentelemetry/api` added to `@dafter/db` dev deps so drizzle-orm stays one instance next to pg-boss. Left: `GET /groups/:id/sessions` not built; move doesn't check teacher overlaps; seed has no groups (Day 17 demo seed); `closed_by`/`qr_key_encrypted` come with Days 12–13.
@@ -29,41 +354,41 @@ Tick a task when done, with a one-line note (what was done, anything left). Spli
 
 - [x] **Fees stretch (after Day 14):** basic fees, ledger and payments with idempotency. *Hard part.* Note: done (Nov 13); migration `0008_ledger` (`ledger_entries` signed integer piastres, `UPDATE`/`DELETE` revoked from `dafter_app`, a unique charge per student+group+month, unique `reverses_entry_id`, `receipt_no` and `idempotency_key`; `receipt_counters`; `groups.monthly_fee_piastres`; RLS); the monthly charge (fee minus the enrollment discount) on enroll and from a daily pg-boss job (`0 3 * * *` Cairo); `GET /students/:id/ledger` (entries of visible groups + balance), `POST /payments` and `POST /ledger/:id/reverse` (Idempotency-Key required, request hash, retry returns the first entry), `GET /ledger/:id/receipt`; policy follows group scope, a reversal by the owner or the recorder; web: monthly fee on the group form (EGP in, piastres out via string parsing), a fees card on the student page (balance, entries, record payment, two-tap reverse), print-ready `/receipts/:id`; 9 integration tests (incl. parallel payments, DB-level append-only, archived students not billed, payments only for groups the student was in, receipts only for payments), a money unit test, Playwright fees flow in ar/en. Left: no cash summary or unpaid report, no proration for mid-month joins, no nightly balance check, students don't see their balance, the fee model waits for the center interviews.
 
-## Week 3: messages and ship
+### Week 3: messages and ship
 
 - [x] **Day 15 (Nov 27):** `outbox_messages`, transactional write on session close, unique `dedupe_key`, sibling merge, quiet hours, pg-boss worker, console adapter and "fake phone" page. *Hard part.* Note: done (Nov 13); migration `0009_outbox` (`outbox_messages` with RLS, unique workspace+`dedupe_key`, status queued/sent/failed, attempts, `send_after`, stored `body`/`locale`; SQL `quiet_hours_send_after(at, zone)`). Session close inserts one row per guardian of the absent students in the close transaction (`absence:<session>:<guardian>`, siblings merged by `GROUP BY guardian`, payload snapshot of names, subject and time). The `send-outbox` pg-boss job runs every minute: due rows `FOR UPDATE SKIP LOCKED`, a fixed ar/en sentence, `MessageProvider` (`ConsoleProvider`), retry after 2^n min, `failed` after 5. `GET /dev/phone` (tenant-guarded, `DEV_FAKE_PHONE=1`, in `.env.example`) and a `/dev/phone` page (one card per guardian, polls every 5 s; a Home link in dev builds). 5 integration tests (exactly once with a replayed insert, sibling merge, quiet hours, backoff to failed, rollback, fake-phone isolation); the attendance e2e now waits for the parent's message (skipped in Cairo quiet hours). Left: `whatsapp_opt_in` not checked (console only); every linked guardian is texted, not only the primary; a manual mark to absent after close sends nothing; a crash between the provider call and the commit resends (at-least-once); up to 1 min delay; templates and toggles are Day 16.
-- [x] **Day 16 (Nov 28):** Arabic and English templates with per-workspace toggles, session-cancelled messages, message log screen, exactly-once tests. Note: done (Nov 13); `messages/templates.ts` (absence, session_cancelled, session_moved; ar/en, center name, Western digits, 12-hour time; unit test); `workspaces.settings.messages` `{absence, sessionChange}` default on, checked in the outbox insert; cancel and move enqueue in their transaction for the group's active students (move keyed by the new start, so the same move twice is one message and a second move is another); `GET/PUT /message-settings` (read: all staff, write: owner, audited), `GET /messages?status=` (owner and assistant, newest 100, with students, attempts, error, body, locale); web `/messages` (switches with an optimistic update, status filter, log; Home link for owner and assistant). 4 new integration tests (cancel once with siblings, move twice, toggles off write nothing and roles, log with a failed message, roles and another center), Playwright `messages.spec.ts` in ar/en; full e2e 20/20. Left: see `docs/known-limits.md` (switching off doesn't cancel queued messages, teachers can't see the log, no pagination on the log).
-- [x] **Day 17a (Nov 29), code:** Pages proxy, `trustProxy` and register rate limit, Brevo mailer, direct DB URL, `render.yaml`, migrations on start, Arabic demo seed, live smoke option, deploy guide. Note: done (Nov 13); `apps/web/functions/[[path]].ts` forwards `/api/*` and `/health` to `API_ORIGIN` (`public/_routes.json`), so the web app and API share one origin and the `SameSite=Strict` refresh cookie works (rule 14 now names this one exception); `TRUST_PROXY=1` turns on Fastify `trustProxy` (the proxy sets `X-Forwarded-For` from `CF-Connecting-IP`); register limited to 10 per IP an hour (loopback exempt for local tools and tests; 1 integration test); `BrevoMailer` over `fetch` when `MAIL_PROVIDER=brevo` (`mailerFromEnv`, 2 unit tests); `DATABASE_URL_UNPOOLED` for migrations, seeds and pg-boss; `MIGRATE_ON_START=1` migrates at boot, so Render starts with plain `node apps/api/dist/main.js` (checked locally: migrations, worker, 24 sessions, 21 charges); `render.yaml` blueprint (later replaced by a Hugging Face Space: Render needs a card through Stripe); `pnpm db:seed:demo` / `pnpm demo:seed:neon` (3 groups, 12 students with two sibling pairs, 2 past weeks of attendance; rerun-safe); `pnpm e2e:live` with `E2E_BASE_URL` (read-only smoke test); `docs/deploy.md` step by step. Also: `Map.groupBy` replaced on the fake phone (missing before iOS 17.4). Left: see Day 17b and `docs/known-limits.md`.
-- [x] **Day 17b (Nov 29), go live (Ziad's accounts, follow `docs/deploy.md`):** push, Brevo, Neon + `pnpm demo:seed:neon` (first check of `CREATE ROLE`/`pg_trgm` on Neon), Vercel (one project for web and API), cron-job.org (optional), `pnpm e2e:live`, one manual try on an iPhone and an Android phone. Progress: Neon done (Nov 13): project in Frankfurt, `.env.neon` written, `pnpm demo:seed:neon` migrated and seeded; checked `CREATE ROLE dafter_app`, `pg_trgm` and RLS through the pooler (app role sees 0 rows without a workspace, 12 students with Al-Nour). The direct URL is now `DATABASE_URL_UNPOOLED` (Neon's name). Password reset: done by Ziad (Nov 15; `.env.neon` and Vercel updated, `pnpm e2e:live` 2/2 after). Then the Space, Pages, UptimeRobot, live smoke, phones. Brevo done (API key works, sender verified). Hosts without a card: Render (Stripe rejects prepaid cards), Hugging Face (Docker Spaces are now paid), Koyeb and Fly.io all ruled out; Dafter goes on **Vercel Hobby** (Nov 13): web app and NestJS function in one project (`vercel.json`, `api/index.js` → `apps/api/src/vercel.ts`, proven locally under a plain Node server), `GET /internal/tick` with `CRON_SECRET` (daily Vercel cron at 08:00 Cairo, optional hourly cron-job.org), `OUTBOX_SEND_INLINE=1` sends messages right after the write (a per-minute cron would keep Neon awake past its free hours), the live list polls the database every second instead of the in-process bus, Cloudflare Pages proxy removed. 4 new integration tests. Live (Nov 13) at https://dafter-vert.vercel.app: the first deploy crashed with `ERR_REQUIRE_ESM` (Vercel's loader can't require() NestJS 12's ES modules), fixed by bundling the API with esbuild into one CommonJS file; functions pinned to fra1 next to Neon; `/health` 200, login 200 with a `Secure; SameSite=Strict` cookie, tick 401 without the secret and 200 with it, `pnpm e2e:live` 2/2 (ar, en). Left: cron-job.org hourly retries (optional), one manual try on an iPhone and an Android phone (install, code by email through Brevo, bind, scan), delete the local `.env.vercel-secrets` (still on the laptop, Nov 15).
-- [x] **Day 18 (Nov 30):** README (architecture diagram, key decisions, how to run, test strategy), demo video, full test run, tag `v0.1.0`. Note: done (Nov 13); `README.md` (live demo and logins, Mermaid architecture, 8 key decisions linking `decisions.md`, how to run, test strategy, limits, docs index) and `docs/demo-script.md` (prep checklist and an 11-shot list, ~3.5 min); full run green: `pnpm test` 162 (API 136, db 13, web 10, i18n 3), `pnpm e2e` 20/20. Left: Ziad records the video; tag `v0.1.0` after the commit is pushed; the manual iPhone/Android try from Day 17b.
+- [x] **Day 16 (Nov 28):** Arabic and English templates with per-workspace toggles, session-cancelled messages, message log screen, exactly-once tests. Note: done (Nov 13); `messages/templates.ts` (absence, session_cancelled, session_moved; ar/en, center name, Western digits, 12-hour time; unit test); `workspaces.settings.messages` `{absence, sessionChange}` default on, checked in the outbox insert; cancel and move enqueue in their transaction for the group's active students (move keyed by the new start, so the same move twice is one message and a second move is another); `GET/PUT /message-settings` (read: all staff, write: owner, audited), `GET /messages?status=` (owner and assistant, newest 100, with students, attempts, error, body, locale); web `/messages` (switches with an optimistic update, status filter, log; Home link for owner and assistant). 4 new integration tests (cancel once with siblings, move twice, toggles off write nothing and roles, log with a failed message, roles and another center), Playwright `messages.spec.ts` in ar/en; full e2e 20/20. Left: see `docs/progress.md#known-limits` (switching off doesn't cancel queued messages, teachers can't see the log, no pagination on the log).
+- [x] **Day 17a (Nov 29), code:** Pages proxy, `trustProxy` and register rate limit, Brevo mailer, direct DB URL, `render.yaml`, migrations on start, Arabic demo seed, live smoke option, deploy guide. Note: done (Nov 13); `apps/web/functions/[[path]].ts` forwards `/api/*` and `/health` to `API_ORIGIN` (`public/_routes.json`), so the web app and API share one origin and the `SameSite=Strict` refresh cookie works (rule 14 now names this one exception); `TRUST_PROXY=1` turns on Fastify `trustProxy` (the proxy sets `X-Forwarded-For` from `CF-Connecting-IP`); register limited to 10 per IP an hour (loopback exempt for local tools and tests; 1 integration test); `BrevoMailer` over `fetch` when `MAIL_PROVIDER=brevo` (`mailerFromEnv`, 2 unit tests); `DATABASE_URL_UNPOOLED` for migrations, seeds and pg-boss; `MIGRATE_ON_START=1` migrates at boot, so Render starts with plain `node apps/api/dist/main.js` (checked locally: migrations, worker, 24 sessions, 21 charges); `render.yaml` blueprint (later replaced by a Hugging Face Space: Render needs a card through Stripe); `pnpm db:seed:demo` / `pnpm demo:seed:neon` (3 groups, 12 students with two sibling pairs, 2 past weeks of attendance; rerun-safe); `pnpm e2e:live` with `E2E_BASE_URL` (read-only smoke test); `docs/operations.md#deploy` step by step. Also: `Map.groupBy` replaced on the fake phone (missing before iOS 17.4). Left: see Day 17b and `docs/progress.md#known-limits`.
+- [x] **Day 17b (Nov 29), go live (Ziad's accounts, follow `docs/operations.md#deploy`):** push, Brevo, Neon + `pnpm demo:seed:neon` (first check of `CREATE ROLE`/`pg_trgm` on Neon), Vercel (one project for web and API), cron-job.org (optional), `pnpm e2e:live`, one manual try on an iPhone and an Android phone. Progress: Neon done (Nov 13): project in Frankfurt, `.env.neon` written, `pnpm demo:seed:neon` migrated and seeded; checked `CREATE ROLE dafter_app`, `pg_trgm` and RLS through the pooler (app role sees 0 rows without a workspace, 12 students with Al-Nour). The direct URL is now `DATABASE_URL_UNPOOLED` (Neon's name). Password reset: done by Ziad (Nov 15; `.env.neon` and Vercel updated, `pnpm e2e:live` 2/2 after). Then the Space, Pages, UptimeRobot, live smoke, phones. Brevo done (API key works, sender verified). Hosts without a card: Render (Stripe rejects prepaid cards), Hugging Face (Docker Spaces are now paid), Koyeb and Fly.io all ruled out; Dafter goes on **Vercel Hobby** (Nov 13): web app and NestJS function in one project (`vercel.json`, `api/index.js` → `apps/api/src/vercel.ts`, proven locally under a plain Node server), `GET /internal/tick` with `CRON_SECRET` (daily Vercel cron at 08:00 Cairo, optional hourly cron-job.org), `OUTBOX_SEND_INLINE=1` sends messages right after the write (a per-minute cron would keep Neon awake past its free hours), the live list polls the database every second instead of the in-process bus, Cloudflare Pages proxy removed. 4 new integration tests. Live (Nov 13) at https://dafter-vert.vercel.app: the first deploy crashed with `ERR_REQUIRE_ESM` (Vercel's loader can't require() NestJS 12's ES modules), fixed by bundling the API with esbuild into one CommonJS file; functions pinned to fra1 next to Neon; `/health` 200, login 200 with a `Secure; SameSite=Strict` cookie, tick 401 without the secret and 200 with it, `pnpm e2e:live` 2/2 (ar, en). Left: cron-job.org hourly retries (optional), one manual try on an iPhone and an Android phone (install, code by email through Brevo, bind, scan), delete the local `.env.vercel-secrets` (still on the laptop, Nov 15).
+- [x] **Day 18 (Nov 30):** README (architecture diagram, key decisions, how to run, test strategy), demo video, full test run, tag `v0.1.0`. Note: done (Nov 13); `README.md` (live demo and logins, Mermaid architecture, 8 key decisions linking `tech.md#decisions`, how to run, test strategy, limits, docs index) and `docs/operations.md#demo-script` (prep checklist and an 11-shot list, ~3.5 min); full run green: `pnpm test` 162 (API 136, db 13, web 10, i18n 3), `pnpm e2e` 20/20. Left: Ziad records the video; tag `v0.1.0` after the commit is pushed; the manual iPhone/Android try from Day 17b.
 
-## After v0: review fixes
+### After v0: review fixes
 
 - [x] **Fix pass 1 (Nov 13):** bugs and missing screens found by checking every screen against `docs/product.md`. Note: done; saving a session at its current time no longer texts every parent (API no-op, 1 integration test); the student page opens on a summary with an edit button, keeps you there after saving, and a new student opens on their own page (ready to enroll); `GET /sessions/:id/roster` (active enrolled students; 1 integration test with a foreign-center 404) and the live screen now shows the subject, time, "N of M enrolled" and the whole class with a one-tap "present" (also after close), QR and list side by side on a laptop; new `/members` staff screen (invite link by role, staff list, owner ticks an assistant's teachers; `members.spec.ts` in ar/en); demo seed adds a Friday physics slot so every day has a session to start; the timetable scrolls to today. Left: the redesign (navigation, brand, laptop layouts, 12-hour times, home "Today" screen) is fix pass 2; the live Neon demo needs a reset and reseed to get the Friday slot.
 - [x] **Fix pass 2 (Nov 14), redesign:** modern look after Ziad's review ("too old and too plain"), mixing the EdTech dashboards he picked. Note: done; navy sidebar and top bar (greeting, student search) on laptops, bottom tabs with a "More" screen on phones; vivid blue with violet, teal, amber and rose accents, rounded cards with soft shadows, 12-hour times, the debug "server connected" line removed; a Today home (gradient next-session card with countdown, enrolled count and one Start button, four count-up stat tiles, a 7-day attendance chart, the day's sessions, quick actions) backed by a new `GET /stats/today` (group visibility as the timetable; 1 integration test covering roles and another center); restyled students, groups, timetable and live screens (QR countdown bar, check-in flash, class list with initials); animations respect reduced motion; e2e moved to `openNav`/`workspaceChip` helpers. Left: forms (group, student, login) and messages/staff/workspaces only got the shared card and input styles; PWA PNG icons still the old colour (regenerate from `icon.svg`); money totals stay off the dashboard until who-sees-money is settled.
-- [x] **Audit quick wins (Nov 14):** `docs/ux-audit.md` written, then its quick wins. Note: done; the only workspace is picked automatically and "new workspace" folds behind a button; the new-student form shows four fields with the rest under «تفاصيل أكثر»; the payment amount starts at what the student owes (one group); the student home has one big «سجّل حضورك» button; 12-hour times in the student app and receipts; Arabic wording (كود الحضور vs كود الدخول, «سجّل حضورك» instead of «امسح الشاشة», one meaning per «إلغاء», «مكان العمل», «تغيير الموعد», «حصة تعويضية») and the matching English. e2e: `enterWorkspace` helper, fees checks the pre-filled amount. Left: the rest of the audit (payment sheet, group in the new-student form, live phone layout with undo, student app redesign, share buttons, consistency pass).
+- [x] **Audit quick wins (Nov 14):** `docs/ux.md#audit-1` written, then its quick wins. Note: done; the only workspace is picked automatically and "new workspace" folds behind a button; the new-student form shows four fields with the rest under «تفاصيل أكثر»; the payment amount starts at what the student owes (one group); the student home has one big «سجّل حضورك» button; 12-hour times in the student app and receipts; Arabic wording (كود الحضور vs كود الدخول, «سجّل حضورك» instead of «امسح الشاشة», one meaning per «إلغاء», «مكان العمل», «تغيير الموعد», «حصة تعويضية») and the matching English. e2e: `enterWorkspace` helper, fees checks the pre-filled amount. Left: the rest of the audit (payment sheet, group in the new-student form, live phone layout with undo, student app redesign, share buttons, consistency pass).
 - [x] **Audit step 2 (Nov 14), the three slow daily jobs:** Note: done, web only (no API change); «تسجيل دفعة» on Today and the students list opens a payment sheet (search, balance and groups, amount pre-filled, method, save, receipt link), sharing `PaymentForm` with the student page; the new-student form takes an optional group and discount (picking the group fills the grade) and enrolls on the same submit; the live screen on a phone has a full-screen QR (covers header and tabs), a "class list" jump button, and tapping a marked row's status changes it to present, late, excused or absent. e2e: `ownerApi` helper; new tests in `fees.spec.ts`, `students.spec.ts`, `attendance.spec.ts` (ar/en, 375 px). Left: if the enrolment fails after the student is created, the form opens the student page without saying so (the group card there can retry); the full e2e run at default workers timed out once on `student-app.spec.ts` (passes alone).
 - [x] **Audit step 3 (Nov 14), student app redesign:** Note: done, web only; S1 (next-class card and big Scan button), S3 (sign-out in a folded settings section with a second tap; it now returns students to `/s/login`), S4 (schedule grouped by day, today marked, cancelled struck through), S5 (attendance rate and coloured pills). e2e: `student-app.spec.ts` checks the header has no sign-out and the settings flow (60 s timeout, it was flaky under the full parallel run); `attendance.spec.ts` checks the rate.
 - [x] **Audit step 4 (Nov 14), share buttons:** Note: done; `components/ShareButton.tsx` (share sheet, Copy fallback) on the staff invite (O3), the activation link (A8) and the receipt (A7, sent as text). Also: when a new student is saved but joining the chosen group fails, their page now says so in the group card. e2e: fees checks the shared receipt text (stubbed `navigator.share`), members checks the button. Left: no e2e for the failed-enrolment message (the fixture fails any test with a 4xx response).
 - [x] **Audit step 5 (Nov 14), consistency pass:** Note: done, web only; T5 (timetable «⋯» menu), O5 (messages: pill filters, list rows, status pills), O6 (workspace cards, create form in a `Sheet`), U1 (`PageHeader` on group, student and staff screens; `IconBadge` on the signed-out cards). e2e: timetable opens the menu first; `enterWorkspace` waits 15 s for the first sign-in (the cold start of a full parallel run timed out at 5 s). Full `pnpm test` and `pnpm e2e` (26) pass. Left: U6 dark mode (low), S7 install guide, S8 WhatsApp login; not checked by eye on a real phone.
 - [x] **Dark mode and install guide (Nov 14):** Note: done; U6 (`lib/theme.ts` + `ThemeToggle`: follows the phone until the viewer chooses, stored in `dafter.theme`; soft slate-navy palette in `index.css`; chips on blue use `text-primary-foreground`, hero cards get deeper gradients in dark); S7 (three pictured install steps for iPhone and other phones, copy-invite-link button). e2e: `theme.spec.ts` (toggle persists; follows a dark phone), `pwa.spec.ts` checks the steps; e2e capped at 6 workers (one dev server; more timed out on a cold run). Full `pnpm test` and `pnpm e2e` (30) pass. Left: S8 WhatsApp login (planned with real WhatsApp).
 - [x] **Olive palette (Nov 14):** Note: done; Ziad's "Nature Harmony" pick replaces the blue/violet: olive actions on pale sage paper, a deep olive sidebar, brown/olive/khaki/terracotta accents, and a deep olive dark mode; token names kept, so only `index.css`, the two hero gradients, the manifest/theme colour and the icons (SVG and regenerated PNGs) changed. `pnpm test` and `pnpm e2e` (30) pass.
-- [x] **UX audit 2 (Nov 14):** Note: done; `docs/ux-audit-2.md` covers every screen at 375 px after the palette change: top 5, 25 findings with priority and size, and a suggested order. Fixed on the way: the group edit form opened with an empty subject and grade (`4e0f1dc`). Left: the audit's own items.
+- [x] **UX audit 2 (Nov 14):** Note: done; `docs/ux.md#audit-2` covers every screen at 375 px after the palette change: top 5, 25 findings with priority and size, and a suggested order. Fixed on the way: the group edit form opened with an empty subject and grade (`4e0f1dc`). Left: the audit's own items.
 - [x] **100% line coverage (Nov 14):** Note: every package is at 100% lines and enforced (vitest `thresholds.lines: 100`, `--coverage` in each test script). Backend: `apps/api`, `packages/db`, `packages/contracts`, `packages/i18n`. Web: 124 specs on the real routes with MSW (`src/test/`), in Arabic and English; jsdom gaps stubbed in `setup.ts` (matchMedia, `<dialog>`, Radix pointer APIs, an in-memory IndexedDB for the device key) and the camera library mocked in the scan spec. Excluded: `src/api/generated.ts` (RTK codegen, checked by CI) and `src/components/ui/**` (shadcn copies). Found and fixed two group-form bugs: saving a group with no capacity failed, and overlapping slots showed no message.
-- [x] **UX audit 2 fixes (Nov 14):** Note: done; every finding in `docs/ux-audit-2.md` except G1's per-group label and password reset. Web: money shows whole pounds and month names, void stamp on receipts, Arabic plurals, initials skip «ال», message log explains quiet hours, show-password toggle, compact timetable rows, teacher and grade chips on groups and timetable, staff as one line each with scopes in a sheet, student-page section chips with the enrol form and reversal folded away, phones see Today's shortcuts first. API: groups return `studentCount`; students return `balancePiastres` and filter by `groupId`, `gradeLevelId`, `owes=true` (debtors first), which also fills the payment sheet before typing. 100% line coverage kept; affected e2e updated and passing.
+- [x] **UX audit 2 fixes (Nov 14):** Note: done; every finding in `docs/ux.md#audit-2` except G1's per-group label and password reset. Web: money shows whole pounds and month names, void stamp on receipts, Arabic plurals, initials skip «ال», message log explains quiet hours, show-password toggle, compact timetable rows, teacher and grade chips on groups and timetable, staff as one line each with scopes in a sheet, student-page section chips with the enrol form and reversal folded away, phones see Today's shortcuts first. API: groups return `studentCount`; students return `balancePiastres` and filter by `groupId`, `gradeLevelId`, `owes=true` (debtors first), which also fills the payment sheet before typing. 100% line coverage kept; affected e2e updated and passing.
 - [x] **Staff password reset (Nov 14), audit A1:** *Hard part.* Note: done; migration `0010_password_resets` (SHA-256 of the token, 30 minutes, `used_at`); `POST /auth/password-reset` (always 204, 5 an hour per email and per IP, link sent in the background through the mailer, only to staff with a password) and `POST /auth/password-reset/confirm` (one transaction under `FOR UPDATE`: marks all the user's open resets used, sets the argon2id hash, revokes every refresh token; else `RESET_INVALID` 410); the link comes from `APP_URL` (new in `.env.example`, set it on Vercel), never the request. Web: «نسيت كلمة المرور؟» on `/login`, `/forgot` and `/reset/:token`. 8 integration tests (all devices signed out, unknown email and student send nothing, single use and older links, concurrent confirms, expiry, rate limit, provider failure, short password), 4 web specs, Playwright `password-reset.spec.ts` in ar/en. Follow-up: owner-issued link `POST /members/:id/password-reset` (owner only, 24 hours, same `password_resets` table and `/reset/:token` screen), only for a teacher or assistant whose account is in this workspace alone (no other membership, no student record), else `RESET_NOT_ALLOWED`, so phone-only staff can recover without an owner taking over a shared account; a key button and sheet per staff row; 3 integration tests, 2 web specs, Playwright `staff-reset.spec.ts`. Left: access tokens stay valid up to 15 minutes; phone-only staff in several workspaces still can't reset (no SMS).
 - [x] **Group label (Nov 14), audit G1 leftover:** Note: done; migration `0011_group_label` (nullable `groups.label`); contract: trimmed 1–40 characters or null on create and update, returned on groups and as `groupLabel` on sessions; web: optional «اسم مختصر» field on the group form (empty sends null), shown after the grade on group cards (and searchable) and after the subject on timetable rows. 1 integration test (trim, clear, too long, blank, on sessions), web specs for the form, card and timetable. Follow-up: the label also shows in the live screen's title and in the student app (next class and schedule), via `groupLabel` on `GET /me/schedule`.
 - [x] **Center-wide fees view (Nov 14):** Note: done; `GET /stats/collections` (owner and assistant, teacher `FORBIDDEN`): payments minus reversals of payments (method from the original, counted on the reversal's day; charge reversals left out), today and this month in the workspace timezone, by method; web `/fees` «المصروفات» (two totals cards and who owes from `GET /students?owes=true`, biggest debt first, linked to the student), in «المزيد» on phones for owner and assistant. 1 integration test (Cairo day and month edges, after-now rows, reversals, roles, another center), 3 web specs, Playwright `fees-view.spec.ts` in ar/en. Full e2e 31/32: `timetable.spec.ts` [ar] timed out at 30 s under the parallel run (it crossed midnight) and passes alone in ar and en. Follow-up: `GET /stats/collections` now counts only the caller's visible groups too (an unscoped assistant sees 0). Also: `GET /stats/owing` lists every debtor (no 50 cap), with the balance over the caller's visible groups (an assistant sees their teachers' groups only), biggest first; `/fees` uses it (1 integration test with 55 debtors and a scoped assistant).
 
-## v1
+### v1
 
 - [x] **Exams and grades (Nov 15):** *Hard part (the result message goes through the outbox).* Note: done; migration `0012_exams` (`exams` with `held_on` date and `max_score` > 0, `exam_results` keyed by workspace, exam and student, a check "score ≥ 0 or absent, never both", composite FKs, RLS); `POST/GET /groups/:id/exams`, `GET/PATCH/DELETE /exams/:id`, `PUT /exams/:id/results` (the whole grid replaces the results under the exam row lock, so a repeat is the same state; `EXAM_SCORE_ABOVE_MAX`, `EXAM_STUDENT_INVALID` for a student never enrolled), `POST /exams/:id/notify` (one `exam_result` outbox row per guardian in the same transaction, siblings merged, `exam_result:<exam>:<guardian>:<md5 of that guardian's results>`, so a repeat is a no-op and a corrected score texts only the affected parents, `notified_at` stamped once; `EXAM_NOT_GRADED`), `GET /me/grades` (every center); same visibility as the timetable, and assistants grade too; new `messageSettings.examResult` toggle (default on) and ar/en template («أحمد 18/20، مريم غائب»). Web: an «الامتحانات» link on each group card, `/groups/:id/exams` (list and new-exam form), `/exams/:id` (score grid with absent ticks, average/highest/lowest, save, send to parents, delete when empty), «درجاتي» in the student app, the switch on `/messages`. Tests: 6 integration tests (grid replace, all four errors, delete rule, exactly-once notify with sibling merge and the toggle, visibility for another center, unscoped and scoped assistants, my grades across centers), template unit test, RLS suite rows, 11 web specs, Playwright `exams.spec.ts` in ar/en. A resend after a correction starts with «تصحيح:» / "Correction:". Left: no CSV import or export.
 - [x] **Dashboard (Nov 15):** Note: done; `GET /stats/trends` (same group visibility as Today, active groups): 8 Saturday-start weeks up to this week in the workspace timezone with each group's checked-in records out of all records of its non-cancelled sessions, the exams held in those weeks with their average as a percent of the max, and money in per local month for 6 months (payments minus their reversals, as `/stats/collections`; `null` for teachers, so money stays owner and assistant). Web: `/dashboard` «لوحة المتابعة» in the nav for every role: the center's weekly attendance bars and rate, money per month (owner and assistant), and a card per group (teacher, rate, 8 small bars, graded exams and the last average, linked to its exams). Tests: 1 integration test (week edges on a Saturday, empty weeks, the exam window, Cairo month edge, months before the window, teacher without money, unscoped assistant, another center), 5 web specs, Playwright `dashboard.spec.ts` in ar/en. Left: no date-range picker; trends over archived groups are not shown; bars are plain CSS (no chart library).
 - [x] **Fee-overdue messages (Nov 15):** *Hard part (outbox).* Note: done, no migration; the daily job (pg-boss `monthly-charges` at 03:00, and `/internal/tick?daily=1`, which now runs the daily jobs before sending so their messages leave in the same call) queues, from the 7th of the month in the workspace timezone, one `fee_overdue` message per guardian of the active students whose balance is above zero, siblings merged with each child's balance, in the same transaction as the scan, keyed `fee_overdue:<YYYY-MM>:<guardian>` (at most one a month however often it runs); new `messageSettings.feeOverdue`, **off by default** (money texts wait for the center); ar/en template («تذكير بمصروفات شهر نوفمبر، المتبقي على أحمد 300 ج.م ومريم 250.5 ج.م»). Web: the switch on `/messages` and the log label. Tests: 1 integration test (off by default, merged siblings, paid and archived students skipped, rerun no-op, nothing before the 7th, a new month sends again), template unit test, tick spec, web specs, `messages.spec.ts` turns the switch on and off. Left: day 7 is fixed in code; the balance counts every group, so it is the center's total, not per teacher; a student who pays after the reminder is queued (but before it is sent, e.g. held by quiet hours) still gets it; the Playwright run doesn't trigger the job (no `CRON_SECRET` in dev), the integration test covers it.
 - [x] **End-of-day cash summary (Nov 15):** Note: done, no migration; `GET /stats/cash-summary?date=` (optional local day, a future day is `VALIDATION_FAILED`): payments minus reversals of payments for one day in the workspace timezone, by method, grouped by who recorded the **original payment** (a reversal by the owner still comes off the assistant's handover; a reversal counts on its own day, as in `collections`), each line with time, receipt number, student and signed amount. Assistant and teacher get only their own section (always one, even empty); the owner gets their own first, then every staff member with entries. Web: print-ready `/cash-summary` «ملخص اليوم» (rule 12) under More for every role, a day picker, totals by method, voided lines in rose. Tests: 1 integration test (methods, Cairo midnight edges, owner-voided payment, refund, after-now and charges left out, roles, past and future day, another center), generated isolation suite, 4 web specs, `cash-summary.spec.ts` (ar/en, 375 px). Left: no "handed over" confirmation step.
-- [x] **Fee reminders in Playwright (Nov 15), v1-next issue 2:** Note: done; `CRON_SECRET=dev-cron-secret` in `.env.example` (dev and CI only; production sets its own, `docs/deploy.md`), `playwright.config.ts` loads the repo-root `.env`; `fee-reminders.spec.ts` (ar/en) makes a fresh center, turns `feeOverdue` on, enrolls a student in a monthly group, calls `/internal/tick?daily=1` and finds the «تذكير بمصروفات» row with the guardian's phone in the log. Left: skipped before the 7th of the month (Cairo) and on live runs; each run adds two workspaces to the seeded owner in the dev database. Also fixed: `groups.spec.ts` found its card by the bare 3-digit capacity, which another group's random label could contain (failed in both languages once); it now matches "/<capacity>".
+- [x] **Fee reminders in Playwright (Nov 15), v1-next issue 2:** Note: done; `CRON_SECRET=dev-cron-secret` in `.env.example` (dev and CI only; production sets its own, `docs/operations.md#deploy`), `playwright.config.ts` loads the repo-root `.env`; `fee-reminders.spec.ts` (ar/en) makes a fresh center, turns `feeOverdue` on, enrolls a student in a monthly group, calls `/internal/tick?daily=1` and finds the «تذكير بمصروفات» row with the guardian's phone in the log. Left: skipped before the 7th of the month (Cairo) and on live runs; each run adds two workspaces to the seeded owner in the dev database. Also fixed: `groups.spec.ts` found its card by the bare 3-digit capacity, which another group's random label could contain (failed in both languages once); it now matches "/<capacity>".
 - [x] **Rooms and the room conflict check (Nov 15):** *Hard part.* Note: done; migration `0013_rooms` (`rooms` with unique workspace+name, capacity check, active/archived, RLS; nullable `room_id` on groups and sessions with composite FKs; `CREATE EXTENSION btree_gist` and `sessions_room_no_overlap` EXCLUDE on workspace, room and `tstzrange(starts_at, ends_at)` for non-cancelled sessions with a room). `GET /rooms` (every staff role), `POST`/`PATCH /rooms/:id` (owner; `ROOM_NAME_TAKEN`, `ROOM_NOT_FOUND`); `roomId` on group create/update and `room` on groups and sessions; the slot check locks the room row and returns `ROOM_BOOKED` with the clashing weekday and times; a new room moves the group's future scheduled sessions; a move into a booked room and any race are `ROOM_BOOKED` from the constraint (`23P01`); generation copies the room, or none when a moved session holds it. Web: `/rooms` under More (owner adds, renames, archives; others read), room picker on the group form (archived rooms hidden unless already on the group; "No room" option), the room on group cards and timetable rows. Demo seed: two rooms. Tests: 7 integration tests (CRUD and roles, overlap, touching times, archived and foreign rooms, edit and room change, move, generation fallback, concurrent saves), unit test for the pg error mapping, RLS list, 10 web specs, `rooms.spec.ts` (ar/en, 375 px; the e2e fixture gained `expectedErrors`). Code review fixes: the room row lock (two concurrent saves could both pass), the fallback narrowed to moved sessions, the edit form kept inside its `<li>`, a room rename refreshes sessions.
-- [x] **Editable message templates (Nov 15):** *Hard part (outbox).* Note: done, no migration; `packages/contracts/templates.ts` holds the placeholders per trigger, the default wording (the v0 text word for word) and `fillTemplate` (one pass, so values are never expanded again) shared by the API and the web preview; custom text in `workspaces.settings.templates` (null = default); `GET /message-templates` (owner and assistant), `PUT /message-templates/:trigger` (owner; trimmed, 500 max, empty = default, unknown placeholder `TEMPLATE_PLACEHOLDER_UNKNOWN` with the placeholder and language); the sender reads the center's wording once per pass and fills it at send time, so queued messages get an edit too, and stores the sent body as before. Web: «نص الرسائل» on `/messages`, one folded card per trigger with Arabic and English boxes, insert chips (was/were in English only), a live preview with samples in each language, save, back to default, a "custom" badge; read-only for assistants. Live demo: two rooms added and the three groups put in them. Docs: `docs/limits-plan.md` (every known limit in five batches). Tests: contracts unit tests, 3 integration tests (list and roles, save rules, sent wording incl. queued-before-edit and reset), 5 web specs, `wording.spec.ts` (ar/en, 375 px, fresh center, tick, fake phone).
+- [x] **Editable message templates (Nov 15):** *Hard part (outbox).* Note: done, no migration; `packages/contracts/templates.ts` holds the placeholders per trigger, the default wording (the v0 text word for word) and `fillTemplate` (one pass, so values are never expanded again) shared by the API and the web preview; custom text in `workspaces.settings.templates` (null = default); `GET /message-templates` (owner and assistant), `PUT /message-templates/:trigger` (owner; trimmed, 500 max, empty = default, unknown placeholder `TEMPLATE_PLACEHOLDER_UNKNOWN` with the placeholder and language); the sender reads the center's wording once per pass and fills it at send time, so queued messages get an edit too, and stores the sent body as before. Web: «نص الرسائل» on `/messages`, one folded card per trigger with Arabic and English boxes, insert chips (was/were in English only), a live preview with samples in each language, save, back to default, a "custom" badge; read-only for assistants. Live demo: two rooms added and the three groups put in them. Docs: `docs/progress.md#limits-plan` (every known limit in five batches). Tests: contracts unit tests, 3 integration tests (list and roles, save rules, sent wording incl. queued-before-edit and reset), 5 web specs, `wording.spec.ts` (ar/en, 375 px, fresh center, tick, fake phone).
 - [x] **Limits Batch 1, part 1 (Nov 15):** Note: done, no migration; archive and restore on the group page (a second tap to archive; upcoming sessions are dropped, records kept); `GET`/`PUT /attendance-settings` (`lateAfterMinutes` 0–120 in `workspaces.settings`, everyone reads, owner sets) and a `/settings` screen under More; `useWakeLock` keeps the live QR screen on (taken again when the tab comes back, a no-op without the API); a warning on the group form when its capacity is above the room's seats. Tests: 1 integration test, `wake-lock.spec.ts`, 6 web specs (`batch1.spec.tsx`), `batch1.spec.ts` (ar/en, archive in the seeded center, the threshold in a fresh one). Left (part 2, its own session): group capacity on enroll, teacher double-booking on move, dashboard range.
 - [x] **Limits Batch 1, part 2 (Nov 15):** Note: done, no migration; `POST /students/:id/enrollments` returns `GROUP_FULL` (count, capacity) when the group's active enrollments reach its capacity (the group row is locked first, so two enrolls can't both take the last seat; a student already in the group still gets `ENROLLMENT_EXISTS`), and `force: true` adds anyway; `PATCH /sessions/:id` returns `TEACHER_BOOKED` with the clash's local date and times when the group's teacher has another non-cancelled session overlapping the new time (touching is fine; a transaction advisory lock on the teacher serialises moves; the check runs after the update so a clash rolls it back); `GET /stats/trends?weeks=8|13|26` (default 8, money still 6 months). Web: a «المجموعة مكتملة (20/20). إضافة على أي حال؟» confirm on the student page and on the new-student form (cancel opens the saved student without the group), the move form says when the teacher is booked, an 8 / 13 / 26 switch on the dashboard (13 and 26 weeks get one axis row of 4 dates instead of a label per bar). Tests: 3 integration tests, 4 web specs, `batch1b.spec.ts` (ar/en, 375 px, fresh centers for enroll and move). Left: the teacher check on group slots (needs the e2e groups moved off Saturday 16:00).
 - [x] **Limits Batch 2, messages that are always right (Nov 15):** *Hard part (outbox).* Note: done; migration `0014_outbox_skipped` (`skipped` in `outbox_status`, `skip_reason` text). The sender re-checks each due row under its `FOR UPDATE SKIP LOCKED` lock before the provider call: a trigger switched off since it was queued is `skipped/trigger_off`; a fee reminder keeps only the children who still owe, with today's balance (`skipped/paid` when none); an absence keeps only the children still marked absent (`skipped/not_absent`); the sent payload is stored with the body, and a skipped row keeps its dedupe key, so a rerun queues nothing. Payloads now carry each student's `id` (older rows send unchecked). A manual "absent" on a closed session that ended in the last 2 days queues that student's absence in the same transaction (same dedupe key: once per guardian per session; older fixes text nobody). The fee re-check also drops children archived since queueing. `settings.messages.primaryOnly` (default off, `.default(false)` so an old page's save still validates) limits every enqueue to `is_primary` guardians (a student with no primary keeps all of theirs). A move stores the old start: «حصة {subject} {from} أصبحت {time}» with a new `{from}` placeholder; rows without it keep the old text, or the center's own if it has no `{from}`. Code review fixes: the 2-day window, the no-primary case, archived children in the fee re-check, the old-row wording, the switch under its own heading «من يستلم الرسائل؟», `patch` on the e2e `ownerApi`. `attendance.spec.ts` now sets the corrected student back to absent before it waits for the text (a correction to present now skips it). Web: «لم تُرسل» status, filter chip and reason in the log, the primary-only switch, `{from}` in the wording editor. Tests: 5 integration tests (`recheck.int.spec.ts`), updated message tests, 1 web spec, `batch2.spec.ts` (ar/en, 375 px, fresh center, tick, fake phone). Left: a late absent for a sibling whose guardian already got that session's message sends nothing; no correction text after a sent absence.

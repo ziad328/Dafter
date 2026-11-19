@@ -76,7 +76,7 @@ export function useNavItems() {
           },
         ]
       : []),
-    // shortcut: dev builds only; the demo deploy opens /dev/phone directly (docs/demo-script.md).
+    // shortcut: dev builds only; the demo deploy opens /dev/phone directly (docs/operations.md#demo-script).
     ...(import.meta.env.DEV
       ? [{ to: '/dev/phone', label: t('nav.phone'), icon: Smartphone, section: 'admin' as const }]
       : []),

@@ -3,7 +3,7 @@ name: task-finish
 description: Use when a task from docs/progress.md is complete, to close it out before the next one.
 ---
 - Confirm `pnpm test` passed.
-- Tick the task in docs/progress.md with a one-line note.
-- Update docs/known-limits.md: add each new limit, shortcut or unchecked item (with impact and fix-by), and remove the ones this task fixed.
+- Tick the task in docs/progress.md (the Done part, at the end of the file) with a one-line note.
+- Update the Known limits part of docs/progress.md (#known-limits): add each new limit, shortcut or unchecked item (with impact and fix-by), and remove the ones this task fixed.
 - Propose a Conventional Commit message, for example feat(attendance): close session marks absences.
 - Give a one-line summary, then check context-window usage: at about 50% or more, start a new session for the next task; below that, continue the next task in this session. Never tell Ziad to run /clear.

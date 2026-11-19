@@ -57,7 +57,7 @@ flowchart LR
 
 ## Key decisions
 
-The full records, with the alternatives considered, are in [`docs/decisions.md`](docs/decisions.md).
+The full records, with the alternatives considered, are in [`docs/tech.md#decisions`](docs/tech.md#decisions).
 
 1. **Tenant isolation in layers.** Every query goes through a tenant-scoped repository that runs `SET LOCAL ROLE dafter_app` and `set_config('app.workspace_id', …)` in its transaction. PostgreSQL RLS is the backstop: with no workspace set, a query returns no rows. Generated test suites fail if a new route lacks the tenant guard or a new table lacks RLS.
 2. **Staff auth.** A 15-minute access JWT is kept in memory. The refresh token sits in an httpOnly `SameSite=Strict` cookie, is stored hashed and rotates on every use. If a rotated token is reused, its whole token family is revoked.
@@ -90,7 +90,7 @@ pnpm dev        # API, worker and web app at http://localhost:5173
 
 In development, login codes print to the API console. Parent messages show up on `/dev/phone`.
 
-To deploy, follow [`docs/deploy.md`](docs/deploy.md). It covers Vercel, Neon and Brevo, all on free plans with no card.
+To deploy, follow [`docs/operations.md#deploy`](docs/operations.md#deploy). It covers Vercel, Neon and Brevo, all on free plans with no card.
 
 ## Test strategy
 
@@ -108,7 +108,7 @@ Domain code never calls `new Date()`. It gets the time from an injected `Clock`,
 
 ## Limits
 
-v0 is a demo. Everything known to be missing, unchecked or simplified is listed in [`docs/known-limits.md`](docs/known-limits.md). The main items:
+v0 is a demo. Everything known to be missing, unchecked or simplified is listed in [`docs/progress.md#known-limits`](docs/progress.md#known-limits). The main items:
 
 - Vercel Hobby is for non-commercial use, and there is no always-on worker, so failed messages wait for the next cron tick.
 - Parent messages go to a fake phone page. WhatsApp isn't connected.
@@ -117,4 +117,9 @@ v0 is a demo. Everything known to be missing, unchecked or simplified is listed 
 
 ## Docs
 
-[`product.md`](docs/product.md) · [`architecture.md`](docs/architecture.md) · [`data-model-api.md`](docs/data-model-api.md) · [`bilingual-messaging.md`](docs/bilingual-messaging.md) · [`testing-ci.md`](docs/testing-ci.md) · [`decisions.md`](docs/decisions.md) · [`known-limits.md`](docs/known-limits.md) · [`deploy.md`](docs/deploy.md) · [`demo-script.md`](docs/demo-script.md) · [`progress.md`](docs/progress.md)
+- [`progress.md`](docs/progress.md): what's next (backlog, known limits, limits plan) and everything done
+- [`product.md`](docs/product.md): vision, roles, MVP modules, open questions, agile plan
+- [`ux.md`](docs/ux.md): the three UX and wording audits
+- [`tech.md`](docs/tech.md): architecture, data model and API, bilingual and messaging, testing and CI, decisions
+- [`operations.md`](docs/operations.md): deploying the demo, hosting and SaaS, demo video script
+- [`interview-questions.md`](docs/interview-questions.md): questions and answers on each hard part

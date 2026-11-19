@@ -6,12 +6,12 @@ This tab is the operating manual for Claude Code: save it as `CLAUDE.md` at the 
 
 1. Export this doc to Markdown.
 2. Save this tab as `CLAUDE.md` in the repo root.
-3. Save the other tabs as `docs/product.md`, `docs/architecture.md`, `docs/hosting-saas.md`, `docs/data-model-api.md`, `docs/bilingual-messaging.md`, `docs/testing-ci.md` and `docs/agile-plan.md`.
+3. Save the other tabs into `docs/` (done; on Nov 19 the docs were merged by category into `progress.md`, `product.md`, `ux.md`, `tech.md`, `operations.md` and `interview-questions.md`).
 4. Open Claude Code in the repo and send: "Read CLAUDE.md and follow the start-of-session protocol."
 
 ## Project
 
-Dafter (دفتر) is a bilingual (Arabic-first, English) multi-tenant SaaS for Egyptian tutoring centers and independent teachers: groups, sessions, students with their own app, rotating-QR attendance, and parent messages. Ziad builds it solo as a portfolio piece and future product. The full plan is in `docs/`; read only the file a task needs.
+Dafter (دفتر) is a bilingual (Arabic-first, English) multi-tenant SaaS for Egyptian tutoring centers and independent teachers: groups, sessions, students with their own app, rotating-QR attendance, and parent messages. Ziad builds it solo as a portfolio piece and future product. The full plan is in `docs/`, one file per category: `progress.md` (next and done), `product.md`, `ux.md`, `tech.md`, `operations.md`, `interview-questions.md`. Each opens with a table of contents; read only the part a task needs.
 
 ## Working with Ziad
 
