@@ -271,6 +271,11 @@ export const handlers = [
   http.get(api('subjects'), log(fx.subjects.map((s) => ({ ...s, status: 'active' })))),
   http.get(api('grade-levels'), log(fx.gradeLevels.map((g) => ({ ...g, status: 'active' })))),
   ...(['subjects', 'grade-levels'] as const).flatMap((path) => [
+    // The new order back, as ids only: the screen refetches the list anyway.
+    http.put(
+      api(`${path}/order`),
+      log(async (req) => ((await req.json()) as { ids: string[] }).ids.map((id) => ({ id }))),
+    ),
     http.post(
       api(path),
       log(async (req) => {

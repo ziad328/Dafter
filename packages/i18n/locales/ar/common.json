@@ -223,6 +223,7 @@
     "ROOM_NAME_TAKEN": "يوجد قاعة بنفس الاسم.",
     "CURRICULUM_ITEM_NOT_FOUND": "المادة أو الصف غير موجود.",
     "CURRICULUM_NAME_TAKEN": "يوجد واحد بنفس الاسم.",
+    "CURRICULUM_ORDER_STALE": "تغيّرت القائمة منذ فتحها. أعد تحميل الصفحة وحاول مرة أخرى.",
     "ROOM_BOOKED": "القاعة محجوزة في هذا الوقت.",
     "TEMPLATE_PLACEHOLDER_UNKNOWN": "هذا الجزء غير متاح لهذه الرسالة.",
     "GROUP_FULL": "المجموعة مكتملة.",
@@ -749,6 +750,8 @@
     "archive": "أرشفة",
     "restore": "استرجاع",
     "archived": "مؤرشف",
+    "moveUp": "نقل {name} لأعلى",
+    "moveDown": "نقل {name} لأسفل",
     "actions": "خيارات {name}"
   },
   "settings": {

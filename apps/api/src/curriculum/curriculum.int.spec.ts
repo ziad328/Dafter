@@ -81,6 +81,32 @@ describe.each([
     expect([missing.statusCode, missing.json().code]).toEqual([404, 'CURRICULUM_ITEM_NOT_FOUND']);
   });
 
+  it('the owner reorders the whole list; a stale or foreign list is refused', async () => {
+    const c = await f.center();
+    const other = await f.center();
+    const ids = ((await c.owner('GET', path)).json() as Entry[]).map((e) => e.id);
+    const moved = [ids[1]!, ids[0]!, ...ids.slice(2)];
+    const res = await c.owner('PUT', `${path}/order`, { ids: moved });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as Entry[]).map((e) => e.id)).toEqual(moved);
+    expect(((await c.teacher('GET', path)).json() as Entry[]).map((e) => e.id)).toEqual(moved);
+
+    // Missing one, a repeat, or another center's id: the list changed under the owner.
+    const foreign = ((await other.owner('GET', path)).json() as Entry[])[0]!.id;
+    for (const bad of [
+      moved.slice(1),
+      [moved[0]!, ...moved.slice(0, -1)],
+      [foreign, ...moved.slice(1)],
+    ])
+      expect((await c.owner('PUT', `${path}/order`, { ids: bad })).json().code).toBe(
+        'CURRICULUM_ORDER_STALE',
+      );
+    expect((await c.teacher('PUT', `${path}/order`, { ids: moved })).statusCode).toBe(403);
+    expect((await c.owner('PUT', `${path}/order`, { ids: [] })).json().code).toBe(
+      'VALIDATION_FAILED',
+    );
+  });
+
   it("another center's item is a 404 and never in the list", async () => {
     const a = await f.center();
     const b = await f.center();

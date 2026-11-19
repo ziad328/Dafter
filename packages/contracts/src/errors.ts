@@ -43,6 +43,8 @@ export const ERROR_STATUS = {
   CURRICULUM_ITEM_NOT_FOUND: 404,
   // A second subject (or grade level) with the same Arabic name in the workspace.
   CURRICULUM_NAME_TAKEN: 409,
+  // A reorder whose ids are not exactly the workspace's list (one was added since): reload.
+  CURRICULUM_ORDER_STALE: 409,
   // A subject, grade level or teacher that is not in this workspace, or a newly picked subject or
   // grade level that is archived (details.field names it).
   GROUP_REFERENCE_INVALID: 400,

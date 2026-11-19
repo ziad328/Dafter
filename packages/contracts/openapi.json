@@ -923,6 +923,50 @@
         }
       }
     },
+    "/api/v1/subjects/order": {
+      "put": {
+        "operationId": "reorderSubjects",
+        "tags": ["groups"],
+        "description": "Owner only. Every one of the subjects (archived too) in the new order; CURRICULUM_ORDER_STALE when the ids are not exactly the list. Returns the list.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderCurriculumRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "subjects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/subjects/{id}": {
       "patch": {
         "operationId": "updateSubject",
@@ -1038,6 +1082,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CurriculumEntry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grade-levels/order": {
+      "put": {
+        "operationId": "reorderGradeLevels",
+        "tags": ["groups"],
+        "description": "Owner only. Every one of the grade levels (archived too) in the new order; CURRICULUM_ORDER_STALE when the ids are not exactly the list. Returns the list.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderCurriculumRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "grade levels",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumList"
                 }
               }
             }
@@ -3735,6 +3823,22 @@
         },
         "required": ["nameAr"]
       },
+      "ReorderCurriculumRequest": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": ["ids"]
+      },
       "UpdateCurriculumRequest": {
         "type": "object",
         "properties": {
@@ -4444,6 +4548,7 @@
           "ROOM_BOOKED",
           "CURRICULUM_ITEM_NOT_FOUND",
           "CURRICULUM_NAME_TAKEN",
+          "CURRICULUM_ORDER_STALE",
           "GROUP_REFERENCE_INVALID",
           "SESSION_NOT_FOUND",
           "SESSION_NOT_SCHEDULED",

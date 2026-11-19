@@ -158,6 +158,31 @@ describe('curriculum screen', () => {
     expect(await screen.findByText(tr('errors.FORBIDDEN'))).toBeVisible();
   });
 
+  it('the owner moves subjects and grades up and down', async () => {
+    withCurriculum();
+    server.use(http.put(route('grade-levels/order'), fail('CURRICULUM_ORDER_STALE', 409)));
+    const { user } = await renderAt('/curriculum', { lang: 'en' });
+    const list = await screen.findByRole('list', { name: tr('curriculum.subjects') });
+    // The first can't go up, the last can't go down.
+    const up = (name: string) =>
+      within(list).getByRole('button', { name: tr('curriculum.moveUp', { name }) });
+    const down = (name: string) =>
+      within(list).getByRole('button', { name: tr('curriculum.moveDown', { name }) });
+    expect(up('Physics')).toBeDisabled();
+    expect(down('الجيولوجيا')).toBeDisabled();
+    await user.click(down('Physics'));
+    await expect
+      .poll(() => body('PUT /api/v1/subjects/order'))
+      .toEqual({ ids: [SUBJECTS[1]!.id, SUBJECTS[0]!.id] });
+
+    await user.click(screen.getByRole('button', { name: tr('curriculum.grades') }));
+    const grades = await screen.findByRole('list', { name: tr('curriculum.grades') });
+    await user.click(
+      within(grades).getByRole('button', { name: tr('curriculum.moveUp', { name: 'KG' }) }),
+    );
+    expect(await screen.findByText(tr('errors.CURRICULUM_ORDER_STALE'))).toBeVisible();
+  });
+
   it('others see a read-only list', async () => {
     asRole('teacher');
     withCurriculum();
@@ -165,6 +190,7 @@ describe('curriculum screen', () => {
     expect(await screen.findByText('الفيزياء')).toBeVisible();
     expect(screen.queryByRole('button', { name: tr('curriculum.addSubject') })).toBeNull();
     expect(screen.queryByRole('button', { name: /خيارات/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /لأعلى/ })).toBeNull();
   });
 
   it('says when there are none, and when loading fails', async () => {

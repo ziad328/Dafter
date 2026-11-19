@@ -163,6 +163,14 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ['groups'],
       }),
+      reorderSubjects: build.mutation<ReorderSubjectsApiResponse, ReorderSubjectsApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/subjects/order`,
+          method: 'PUT',
+          body: queryArg.reorderCurriculumRequest,
+        }),
+        invalidatesTags: ['groups'],
+      }),
       updateSubject: build.mutation<UpdateSubjectApiResponse, UpdateSubjectApiArg>({
         query: (queryArg) => ({
           url: `/api/v1/subjects/${queryArg.id}`,
@@ -180,6 +188,14 @@ const injectedRtkApi = api
           url: `/api/v1/grade-levels`,
           method: 'POST',
           body: queryArg.createCurriculumRequest,
+        }),
+        invalidatesTags: ['groups'],
+      }),
+      reorderGradeLevels: build.mutation<ReorderGradeLevelsApiResponse, ReorderGradeLevelsApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/grade-levels/order`,
+          method: 'PUT',
+          body: queryArg.reorderCurriculumRequest,
         }),
         invalidatesTags: ['groups'],
       }),
@@ -638,6 +654,10 @@ export type CreateSubjectApiResponse = /** status 201 Created */ CurriculumEntry
 export type CreateSubjectApiArg = {
   createCurriculumRequest: CreateCurriculumRequest;
 };
+export type ReorderSubjectsApiResponse = /** status 200 subjects */ CurriculumList;
+export type ReorderSubjectsApiArg = {
+  reorderCurriculumRequest: ReorderCurriculumRequest;
+};
 export type UpdateSubjectApiResponse = /** status 200 Updated */ CurriculumEntry;
 export type UpdateSubjectApiArg = {
   id: string;
@@ -648,6 +668,10 @@ export type ListGradeLevelsApiArg = void;
 export type CreateGradeLevelApiResponse = /** status 201 Created */ CurriculumEntry;
 export type CreateGradeLevelApiArg = {
   createCurriculumRequest: CreateCurriculumRequest;
+};
+export type ReorderGradeLevelsApiResponse = /** status 200 grade levels */ CurriculumList;
+export type ReorderGradeLevelsApiArg = {
+  reorderCurriculumRequest: ReorderCurriculumRequest;
 };
 export type UpdateGradeLevelApiResponse = /** status 200 Updated */ CurriculumEntry;
 export type UpdateGradeLevelApiArg = {
@@ -902,6 +926,7 @@ export type ErrorCode =
   | 'ROOM_BOOKED'
   | 'CURRICULUM_ITEM_NOT_FOUND'
   | 'CURRICULUM_NAME_TAKEN'
+  | 'CURRICULUM_ORDER_STALE'
   | 'GROUP_REFERENCE_INVALID'
   | 'SESSION_NOT_FOUND'
   | 'SESSION_NOT_SCHEDULED'
@@ -1087,6 +1112,9 @@ export type CurriculumList = CurriculumEntry[];
 export type CreateCurriculumRequest = {
   nameAr: string;
   nameEn?: string;
+};
+export type ReorderCurriculumRequest = {
+  ids: string[];
 };
 export type UpdateCurriculumRequest = {
   nameAr?: string;
@@ -1567,9 +1595,11 @@ export const {
   useSetAssistantScopesMutation,
   useListSubjectsQuery,
   useCreateSubjectMutation,
+  useReorderSubjectsMutation,
   useUpdateSubjectMutation,
   useListGradeLevelsQuery,
   useCreateGradeLevelMutation,
+  useReorderGradeLevelsMutation,
   useUpdateGradeLevelMutation,
   useListRoomsQuery,
   useCreateRoomMutation,

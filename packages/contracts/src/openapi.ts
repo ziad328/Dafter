@@ -15,6 +15,7 @@ import {
   curriculumEntry,
   curriculumList,
   updateCurriculumRequest,
+  reorderCurriculumRequest,
   group,
   groupList,
   updateGroupRequest,
@@ -137,6 +138,16 @@ const curriculumPaths = (kind: 'Subject' | 'GradeLevel', plural: string) => ({
       requestParams: { path: z.object({ id: z.uuid() }) },
       requestBody: { required: true, content: json(updateCurriculumRequest) },
       responses: { 200: { description: 'Updated', content: json(curriculumEntry) }, ...errors },
+    },
+  },
+  order: {
+    put: {
+      operationId: `reorder${kind}s`,
+      tags: ['groups'],
+      description: `Owner only. Every one of the ${plural} (archived too) in the new order; CURRICULUM_ORDER_STALE when the ids are not exactly the list. Returns the list.`,
+      security: [{ bearer: [] }],
+      requestBody: { required: true, content: json(reorderCurriculumRequest) },
+      responses: { 200: { description: plural, content: json(curriculumList) }, ...errors },
     },
   },
 });
@@ -372,8 +383,10 @@ export function buildOpenApi() {
         },
       },
       '/api/v1/subjects': subjectPaths.list,
+      '/api/v1/subjects/order': subjectPaths.order,
       '/api/v1/subjects/{id}': subjectPaths.item,
       '/api/v1/grade-levels': gradePaths.list,
+      '/api/v1/grade-levels/order': gradePaths.order,
       '/api/v1/grade-levels/{id}': gradePaths.item,
       '/api/v1/rooms': {
         get: {

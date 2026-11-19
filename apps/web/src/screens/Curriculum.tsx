@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { BookOpen, GraduationCap, MoreHorizontal, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookOpen, GraduationCap, MoreHorizontal, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   type CurriculumEntry,
@@ -8,6 +8,8 @@ import {
   useGetCurrentWorkspaceQuery,
   useListGradeLevelsQuery,
   useListSubjectsQuery,
+  useReorderGradeLevelsMutation,
+  useReorderSubjectsMutation,
   useUpdateGradeLevelMutation,
   useUpdateSubjectMutation,
 } from '@/api/generated';
@@ -29,6 +31,8 @@ function useKind(kind: Kind) {
   const [createGrade, gradeCreated] = useCreateGradeLevelMutation();
   const [updateSubject, subjectUpdated] = useUpdateSubjectMutation();
   const [updateGrade, gradeUpdated] = useUpdateGradeLevelMutation();
+  const [reorderSubjects, subjectsReordered] = useReorderSubjectsMutation();
+  const [reorderGrades, gradesReordered] = useReorderGradeLevelsMutation();
   const s = kind === 'subjects';
   return {
     list: s ? subjects : grades,
@@ -45,6 +49,11 @@ function useKind(kind: Kind) {
         ? updateSubject({ id, updateCurriculumRequest: body })
         : updateGrade({ id, updateCurriculumRequest: body }),
     updated: s ? subjectUpdated : gradeUpdated,
+    reorder: (ids: string[]) =>
+      s
+        ? reorderSubjects({ reorderCurriculumRequest: { ids } })
+        : reorderGrades({ reorderCurriculumRequest: { ids } }),
+    reordered: s ? subjectsReordered : gradesReordered,
   };
 }
 
@@ -98,9 +107,16 @@ export default function Curriculum() {
 
 function ItemList({ kind, canEdit }: { kind: Kind; canEdit: boolean }) {
   const { t } = useTranslation();
-  const { list } = useKind(kind);
+  const { list, reorder, reordered } = useKind(kind);
   if (list.isLoading) return <Skeleton />;
   if (list.error) return <FormError message={t(errorKey(list.error))} />;
+  const items = list.data!;
+  /** Swaps the item with its neighbour; the API takes the whole list in its new order. */
+  const move = (index: number, delta: -1 | 1) => {
+    const ids = items.map((i) => i.id);
+    [ids[index], ids[index + delta]] = [ids[index + delta]!, ids[index]!];
+    void reorder(ids);
+  };
   return (
     <Card>
       <CardContent className="p-0">
@@ -110,11 +126,20 @@ function ItemList({ kind, canEdit }: { kind: Kind; canEdit: boolean }) {
           </p>
         ) : (
           <ul className="divide-y" aria-label={t(`curriculum.${kind}`)}>
-            {list.data!.map((item) => (
-              <ItemRow key={item.id} kind={kind} item={item} canEdit={canEdit} />
+            {items.map((item, index) => (
+              <ItemRow
+                key={item.id}
+                kind={kind}
+                item={item}
+                canEdit={canEdit}
+                moving={reordered.isLoading}
+                onUp={index > 0 ? () => move(index, -1) : undefined}
+                onDown={index < items.length - 1 ? () => move(index, 1) : undefined}
+              />
             ))}
           </ul>
         )}
+        {reordered.error && <FormError message={t(errorKey(reordered.error))} />}
       </CardContent>
     </Card>
   );
@@ -179,7 +204,21 @@ function ItemForm({
   );
 }
 
-function ItemRow({ kind, item, canEdit }: { kind: Kind; item: CurriculumEntry; canEdit: boolean }) {
+function ItemRow({
+  kind,
+  item,
+  canEdit,
+  moving,
+  onUp,
+  onDown,
+}: {
+  kind: Kind;
+  item: CurriculumEntry;
+  canEdit: boolean;
+  moving: boolean;
+  onUp?: () => void;
+  onDown?: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -223,6 +262,24 @@ function ItemRow({ kind, item, canEdit }: { kind: Kind; item: CurriculumEntry; c
               </Button>
             </>
           )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('curriculum.moveUp', { name })}
+            disabled={!onUp || moving}
+            onClick={onUp}
+          >
+            <ArrowUp aria-hidden />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('curriculum.moveDown', { name })}
+            disabled={!onDown || moving}
+            onClick={onDown}
+          >
+            <ArrowDown aria-hidden />
+          </Button>
           <Button
             variant="ghost"
             size="icon-sm"

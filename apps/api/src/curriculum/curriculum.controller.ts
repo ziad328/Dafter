@@ -7,15 +7,18 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import * as z from 'zod';
 import {
   createCurriculumRequest,
+  reorderCurriculumRequest,
   updateCurriculumRequest,
   type CreateCurriculumRequest,
   type CurriculumEntry,
+  type ReorderCurriculumRequest,
   type UpdateCurriculumRequest,
 } from '@dafter/contracts';
 import { gradeLevels, subjects } from '@dafter/db';
@@ -31,10 +34,11 @@ import { CurriculumRepository, type CurriculumTable } from './curriculum.reposit
 const idParam = new ZodPipe(z.uuid());
 const createBody = new ZodPipe(createCurriculumRequest);
 const updateBody = new ZodPipe(updateCurriculumRequest);
+const reorderBody = new ZodPipe(reorderCurriculumRequest);
 
 /**
  * Policy: every staff role reads the curriculum (group and student forms pick from it); only the
- * owner adds, renames, archives or restores. Nothing is deleted: groups and students point at it.
+ * owner adds, renames, archives, restores or reorders. Nothing is deleted: groups and students point at it.
  */
 @Controller()
 @UseGuards(AuthGuard, TenantGuard)
@@ -52,6 +56,15 @@ export class CurriculumController {
     @Body(createBody) body: CreateCurriculumRequest,
   ): Promise<CurriculumEntry> {
     return this.create(req, subjects, body);
+  }
+
+  // Before subjects/:id, so "order" is never read as an id.
+  @Put('subjects/order')
+  reorderSubjects(
+    @Req() req: TenantedRequest,
+    @Body(reorderBody) body: ReorderCurriculumRequest,
+  ): Promise<CurriculumEntry[]> {
+    return this.reorder(req, subjects, body);
   }
 
   @Patch('subjects/:id')
@@ -76,6 +89,14 @@ export class CurriculumController {
     return this.create(req, gradeLevels, body);
   }
 
+  @Put('grade-levels/order')
+  reorderGradeLevels(
+    @Req() req: TenantedRequest,
+    @Body(reorderBody) body: ReorderCurriculumRequest,
+  ): Promise<CurriculumEntry[]> {
+    return this.reorder(req, gradeLevels, body);
+  }
+
   @Patch('grade-levels/:id')
   updateGradeLevel(
     @Req() req: TenantedRequest,
@@ -88,6 +109,17 @@ export class CurriculumController {
   private create(req: TenantedRequest, table: CurriculumTable, body: CreateCurriculumRequest) {
     if (req.role !== 'owner') throw new AppError('FORBIDDEN');
     return this.repo.create(req.workspaceId, table, body).catch(curriculumNameTaken);
+  }
+
+  private async reorder(
+    req: TenantedRequest,
+    table: CurriculumTable,
+    body: ReorderCurriculumRequest,
+  ) {
+    if (req.role !== 'owner') throw new AppError('FORBIDDEN');
+    if (!(await this.repo.reorder(req.workspaceId, table, body.ids)))
+      throw new AppError('CURRICULUM_ORDER_STALE');
+    return this.repo.list(req.workspaceId, table);
   }
 
   private async update(

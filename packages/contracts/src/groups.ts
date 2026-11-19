@@ -34,6 +34,11 @@ export const updateCurriculumRequest = z
   .partial()
   .meta({ id: 'UpdateCurriculumRequest' });
 
+/** Every subject (or grade level) of the workspace, archived ones too, in the new order. */
+export const reorderCurriculumRequest = z
+  .object({ ids: z.array(z.uuid()).min(1).max(200) })
+  .meta({ id: 'ReorderCurriculumRequest' });
+
 /** Local wall-clock time in the workspace timezone, "HH:MM". */
 export const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
@@ -129,6 +134,7 @@ export const groupList = z.array(group).meta({ id: 'GroupList' });
 
 export type CurriculumItem = z.infer<typeof curriculumItem>;
 export type CurriculumEntry = z.infer<typeof curriculumEntry>;
+export type ReorderCurriculumRequest = z.infer<typeof reorderCurriculumRequest>;
 export type CreateCurriculumRequest = z.infer<typeof createCurriculumRequest>;
 export type UpdateCurriculumRequest = z.infer<typeof updateCurriculumRequest>;
 export type GroupSlot = z.infer<typeof groupSlot>;

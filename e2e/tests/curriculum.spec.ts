@@ -1,4 +1,4 @@
-import { enterWorkspace, expect, openNav, signIn, STAFF, test } from './fixtures';
+import { enterWorkspace, expect, freshCenter, openNav, signIn, STAFF, test } from './fixtures';
 
 const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 
@@ -44,4 +44,30 @@ test('owner adds a subject, picks it for a group, then archives it', async ({ pa
   const row = list.getByRole('listitem').filter({ hasText: subject[lang] });
   await expect(row).toContainText(t.curriculum.archived);
   expect(await subjectOptions()).not.toContain(subject[lang]);
+});
+
+test('owner moves a subject up, and the order stays after a reload', async ({
+  page,
+  request,
+  lang,
+  t,
+}) => {
+  // A fresh center: parallel runs reordering one list would see it change under them.
+  const c = await freshCenter(request, 'سنتر الترتيب');
+  const [first, second] = (await c.api.get('subjects')) as { nameAr: string; nameEn: string }[];
+  const name = (s: { nameAr: string; nameEn: string }) => (lang === 'en' ? s.nameEn : s.nameAr);
+  await signIn(page, t, STAFF.owner);
+  await enterWorkspace(page, t, c.name);
+  await page.goto('/curriculum');
+  const list = page.getByRole('list', { name: t.curriculum.subjects });
+  const top = list.getByRole('listitem').first();
+  await expect(top).toContainText(name(first!));
+
+  await list
+    .getByRole('button', { name: t.curriculum.moveUp.replace('{name}', name(second!)) })
+    .click();
+  await expect(top).toContainText(name(second!));
+  await page.reload();
+  await expect(top).toContainText(name(second!));
+  await expect(list.getByRole('listitem').nth(1)).toContainText(name(first!));
 });

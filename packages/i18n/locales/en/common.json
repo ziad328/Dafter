@@ -223,6 +223,7 @@
     "ROOM_NAME_TAKEN": "A room with this name already exists.",
     "CURRICULUM_ITEM_NOT_FOUND": "Subject or grade not found.",
     "CURRICULUM_NAME_TAKEN": "One with this name already exists.",
+    "CURRICULUM_ORDER_STALE": "The list changed since you opened it. Reload and try again.",
     "ROOM_BOOKED": "The room is taken at that time.",
     "TEMPLATE_PLACEHOLDER_UNKNOWN": "That part isn’t available for this message.",
     "GROUP_FULL": "The group is full.",
@@ -749,6 +750,8 @@
     "archive": "Archive",
     "restore": "Restore",
     "archived": "Archived",
+    "moveUp": "Move {name} up",
+    "moveDown": "Move {name} down",
     "actions": "{name} options"
   },
   "settings": {
