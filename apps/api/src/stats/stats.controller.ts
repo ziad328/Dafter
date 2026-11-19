@@ -44,13 +44,12 @@ export class StatsController {
     @Query(new ZodPipe(trendsQuery)) q: TrendsQuery,
   ): Promise<TrendStats> {
     const teachers = await this.groups.visibleTeachers(req);
-    return this.repo.trends(
-      req.workspaceId,
-      this.clock.now(),
-      teachers,
-      req.role !== 'teacher',
-      Number(q.weeks),
-    );
+    return this.repo.trends(req.workspaceId, this.clock.now(), teachers, req.role !== 'teacher', {
+      weeks: Number(q.weeks),
+      from: q.from,
+      to: q.to,
+      archived: !!q.archived,
+    });
   }
 
   /** Policy: the center's money is for the owner and assistants (who take payments), not teachers. */

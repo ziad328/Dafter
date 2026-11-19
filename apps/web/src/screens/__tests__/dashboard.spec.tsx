@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { formatEgp } from '@/lib/money';
 import { fail, fx, http, route, server } from '@/test/server';
@@ -52,6 +52,39 @@ describe('dashboard', () => {
     expect(screen.getByTestId('bar-axis').children).toHaveLength(4);
     await pickRange(13);
     await expect.poll(() => asked).toEqual(['8', '26', '13']);
+  });
+
+  it('takes custom dates, keeps the last good range while they are wrong, and adds archived groups', async () => {
+    const asked: string[] = [];
+    server.use(
+      http.get(route('stats/trends'), ({ request }) => {
+        const q = new URL(request.url).searchParams;
+        asked.push(q.toString());
+        const groups = fx.trends.groups.map((g) => ({ ...g, archived: q.has('archived') }));
+        return Response.json({ ...fx.trends, groups });
+      }),
+    );
+    const { user } = await renderAt('/dashboard');
+    await user.click(await screen.findByRole('button', { name: tr('dashboard.custom') }));
+    const from = screen.getByLabelText(tr('dashboard.from'));
+    const to = screen.getByLabelText(tr('dashboard.to'));
+    fireEvent.change(from, { target: { value: '2026-09-01' } });
+    fireEvent.change(to, { target: { value: '2026-11-25' } });
+    await expect.poll(() => asked.at(-1)).toBe('from=2026-09-01&to=2026-11-25');
+    const before = asked.length;
+    fireEvent.change(to, { target: { value: '2026-08-01' } });
+    expect(await screen.findByText(tr('dashboard.badRange'))).toBeVisible();
+    fireEvent.change(to, { target: { value: '2027-11-25' } });
+    expect(asked).toHaveLength(before);
+    expect(screen.getByText(/مجموعة أ/)).toBeVisible();
+    fireEvent.change(to, { target: { value: '2026-11-25' } });
+    await user.click(screen.getByRole('checkbox', { name: tr('dashboard.withArchived') }));
+    await expect.poll(() => asked.at(-1)).toBe('from=2026-09-01&to=2026-11-25&archived=true');
+    expect(
+      await screen.findByText(new RegExp(`مجموعة أ · ${tr('groups.archived')}`)),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: tr('dashboard.weeks', { count: 13 }) }));
+    await expect.poll(() => asked.at(-1)).toBe('weeks=13&archived=true');
   });
 
   it('hides money for teachers and shows an empty state, in English', async () => {

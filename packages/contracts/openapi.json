@@ -2146,6 +2146,32 @@
               "type": "string",
               "enum": ["8", "13", "26"]
             }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "string",
+              "enum": ["true"]
+            }
           }
         ],
         "responses": {
@@ -5619,6 +5645,9 @@
           "teacherName": {
             "type": "string"
           },
+          "archived": {
+            "type": "boolean"
+          },
           "attendance": {
             "type": "array",
             "items": {
@@ -5632,7 +5661,16 @@
             }
           }
         },
-        "required": ["id", "subject", "gradeLevel", "label", "teacherName", "attendance", "exams"],
+        "required": [
+          "id",
+          "subject",
+          "gradeLevel",
+          "label",
+          "teacherName",
+          "archived",
+          "attendance",
+          "exams"
+        ],
         "additionalProperties": false
       },
       "WeekCount": {

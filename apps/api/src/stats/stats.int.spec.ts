@@ -334,6 +334,58 @@ describe('GET /stats/trends', () => {
     expect(other.groups[0].id).not.toBe(c.groupId);
     expect(other.groups[0].exams).toEqual([]);
   });
+  it('covers a custom range, and adds archived groups that met in it when asked', async () => {
+    const c = await f.center();
+    const a = await c.newStudent();
+    await c.owner('POST', `students/${a}/enrollments`, { groupId: c.groupId });
+    const session = (await c.owner('GET', 'sessions?from=2026-11-21&to=2026-11-21')).json()[0].id;
+    await c.teacher('POST', `sessions/${session}/open`);
+    await c.teacher('PUT', `sessions/${session}/attendance/${a}`, { status: 'present' });
+    await c.teacher('POST', `sessions/${session}/close`);
+    for (const [title, heldOn] of [
+      ['قبل البداية', '2026-08-30'],
+      ['في المدى', '2026-09-05'],
+    ])
+      await c.teacher('POST', `groups/${c.groupId}/exams`, { title, heldOn, maxScore: 10 });
+    const archived = await c.owner('PATCH', `groups/${c.groupId}`, { status: 'archived' });
+    expect(archived.statusCode).toBe(200);
+
+    expect((await c.owner('GET', 'stats/trends')).json().groups).toEqual([]);
+    const withOld = (await c.owner('GET', 'stats/trends?archived=true')).json();
+    expect(withOld.groups).toMatchObject([{ id: c.groupId, archived: true }]);
+    expect(withOld.groups[0].attendance.at(-1)).toEqual({ present: 1, total: 1 });
+
+    // Whole Saturday weeks around Tue Sep 1 .. Wed Nov 25; exams from the first day only.
+    const range = (
+      await c.owner('GET', 'stats/trends?from=2026-09-01&to=2026-11-25&archived=true')
+    ).json();
+    expect([range.weeks.length, range.weeks.at(0), range.weeks.at(-1)]).toEqual([
+      13,
+      '2026-08-29',
+      '2026-11-21',
+    ]);
+    expect(range.groups[0].exams.map((e: { title: string }) => e.title)).toEqual(['في المدى']);
+    expect(range.money.map((m: { month: string }) => m.month)).toEqual([
+      '2026-09',
+      '2026-10',
+      '2026-11',
+    ]);
+    // An archived group with no session in the range stays out.
+    const before = (
+      await c.owner('GET', 'stats/trends?from=2026-01-01&to=2026-02-01&archived=true')
+    ).json();
+    expect([before.weeks.at(0), before.weeks.length, before.groups]).toEqual(['2025-12-27', 6, []]);
+
+    for (const q of [
+      'from=2026-09-01',
+      'from=2026-09-10&to=2026-09-01',
+      'from=2025-08-31&to=2026-09-01',
+      'archived=yes',
+    ]) {
+      const bad = await c.owner('GET', `stats/trends?${q}`);
+      expect([bad.statusCode, bad.json().code]).toEqual([400, 'VALIDATION_FAILED']);
+    }
+  });
 });
 
 describe('GET /stats/cash-summary', () => {

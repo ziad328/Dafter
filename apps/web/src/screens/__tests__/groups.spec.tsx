@@ -336,7 +336,9 @@ describe('timetable', () => {
       capacity: null,
       status,
     });
-    const [r1, r2, r3] = [1, 2, 3].map((i) => `00000000-0000-4000-8000-00000000000${i}`);
+    const r1 = '00000000-0000-4000-8000-000000000001';
+    const r2 = '00000000-0000-4000-8000-000000000002';
+    const r3 = '00000000-0000-4000-8000-000000000003';
     const s = session(today, 'scheduled', { room: { id: r2, name: 'قاعة 2' } });
     withWeek([s]);
     server.use(

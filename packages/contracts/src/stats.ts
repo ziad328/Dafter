@@ -70,6 +70,8 @@ export const groupTrend = z
     gradeLevel: curriculumItem,
     label: z.string().nullable(),
     teacherName: z.string(),
+    // Only with `archived=true`: an archived group that met in those weeks.
+    archived: z.boolean(),
     // One per week of `weeks`, oldest first.
     attendance: z.array(weekCount),
     // Exams held in those weeks, oldest first.
@@ -82,8 +84,9 @@ export const monthTotals = methodTotals
   .meta({ id: 'MonthTotals' });
 
 /**
- * The dashboard: the last 8, 13 or 26 weeks (Saturday starts, workspace timezone) for the caller's visible
- * groups, and money in for the last 6 months (owner and assistant; null for a teacher).
+ * The dashboard: the last 8, 13 or 26 weeks, or the weeks of a custom range (Saturday starts,
+ * workspace timezone) for the caller's visible groups, and money in for the last 6 months or the
+ * range's months (owner and assistant; null for a teacher).
  */
 export const trendStats = z
   .object({
@@ -93,9 +96,27 @@ export const trendStats = z
   })
   .meta({ id: 'TrendStats' });
 
-/** How many weeks the dashboard covers: 8 (default), 13 (a term) or 26 (half a year). */
+/**
+ * How many weeks the dashboard covers: 8 (default), 13 (a term) or 26 (half a year) up to today,
+ * or `from`..`to` (local dates, both or neither, up to a year; wins over `weeks`).
+ * `archived=true` adds the archived groups that met in those weeks.
+ */
 export const trendsQuery = z
-  .object({ weeks: z.enum(['8', '13', '26']).default('8') })
+  .object({
+    weeks: z.enum(['8', '13', '26']).default('8'),
+    from: localDate.optional(),
+    to: localDate.optional(),
+    archived: z.enum(['true']).optional(),
+  })
+  .refine((q) => !q.from === !q.to, { path: ['to'], message: 'RANGE_INCOMPLETE' })
+  .refine((q) => !q.from || !q.to || q.to >= q.from, {
+    path: ['to'],
+    message: 'RANGE_ENDS_BEFORE_START',
+  })
+  .refine((q) => !q.from || !q.to || Date.parse(q.to) - Date.parse(q.from) < 366 * 86_400_000, {
+    path: ['to'],
+    message: 'RANGE_TOO_LONG',
+  })
   .meta({ id: 'TrendsQuery' });
 
 /** The day of a cash summary; omitted = today in the workspace timezone. */

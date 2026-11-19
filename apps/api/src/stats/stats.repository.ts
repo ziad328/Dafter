@@ -24,6 +24,16 @@ const monthBack = (ym: string, back: number) => {
 };
 
 /** Groups of `teacherIds` (undefined = every group), as a SQL condition on alias `g`. */
+/** The months from `a` to `b` ("YYYY-MM"), 0 for the same month. */
+const monthsBetween = (a: string, b: string) => {
+  const [ay, am] = a.split('-').map(Number) as [number, number];
+  const [by, bm] = b.split('-').map(Number) as [number, number];
+  return (by - ay) * 12 + bm - am;
+};
+
+/** Which weeks the dashboard covers; `from` and `to` (both) win over `weeks`. */
+export type TrendRange = { weeks: number; from?: string; to?: string; archived?: boolean };
+
 const visibleGroups = (teacherIds?: string[]) =>
   teacherIds
     ? sql`and g.teacher_membership_id = any(${`{${teacherIds.join(',')}}`}::uuid[])`
@@ -281,33 +291,56 @@ export class StatsRepository extends TenantRepository {
   }
 
   /**
-   * The dashboard over the visible active groups: `weekCount` Saturday-start weeks up to this week in the
-   * workspace timezone (attendance records of non-cancelled sessions, exams held in them), and,
-   * when `withMoney`, payments minus their reversals per local month for 6 months.
+   * The dashboard over the visible active groups (and, with `archived`, the archived ones that met
+   * in those weeks): Saturday-start weeks in the workspace timezone, either the last `weeks` up to
+   * this week or those holding `from`..`to` (attendance records of non-cancelled sessions per
+   * whole week, exams held from the first day to the last), and, when `withMoney`, payments minus
+   * their reversals per local month: the last 6, or the range's months.
    */
   trends(
     workspaceId: string,
     now: Date,
     teacherIds: string[] | undefined,
     withMoney: boolean,
-    weekCount = 8,
+    range: TrendRange = { weeks: 8 },
   ): Promise<TrendStats> {
     const at = now.toISOString();
+    // first_day..last_day: the range, or the last `weeks` up to today; the weeks cover it whole.
+    const bounds =
+      range.from && range.to
+        ? sql`${range.from}::date as first_day, ${range.to}::date as last_day`
+        : sql`(l.today - ((extract(dow from l.today)::int + 1) % 7) - ${7 * (range.weeks - 1)}::int)::date
+            as first_day, l.today as last_day`;
     const ctx = sql`
       ctx as (
-        select l.today, l.tz,
-          (l.today - ((extract(dow from l.today)::int + 1) % 7))::date as this_week
-        from (select (${at}::timestamptz at time zone w.timezone)::date as today, w.timezone as tz
-              from workspaces w where w.id = ${workspaceId}) l
+        select b.*,
+          (b.first_day - ((extract(dow from b.first_day)::int + 1) % 7))::date as first_week,
+          (b.last_day - ((extract(dow from b.last_day)::int + 1) % 7))::date as last_week
+        from (select l.today, l.tz, ${bounds}
+              from (select (${at}::timestamptz at time zone w.timezone)::date as today,
+                      w.timezone as tz
+                    from workspaces w where w.id = ${workspaceId}) l) b
       ),
-      weeks as (select (ctx.this_week - 7 * k)::date as wk from ctx, generate_series(0, ${weekCount - 1}::int) k)`;
-    const vis = sql`g.workspace_id = ${workspaceId} and g.status = 'active' ${visibleGroups(teacherIds)}`;
+      weeks as (select wk::date as wk from ctx,
+        generate_series(ctx.first_week, ctx.last_week, interval '7 days') wk)`;
+    // An archived group shows only when asked, and only if it had a session in those weeks.
+    const vis = sql`g.workspace_id = ${workspaceId} ${visibleGroups(teacherIds)}
+      and (g.status = 'active' or ${!!range.archived} and exists (
+        select 1 from sessions vs where vs.workspace_id = g.workspace_id and vs.group_id = g.id
+          and vs.status <> 'cancelled'
+          and (vs.starts_at at time zone ctx.tz)::date between ctx.first_week and ctx.last_week + 6))`;
 
     return this.inTenant(workspaceId, async (tx) => {
-      const weeks = await tx.execute<{ wk: string; month: string }>(sql`
+      const weeks = await tx.execute<{ wk: string }>(sql`
         with ${ctx}
-        select to_char(wk, 'YYYY-MM-DD') as wk, to_char(ctx.today, 'YYYY-MM') as month
-        from weeks, ctx order by wk`);
+        select to_char(wk, 'YYYY-MM-DD') as wk from weeks order by wk`);
+      const [span] = (
+        await tx.execute<{ first: string; last: string; today: string }>(sql`
+          with ${ctx}
+          select to_char(first_day, 'YYYY-MM') as first, to_char(last_day, 'YYYY-MM') as last,
+            to_char(today, 'YYYY-MM') as today
+          from ctx`)
+      ).rows;
 
       const groups = await tx.execute<{
         id: string;
@@ -319,17 +352,20 @@ export class StatsRepository extends TenantRepository {
         grade_en: string;
         label: string | null;
         teacher: string;
+        archived: boolean;
       }>(sql`
+        with ${ctx}
         select g.id, sub.id as subject_id, sub.name_ar as subject_ar, sub.name_en as subject_en,
           gl.id as grade_id, gl.name_ar as grade_ar, gl.name_en as grade_en, g.label,
-          u.name as teacher
+          u.name as teacher, g.status = 'archived' as archived
         from groups g
+        cross join ctx
         join subjects sub on sub.workspace_id = g.workspace_id and sub.id = g.subject_id
         join grade_levels gl on gl.workspace_id = g.workspace_id and gl.id = g.grade_level_id
         join memberships m on m.workspace_id = g.workspace_id and m.id = g.teacher_membership_id
         join users u on u.id = m.user_id
         where ${vis}
-        order by sub.name_ar, gl.name_ar, g.label nulls first, g.id`);
+        order by g.status = 'archived', sub.name_ar, gl.name_ar, g.label nulls first, g.id`);
 
       const attendance = await tx.execute<{
         group_id: string;
@@ -364,7 +400,7 @@ export class StatsRepository extends TenantRepository {
         join groups g on g.workspace_id = ex.workspace_id and g.id = ex.group_id
         left join exam_results r on r.workspace_id = ex.workspace_id and r.exam_id = ex.id
         where ex.workspace_id = ${workspaceId} and ${vis}
-          and ex.held_on between ctx.this_week - ${7 * (weekCount - 1)}::int and ctx.today
+          and ex.held_on between ctx.first_day and ctx.last_day
         group by ex.id
         order by ex.held_on, ex.created_at`);
 
@@ -377,6 +413,7 @@ export class StatsRepository extends TenantRepository {
           gradeLevel: { id: g.grade_id, nameAr: g.grade_ar, nameEn: g.grade_en },
           label: g.label,
           teacherName: g.teacher,
+          archived: g.archived,
           attendance: weeks.rows.map((w) => {
             const c = counts.get(`${g.id}:${w.wk}`)!;
             return { present: c.present, total: c.total };
@@ -386,21 +423,29 @@ export class StatsRepository extends TenantRepository {
             .map((e) => ({ id: e.id, title: e.title, heldOn: e.held_on, averagePct: e.pct })),
         })),
         money: withMoney
-          ? await this.months(tx, workspaceId, at, weeks.rows[0]!.month, teacherIds)
+          ? await this.months(
+              tx,
+              workspaceId,
+              at,
+              range.from ? span!.first : monthBack(span!.today, MONTHS - 1),
+              range.from ? span!.last : span!.today,
+              teacherIds,
+            )
           : null,
       };
     });
   }
 
-  /** Same rules as `collections`, per local month, oldest first, empty months as zero. */
+  /** Same rules as `collections`, per local month `first`..`last`, oldest first, empty months as zero. */
   private async months(
     tx: Tx,
     workspaceId: string,
     at: string,
-    current: string,
+    first: string,
+    last: string,
     teacherIds?: string[],
   ) {
-    const from = monthBack(current, MONTHS - 1);
+    const count = monthsBetween(first, last) + 1;
     const rows = await tx.execute<{
       month: string;
       method: keyof Omit<MethodTotals, 'total'>;
@@ -415,10 +460,10 @@ export class StatsRepository extends TenantRepository {
       where e.workspace_id = ${workspaceId} ${visibleGroups(teacherIds)}
         and (e.type = 'payment' or p.type = 'payment')
         and e.created_at <= ${at}::timestamptz
-        and to_char(e.created_at at time zone w.timezone, 'YYYY-MM') >= ${from}
+        and to_char(e.created_at at time zone w.timezone, 'YYYY-MM') between ${first} and ${last}
       group by 1, 2`);
-    return Array.from({ length: MONTHS }, (_, i) => {
-      const month = monthBack(current, MONTHS - 1 - i);
+    return Array.from({ length: count }, (_, i) => {
+      const month = monthBack(last, count - 1 - i);
       const t = { month, cash: 0, vodafone_cash: 0, instapay: 0, total: 0 };
       for (const r of rows.rows.filter((r) => r.month === month)) {
         t[r.method] = Number(r.amount);

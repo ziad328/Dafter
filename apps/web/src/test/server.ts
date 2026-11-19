@@ -101,6 +101,7 @@ const trends: TrendStats = {
       gradeLevel: captured.group.gradeLevel,
       label: 'مجموعة أ',
       teacherName: 'منى حسن',
+      archived: false,
       attendance: weeks.map((_, i) =>
         i < 6 ? { present: 0, total: 0 } : { present: 9, total: 10 },
       ),

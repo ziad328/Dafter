@@ -330,6 +330,9 @@ const injectedRtkApi = api
           url: `/api/v1/stats/trends`,
           params: {
             weeks: queryArg.weeks,
+            from: queryArg['from'],
+            to: queryArg.to,
+            archived: queryArg.archived,
           },
         }),
         providesTags: ['stats'],
@@ -762,6 +765,9 @@ export type GetTodayStatsApiArg = void;
 export type GetTrendStatsApiResponse = /** status 200 Trends */ TrendStats;
 export type GetTrendStatsApiArg = {
   weeks?: '8' | '13' | '26';
+  from?: string;
+  to?: string;
+  archived?: 'true';
 };
 export type GetOwingStudentsApiResponse = /** status 200 Who owes */ OwingList;
 export type GetOwingStudentsApiArg = void;
@@ -1301,6 +1307,7 @@ export type GroupTrend = {
   gradeLevel: CurriculumItem;
   label: string | null;
   teacherName: string;
+  archived: boolean;
   attendance: WeekCount[];
   exams: ExamPoint[];
 };

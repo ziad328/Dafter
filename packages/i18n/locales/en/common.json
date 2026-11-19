@@ -708,6 +708,11 @@
     "exams": "{count, plural, =0 {No graded exams} one {# exam} other {# exams}}",
     "lastAverage": "Last average {pct}%",
     "weeks": "{count} weeks",
+    "custom": "Other dates",
+    "from": "From",
+    "to": "To",
+    "badRange": "Pick an end after the start, at most a year apart.",
+    "withArchived": "Include archived groups",
     "range": "Range",
     "showAll": "Show all ({count})"
   },

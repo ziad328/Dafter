@@ -87,3 +87,36 @@ test('one session moves to another room; the group keeps its own', async ({ page
     'قاعة أ',
   ]);
 });
+
+test('the dashboard takes custom dates and asks for archived groups', async ({
+  page,
+  request,
+  t,
+}) => {
+  const { name, api, subject, grade } = await freshCenter(request, 'سنتر الأرشيف');
+  const label = `حالية ${Math.floor(Math.random() * 1e6)}`;
+  const today = cairoToday();
+  await api.post('groups', {
+    subjectId: subject.id,
+    gradeLevelId: grade.id,
+    label,
+    slots: [{ weekday: weekdayOf(addDays(today, 1)), startTime: '10:00', endTime: '11:00' }],
+  });
+
+  await signIn(page, t, STAFF.owner);
+  await enterWorkspace(page, t, name);
+  await page.goto('/dashboard');
+  await page.getByRole('button', { name: t.dashboard.custom }).click();
+  const to = addDays(today, 20);
+  const custom = page.waitForRequest((r) => r.url().includes(`from=${today}&to=${to}`));
+  await page.getByLabel(t.dashboard.from).fill(today);
+  await page.getByLabel(t.dashboard.to).fill(to);
+  await custom;
+  // Four Saturday weeks hold today .. today + 20.
+  await expect(page.getByText(new RegExp(label))).toBeVisible();
+  // Archived groups are asked for (and shown only if they met in those weeks: integration tests).
+  const archived = page.waitForRequest((r) => r.url().includes('archived=true'));
+  await page.getByRole('checkbox', { name: t.dashboard.withArchived }).check();
+  await archived;
+  await expect(page.getByText(new RegExp(label))).toBeVisible();
+});
