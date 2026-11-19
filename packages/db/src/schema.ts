@@ -206,10 +206,13 @@ const curriculumTable = (name: string) =>
       nameAr: text('name_ar').notNull(),
       nameEn: text('name_en').notNull(),
       sortOrder: smallint('sort_order').notNull(),
+      // Archived: stays on the groups and students that use it, but can't be picked again.
+      status: groupStatus('status').notNull().default('active'),
       createdAt: createdAt(),
     },
     (t) => [
       unique(`${name}_workspace_id_key`).on(t.workspaceId, t.id),
+      unique(`${name}_workspace_name_ar_key`).on(t.workspaceId, t.nameAr),
       index(`${name}_workspace_sort_idx`).on(t.workspaceId, t.sortOrder),
     ],
   );

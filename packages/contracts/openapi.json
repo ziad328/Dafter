@@ -850,7 +850,8 @@
     "/api/v1/subjects": {
       "get": {
         "operationId": "listSubjects",
-        "tags": ["curriculum"],
+        "tags": ["groups"],
+        "description": "Every staff role. The subjects of the active workspace in list order, archived ones included.",
         "security": [
           {
             "bearer": []
@@ -858,11 +859,109 @@
         ],
         "responses": {
           "200": {
-            "description": "Subjects of the active workspace",
+            "description": "subjects",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CurriculumList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSubject",
+        "tags": ["groups"],
+        "description": "Owner only. Added at the end; Arabic names are unique (CURRICULUM_NAME_TAKEN).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCurriculumRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumEntry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subjects/{id}": {
+      "patch": {
+        "operationId": "updateSubject",
+        "tags": ["groups"],
+        "description": "Owner only. Rename, archive or restore.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurriculumRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumEntry"
                 }
               }
             }
@@ -883,7 +982,8 @@
     "/api/v1/grade-levels": {
       "get": {
         "operationId": "listGradeLevels",
-        "tags": ["curriculum"],
+        "tags": ["groups"],
+        "description": "Every staff role. The grade levels of the active workspace in list order, archived ones included.",
         "security": [
           {
             "bearer": []
@@ -891,11 +991,109 @@
         ],
         "responses": {
           "200": {
-            "description": "Grade levels of the active workspace",
+            "description": "grade levels",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CurriculumList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createGradeLevel",
+        "tags": ["groups"],
+        "description": "Owner only. Added at the end; Arabic names are unique (CURRICULUM_NAME_TAKEN).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCurriculumRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumEntry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grade-levels/{id}": {
+      "patch": {
+        "operationId": "updateGradeLevel",
+        "tags": ["groups"],
+        "description": "Owner only. Rename, archive or restore.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurriculumRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumEntry"
                 }
               }
             }
@@ -3521,6 +3719,41 @@
         },
         "required": ["teacherMembershipIds"]
       },
+      "CreateCurriculumRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "nameEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          }
+        },
+        "required": ["nameAr"]
+      },
+      "UpdateCurriculumRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "nameEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "archived"]
+          }
+        }
+      },
       "CreateRoomRequest": {
         "type": "object",
         "properties": {
@@ -4206,6 +4439,8 @@
           "ROOM_NOT_FOUND",
           "ROOM_NAME_TAKEN",
           "ROOM_BOOKED",
+          "CURRICULUM_ITEM_NOT_FOUND",
+          "CURRICULUM_NAME_TAKEN",
           "GROUP_REFERENCE_INVALID",
           "SESSION_NOT_FOUND",
           "SESSION_NOT_SCHEDULED",
@@ -4674,8 +4909,30 @@
       "CurriculumList": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/CurriculumItem"
+          "$ref": "#/components/schemas/CurriculumEntry"
         }
+      },
+      "CurriculumEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "archived"]
+          }
+        },
+        "required": ["id", "nameAr", "nameEn", "status"],
+        "additionalProperties": false
       },
       "RoomList": {
         "type": "array",

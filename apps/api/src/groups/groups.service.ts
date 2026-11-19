@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { CreateGroupRequest, Group, UpdateGroupRequest } from '@dafter/contracts';
-import { gradeLevels, subjects } from '@dafter/db';
 import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';
 import type { TenantedRequest } from '../workspaces/tenant.guard.js';
@@ -18,14 +17,6 @@ export class GroupsService {
     @Inject(GroupsRepository) private readonly repo: GroupsRepository,
     @Inject(Clock) private readonly clock: Clock,
   ) {}
-
-  subjects(ctx: Ctx) {
-    return this.repo.curriculum(ctx.workspaceId, subjects);
-  }
-
-  gradeLevels(ctx: Ctx) {
-    return this.repo.curriculum(ctx.workspaceId, gradeLevels);
-  }
 
   async list(ctx: Ctx): Promise<Group[]> {
     return this.repo.list(ctx.workspaceId, await this.visibleTeachers(ctx));
@@ -76,10 +67,12 @@ export class GroupsService {
       ctx.role !== 'owner'
     )
       throw new AppError('FORBIDDEN');
-    // An archived room may stay on its group; only a newly picked room must be active.
+    // An archived room, subject or grade may stay on its group; only a newly picked one must be active.
     await this.checkReferences(ctx, {
       ...patch,
       roomId: patch.roomId === group.room?.id ? undefined : patch.roomId,
+      subjectId: patch.subjectId === group.subject.id ? undefined : patch.subjectId,
+      gradeLevelId: patch.gradeLevelId === group.gradeLevel.id ? undefined : patch.gradeLevelId,
     });
     await this.repo.update(ctx.workspaceId, id, patch, slots, this.clock.now(), force);
     return this.get(ctx, id);

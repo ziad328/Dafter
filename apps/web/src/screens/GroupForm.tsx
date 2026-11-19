@@ -62,8 +62,13 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
   const lang = i18n.language;
   const navigate = useNavigate();
   const isOwner = useGetCurrentWorkspaceQuery().data?.role === 'owner';
-  const subjects = useListSubjectsQuery();
-  const grades = useListGradeLevelsQuery();
+  // Active subjects and grades, and the group's own even if archived since.
+  const subjects = (useListSubjectsQuery().data ?? []).filter(
+    (s) => s.status === 'active' || s.id === group?.subject.id,
+  );
+  const grades = (useListGradeLevelsQuery().data ?? []).filter(
+    (g) => g.status === 'active' || g.id === group?.gradeLevel.id,
+  );
   const members = useListMembersQuery(undefined, { skip: !isOwner });
   // Active rooms, and the group's own room even if it was archived since.
   const rooms = (useListRoomsQuery().data ?? []).filter(
@@ -152,7 +157,7 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
               {...register('subjectId')}
             >
               <option value="">{t('form.choose')}</option>
-              {subjects.data?.map((s) => (
+              {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {itemName(s, lang)}
                 </option>
@@ -164,7 +169,7 @@ function GroupFormBody({ id, group }: { id?: string; group?: Group }) {
               {...register('gradeLevelId')}
             >
               <option value="">{t('form.choose')}</option>
-              {grades.data?.map((g) => (
+              {grades.map((g) => (
                 <option key={g.id} value={g.id}>
                   {itemName(g, lang)}
                 </option>

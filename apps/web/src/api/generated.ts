@@ -6,7 +6,6 @@ export const addTagTypes = [
   'workspaces',
   'members',
   'groups',
-  'curriculum',
   'exams',
   'sessions',
   'attendance',
@@ -154,11 +153,43 @@ const injectedRtkApi = api
       }),
       listSubjects: build.query<ListSubjectsApiResponse, ListSubjectsApiArg>({
         query: () => ({ url: `/api/v1/subjects` }),
-        providesTags: ['curriculum'],
+        providesTags: ['groups'],
+      }),
+      createSubject: build.mutation<CreateSubjectApiResponse, CreateSubjectApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/subjects`,
+          method: 'POST',
+          body: queryArg.createCurriculumRequest,
+        }),
+        invalidatesTags: ['groups'],
+      }),
+      updateSubject: build.mutation<UpdateSubjectApiResponse, UpdateSubjectApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/subjects/${queryArg.id}`,
+          method: 'PATCH',
+          body: queryArg.updateCurriculumRequest,
+        }),
+        invalidatesTags: ['groups'],
       }),
       listGradeLevels: build.query<ListGradeLevelsApiResponse, ListGradeLevelsApiArg>({
         query: () => ({ url: `/api/v1/grade-levels` }),
-        providesTags: ['curriculum'],
+        providesTags: ['groups'],
+      }),
+      createGradeLevel: build.mutation<CreateGradeLevelApiResponse, CreateGradeLevelApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/grade-levels`,
+          method: 'POST',
+          body: queryArg.createCurriculumRequest,
+        }),
+        invalidatesTags: ['groups'],
+      }),
+      updateGradeLevel: build.mutation<UpdateGradeLevelApiResponse, UpdateGradeLevelApiArg>({
+        query: (queryArg) => ({
+          url: `/api/v1/grade-levels/${queryArg.id}`,
+          method: 'PATCH',
+          body: queryArg.updateCurriculumRequest,
+        }),
+        invalidatesTags: ['groups'],
       }),
       listRooms: build.query<ListRoomsApiResponse, ListRoomsApiArg>({
         query: () => ({ url: `/api/v1/rooms` }),
@@ -601,12 +632,28 @@ export type SetAssistantScopesApiArg = {
   id: string;
   setScopesRequest: SetScopesRequest;
 };
-export type ListSubjectsApiResponse =
-  /** status 200 Subjects of the active workspace */ CurriculumList;
+export type ListSubjectsApiResponse = /** status 200 subjects */ CurriculumList;
 export type ListSubjectsApiArg = void;
-export type ListGradeLevelsApiResponse =
-  /** status 200 Grade levels of the active workspace */ CurriculumList;
+export type CreateSubjectApiResponse = /** status 201 Created */ CurriculumEntry;
+export type CreateSubjectApiArg = {
+  createCurriculumRequest: CreateCurriculumRequest;
+};
+export type UpdateSubjectApiResponse = /** status 200 Updated */ CurriculumEntry;
+export type UpdateSubjectApiArg = {
+  id: string;
+  updateCurriculumRequest: UpdateCurriculumRequest;
+};
+export type ListGradeLevelsApiResponse = /** status 200 grade levels */ CurriculumList;
 export type ListGradeLevelsApiArg = void;
+export type CreateGradeLevelApiResponse = /** status 201 Created */ CurriculumEntry;
+export type CreateGradeLevelApiArg = {
+  createCurriculumRequest: CreateCurriculumRequest;
+};
+export type UpdateGradeLevelApiResponse = /** status 200 Updated */ CurriculumEntry;
+export type UpdateGradeLevelApiArg = {
+  id: string;
+  updateCurriculumRequest: UpdateCurriculumRequest;
+};
 export type ListRoomsApiResponse = /** status 200 Rooms */ RoomList;
 export type ListRoomsApiArg = void;
 export type CreateRoomApiResponse = /** status 201 Created */ Room;
@@ -853,6 +900,8 @@ export type ErrorCode =
   | 'ROOM_NOT_FOUND'
   | 'ROOM_NAME_TAKEN'
   | 'ROOM_BOOKED'
+  | 'CURRICULUM_ITEM_NOT_FOUND'
+  | 'CURRICULUM_NAME_TAKEN'
   | 'GROUP_REFERENCE_INVALID'
   | 'SESSION_NOT_FOUND'
   | 'SESSION_NOT_SCHEDULED'
@@ -1028,7 +1077,22 @@ export type UpdateMemberRequest = {
 export type SetScopesRequest = {
   teacherMembershipIds: string[];
 };
-export type CurriculumList = CurriculumItem[];
+export type CurriculumEntry = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  status: 'active' | 'archived';
+};
+export type CurriculumList = CurriculumEntry[];
+export type CreateCurriculumRequest = {
+  nameAr: string;
+  nameEn?: string;
+};
+export type UpdateCurriculumRequest = {
+  nameAr?: string;
+  nameEn?: string;
+  status?: 'active' | 'archived';
+};
 export type Room = {
   id: string;
   name: string;
@@ -1501,7 +1565,11 @@ export const {
   useUpdateMemberMutation,
   useSetAssistantScopesMutation,
   useListSubjectsQuery,
+  useCreateSubjectMutation,
+  useUpdateSubjectMutation,
   useListGradeLevelsQuery,
+  useCreateGradeLevelMutation,
+  useUpdateGradeLevelMutation,
   useListRoomsQuery,
   useCreateRoomMutation,
   useUpdateRoomMutation,

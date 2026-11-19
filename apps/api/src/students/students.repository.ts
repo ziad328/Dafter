@@ -50,12 +50,19 @@ export type StudentFilters = { groupId?: string; gradeLevelId?: string; owes?: b
 
 @Injectable()
 export class StudentsRepository extends TenantRepository {
-  async gradeExists(workspaceId: string, id: string) {
+  /** The grade is in this workspace and not archived. */
+  async gradeActive(workspaceId: string, id: string) {
     const rows = await this.inTenant(workspaceId, (tx) =>
       tx
         .select({ id: gradeLevels.id })
         .from(gradeLevels)
-        .where(and(eq(gradeLevels.workspaceId, workspaceId), eq(gradeLevels.id, id))),
+        .where(
+          and(
+            eq(gradeLevels.workspaceId, workspaceId),
+            eq(gradeLevels.id, id),
+            eq(gradeLevels.status, 'active'),
+          ),
+        ),
     );
     return rows.length > 0;
   }

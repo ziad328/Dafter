@@ -86,6 +86,7 @@ export function Breadcrumbs() {
       '/cash-summary': t('nav.cashSummary'),
       '/dashboard': t('nav.dashboard'),
       '/rooms': t('nav.rooms'),
+      '/curriculum': t('nav.curriculum'),
       '/settings': t('nav.settings'),
       '/dev/phone': t('nav.phone'),
     };

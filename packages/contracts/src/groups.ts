@@ -5,7 +5,34 @@ export const curriculumItem = z
   .object({ id: z.uuid(), nameAr: z.string(), nameEn: z.string() })
   .meta({ id: 'CurriculumItem' });
 
-export const curriculumList = z.array(curriculumItem).meta({ id: 'CurriculumList' });
+/** A subject or grade level in the workspace's own curriculum, with whether it can still be picked. */
+export const curriculumEntry = z
+  .object({
+    id: z.uuid(),
+    nameAr: z.string(),
+    nameEn: z.string(),
+    status: z.enum(['active', 'archived']),
+  })
+  .meta({ id: 'CurriculumEntry' });
+
+export const curriculumList = z.array(curriculumEntry).meta({ id: 'CurriculumList' });
+
+const curriculumName = z.string().trim().min(1).max(60);
+
+/** A new subject or grade level goes to the end of the list; the English name defaults to the Arabic. */
+export const createCurriculumRequest = z
+  .object({ nameAr: curriculumName, nameEn: curriculumName.optional() })
+  .meta({ id: 'CreateCurriculumRequest' });
+
+/** An archived item stays on the groups and students that use it, but can't be picked again. */
+export const updateCurriculumRequest = z
+  .object({
+    nameAr: curriculumName,
+    nameEn: curriculumName,
+    status: z.enum(['active', 'archived']),
+  })
+  .partial()
+  .meta({ id: 'UpdateCurriculumRequest' });
 
 /** Local wall-clock time in the workspace timezone, "HH:MM". */
 export const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -101,6 +128,9 @@ export const group = z
 export const groupList = z.array(group).meta({ id: 'GroupList' });
 
 export type CurriculumItem = z.infer<typeof curriculumItem>;
+export type CurriculumEntry = z.infer<typeof curriculumEntry>;
+export type CreateCurriculumRequest = z.infer<typeof createCurriculumRequest>;
+export type UpdateCurriculumRequest = z.infer<typeof updateCurriculumRequest>;
 export type GroupSlot = z.infer<typeof groupSlot>;
 export type CreateGroupRequest = z.infer<typeof createGroupRequest>;
 export type UpdateGroupRequest = z.infer<typeof updateGroupRequest>;

@@ -221,6 +221,8 @@
     "EXAM_NOT_GRADED": "Enter the scores first.",
     "ROOM_NOT_FOUND": "Room not found.",
     "ROOM_NAME_TAKEN": "A room with this name already exists.",
+    "CURRICULUM_ITEM_NOT_FOUND": "Subject or grade not found.",
+    "CURRICULUM_NAME_TAKEN": "One with this name already exists.",
     "ROOM_BOOKED": "The room is taken at that time.",
     "TEMPLATE_PLACEHOLDER_UNKNOWN": "That part isn’t available for this message.",
     "GROUP_FULL": "The group is full.",
@@ -596,6 +598,7 @@
     "dashboard": "Dashboard",
     "cashSummary": "Cash summary",
     "rooms": "Rooms",
+    "curriculum": "Subjects and grades",
     "settings": "Settings",
     "sections": {
       "daily": "Daily",
@@ -725,6 +728,26 @@
     "noCapacity": "No set capacity",
     "invalid": "Type a room name; capacity is a number from 1 to 1000",
     "seats": "{count, plural, one {# seat} other {# seats}}",
+    "actions": "{name} options"
+  },
+  "curriculum": {
+    "title": "Subjects and grades",
+    "subjects": "Subjects",
+    "grades": "Grades",
+    "hint": "Archived ones stay on the groups and students that use them, but can't be picked.",
+    "emptySubjects": "No subjects yet",
+    "emptyGrades": "No grades yet",
+    "addSubject": "Add subject",
+    "addGrade": "Add grade",
+    "nameAr": "Arabic name",
+    "nameEn": "English name",
+    "nameEnHint": "Left empty, the Arabic name is used.",
+    "invalid": "Type the Arabic name (60 characters at most)",
+    "save": "Save",
+    "edit": "Edit",
+    "archive": "Archive",
+    "restore": "Restore",
+    "archived": "Archived",
     "actions": "{name} options"
   },
   "settings": {

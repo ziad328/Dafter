@@ -63,7 +63,9 @@ export class StudentsService {
 
   async update(ctx: Ctx, id: string, body: UpdateStudentRequest): Promise<Student> {
     const current = await this.get(ctx, id);
-    if (body.gradeLevelId) await this.checkGrade(ctx, body.gradeLevelId);
+    // An archived grade may stay on the student; only a newly picked one must be active.
+    if (body.gradeLevelId && body.gradeLevelId !== current.gradeLevel.id)
+      await this.checkGrade(ctx, body.gradeLevelId);
     const { guardian, ...patch } = body;
     const search = nameSearch(
       patch.nameAr ?? current.nameAr,
@@ -133,7 +135,7 @@ export class StudentsService {
   }
 
   private async checkGrade(ctx: Ctx, gradeLevelId: string) {
-    if (!(await this.repo.gradeExists(ctx.workspaceId, gradeLevelId)))
+    if (!(await this.repo.gradeActive(ctx.workspaceId, gradeLevelId)))
       throw new AppError('STUDENT_REFERENCE_INVALID', { field: 'gradeLevelId' });
   }
 }

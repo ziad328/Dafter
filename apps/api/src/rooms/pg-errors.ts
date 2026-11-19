@@ -13,9 +13,17 @@ export const roomBooked = (err: unknown) =>
 export const roomNameTaken = (err: unknown) =>
   rethrow(err, '23505', 'rooms_workspace_name_key', 'ROOM_NAME_TAKEN');
 
-function rethrow(err: unknown, code: string, constraint: string, as: ErrorCode): never {
+/** A second subject or grade level with the same Arabic name in the workspace. */
+export const curriculumNameTaken = (err: unknown) =>
+  rethrow(err, '23505', /^(subjects|grade_levels)_workspace_name_ar_key$/, 'CURRICULUM_NAME_TAKEN');
+
+function rethrow(err: unknown, code: string, constraint: string | RegExp, as: ErrorCode): never {
   // Drizzle wraps the pg error in `cause`.
   const pg = ((err as { cause?: unknown }).cause ?? err) as { code?: string; constraint?: string };
-  if (pg.code === code && pg.constraint === constraint) throw new AppError(as);
+  const matches =
+    typeof constraint === 'string'
+      ? pg.constraint === constraint
+      : constraint.test(pg.constraint ?? '');
+  if (pg.code === code && matches) throw new AppError(as);
   throw err;
 }

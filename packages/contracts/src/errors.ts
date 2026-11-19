@@ -39,7 +39,12 @@ export const ERROR_STATUS = {
   // The room is taken at that time. From a group's slots: details give the clashing weekday,
   // startTime and endTime (local). From a move or a race: no details.
   ROOM_BOOKED: 409,
-  // A subject, grade level or teacher that is not in this workspace (details.field names it).
+  // Unknown id or another workspace's subject or grade level: never 403.
+  CURRICULUM_ITEM_NOT_FOUND: 404,
+  // A second subject (or grade level) with the same Arabic name in the workspace.
+  CURRICULUM_NAME_TAKEN: 409,
+  // A subject, grade level or teacher that is not in this workspace, or a newly picked subject or
+  // grade level that is archived (details.field names it).
   GROUP_REFERENCE_INVALID: 400,
   // Unknown id, another workspace's session, or outside the caller's scope: never 403.
   SESSION_NOT_FOUND: 404,

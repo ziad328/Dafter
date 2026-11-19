@@ -120,6 +120,13 @@
       "when": 1794919577410,
       "tag": "0016_invite_sender_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795056491135,
+      "tag": "0017_curriculum_status",
+      "breakpoints": true
     }
   ]
 }

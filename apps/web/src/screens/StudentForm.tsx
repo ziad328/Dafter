@@ -190,7 +190,10 @@ function StudentFormBody({
 }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const grades = useListGradeLevelsQuery();
+  // Active grades, and the student's own even if archived since.
+  const grades = (useListGradeLevelsQuery().data ?? []).filter(
+    (g) => g.status === 'active' || g.id === student?.gradeLevel.id,
+  );
   const [create, created] = useCreateStudentMutation();
   const [update, updated] = useUpdateStudentMutation();
   // New students only: register and put them in a group with one submit.
@@ -312,7 +315,7 @@ function StudentFormBody({
               value={watch('gradeLevelId') ?? ''}
             >
               <option value="">{t('form.choose')}</option>
-              {grades.data?.map((g) => (
+              {grades.map((g) => (
                 <option key={g.id} value={g.id}>
                   {itemName(g, i18n.language)}
                 </option>

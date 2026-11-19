@@ -267,8 +267,28 @@ export const handlers = [
     api('members/:id/scopes'),
     log((_r, p) => fx.members.find((m) => m.id === p.id)!),
   ),
-  http.get(api('subjects'), log(fx.subjects)),
-  http.get(api('grade-levels'), log(fx.gradeLevels)),
+  // Captured before curriculum items had a status: every one is active.
+  http.get(api('subjects'), log(fx.subjects.map((s) => ({ ...s, status: 'active' })))),
+  http.get(api('grade-levels'), log(fx.gradeLevels.map((g) => ({ ...g, status: 'active' })))),
+  ...(['subjects', 'grade-levels'] as const).flatMap((path) => [
+    http.post(
+      api(path),
+      log(async (req) => {
+        const body = (await req.json()) as { nameAr: string; nameEn?: string };
+        return { id: crypto.randomUUID(), nameEn: body.nameAr, status: 'active', ...body };
+      }, 201),
+    ),
+    http.patch(
+      api(`${path}/:id`),
+      log(async (req, params) => ({
+        id: params.id,
+        nameAr: 'مادة',
+        nameEn: 'Subject',
+        status: 'active',
+        ...((await req.json()) as object),
+      })),
+    ),
+  ]),
   // The default wording for every trigger, no custom text.
   http.get(
     api('message-templates'),

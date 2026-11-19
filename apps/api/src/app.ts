@@ -9,6 +9,7 @@ import { AttendanceModule } from './attendance/attendance.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ExamsModule } from './exams/exams.module.js';
 import { GroupsModule } from './groups/groups.module.js';
+import { CurriculumModule } from './curriculum/curriculum.controller.js';
 import { RoomsModule } from './rooms/rooms.controller.js';
 import { MeModule } from './me/me.module.js';
 import { JobsModule } from './jobs/tick.controller.js';
@@ -41,6 +42,7 @@ class HealthController {
   imports: [
     AuthModule,
     WorkspacesModule,
+    CurriculumModule,
     RoomsModule,
     MembersModule,
     GroupsModule,

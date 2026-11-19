@@ -42,16 +42,6 @@ const item = (t: typeof subject | typeof grade) => ({
 
 @Injectable()
 export class GroupsRepository extends TenantRepository {
-  curriculum(workspaceId: string, table: typeof subjects | typeof gradeLevels) {
-    return this.inTenant(workspaceId, (tx) =>
-      tx
-        .select({ id: table.id, nameAr: table.nameAr, nameEn: table.nameEn })
-        .from(table)
-        .where(eq(table.workspaceId, workspaceId))
-        .orderBy(asc(table.sortOrder)),
-    );
-  }
-
   /** The teachers whose groups an assistant works on. */
   async scopedTeachers(workspaceId: string, assistantMembershipId: string) {
     const rows = await this.inTenant(workspaceId, (tx) =>
@@ -103,13 +93,13 @@ export class GroupsRepository extends TenantRepository {
         : [];
       const [subjectRow] = s
         ? await tx
-            .select({ id: subjects.id })
+            .select({ status: subjects.status })
             .from(subjects)
             .where(and(eq(subjects.workspaceId, workspaceId), eq(subjects.id, s)))
         : [];
       const [gradeRow] = g
         ? await tx
-            .select({ id: gradeLevels.id })
+            .select({ status: gradeLevels.status })
             .from(gradeLevels)
             .where(and(eq(gradeLevels.workspaceId, workspaceId), eq(gradeLevels.id, g)))
         : [];
@@ -123,8 +113,9 @@ export class GroupsRepository extends TenantRepository {
         teacherRole: teacher?.role as Role | undefined,
         // Only an active room can be picked.
         room: roomRow?.status === 'active',
-        subject: !!subjectRow,
-        gradeLevel: !!gradeRow,
+        // Only an active subject or grade can be picked.
+        subject: subjectRow?.status === 'active',
+        gradeLevel: gradeRow?.status === 'active',
       };
     });
   }

@@ -221,6 +221,8 @@
     "EXAM_NOT_GRADED": "سجّل الدرجات أولًا.",
     "ROOM_NOT_FOUND": "القاعة غير موجودة.",
     "ROOM_NAME_TAKEN": "يوجد قاعة بنفس الاسم.",
+    "CURRICULUM_ITEM_NOT_FOUND": "المادة أو الصف غير موجود.",
+    "CURRICULUM_NAME_TAKEN": "يوجد واحد بنفس الاسم.",
     "ROOM_BOOKED": "القاعة محجوزة في هذا الوقت.",
     "TEMPLATE_PLACEHOLDER_UNKNOWN": "هذا الجزء غير متاح لهذه الرسالة.",
     "GROUP_FULL": "المجموعة مكتملة.",
@@ -596,6 +598,7 @@
     "dashboard": "لوحة المتابعة",
     "cashSummary": "ملخص اليوم",
     "rooms": "القاعات",
+    "curriculum": "المواد والصفوف",
     "settings": "الإعدادات",
     "sections": {
       "daily": "اليومي",
@@ -725,6 +728,26 @@
     "noCapacity": "بدون سعة محددة",
     "invalid": "اكتب اسم القاعة، والسعة رقم من 1 إلى 1000",
     "seats": "{count, plural, one {مقعد واحد} two {مقعدان} few {# مقاعد} many {# مقعدًا} other {# مقعد}}",
+    "actions": "خيارات {name}"
+  },
+  "curriculum": {
+    "title": "المواد والصفوف",
+    "subjects": "المواد",
+    "grades": "الصفوف",
+    "hint": "المؤرشف يبقى على المجموعات والطلاب المسجّلين عليه، لكن لا يظهر عند الاختيار.",
+    "emptySubjects": "لا توجد مواد بعد",
+    "emptyGrades": "لا توجد صفوف بعد",
+    "addSubject": "إضافة مادة",
+    "addGrade": "إضافة صف",
+    "nameAr": "الاسم بالعربي",
+    "nameEn": "الاسم بالإنجليزي",
+    "nameEnHint": "إن تركته فارغًا يُستخدم الاسم العربي.",
+    "invalid": "اكتب الاسم بالعربي (60 حرفًا على الأكثر)",
+    "save": "حفظ",
+    "edit": "تعديل",
+    "archive": "أرشفة",
+    "restore": "استرجاع",
+    "archived": "مؤرشف",
     "actions": "خيارات {name}"
   },
   "settings": {

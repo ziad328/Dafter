@@ -16,6 +16,7 @@ import {
   HandCoins,
   Languages,
   DoorOpen,
+  BookOpen,
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { Suspense } from 'react';
@@ -37,7 +38,7 @@ type Item = { to: string; label: string; icon: LucideIcon; end?: boolean; sectio
 
 /**
  * The staff navigation for the current role; the phone tabs keep the first four plus "More".
- * Setup screens only the owner can change (rooms, staff, settings) are the owner's, and an
+ * Setup screens only the owner can change (rooms, staff, curriculum, settings) are the owner's, and an
  * independent teacher has no rooms or staff to manage (audit 3 N2); the URLs still work.
  */
 export function useNavItems() {
@@ -68,6 +69,12 @@ export function useNavItems() {
       : []),
     ...(owner
       ? [
+          {
+            to: '/curriculum',
+            label: t('nav.curriculum'),
+            icon: BookOpen,
+            section: 'admin' as const,
+          },
           {
             to: '/settings',
             label: t('nav.settings'),

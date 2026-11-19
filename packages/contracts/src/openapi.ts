@@ -11,7 +11,10 @@ import {
 import { errorResponse } from './errors.js';
 import {
   createGroupRequest,
+  createCurriculumRequest,
+  curriculumEntry,
   curriculumList,
+  updateCurriculumRequest,
   group,
   groupList,
   updateGroupRequest,
@@ -107,14 +110,38 @@ const authPost = (operationId: string, body?: unknown, status = 200) => ({
   },
 });
 
-const curriculumGet = (operationId: string, description: string) => ({
-  get: {
-    operationId,
-    tags: ['curriculum'],
-    security: [{ bearer: [] }],
-    responses: { 200: { description, content: json(curriculumList) }, ...errors },
+const curriculumPaths = (kind: 'Subject' | 'GradeLevel', plural: string) => ({
+  list: {
+    get: {
+      operationId: `list${kind}s`,
+      tags: ['groups'],
+      description: `Every staff role. The ${plural} of the active workspace in list order, archived ones included.`,
+      security: [{ bearer: [] }],
+      responses: { 200: { description: plural, content: json(curriculumList) }, ...errors },
+    },
+    post: {
+      operationId: `create${kind}`,
+      tags: ['groups'],
+      description: 'Owner only. Added at the end; Arabic names are unique (CURRICULUM_NAME_TAKEN).',
+      security: [{ bearer: [] }],
+      requestBody: { required: true, content: json(createCurriculumRequest) },
+      responses: { 201: { description: 'Created', content: json(curriculumEntry) }, ...errors },
+    },
+  },
+  item: {
+    patch: {
+      operationId: `update${kind}`,
+      tags: ['groups'],
+      description: 'Owner only. Rename, archive or restore.',
+      security: [{ bearer: [] }],
+      requestParams: { path: z.object({ id: z.uuid() }) },
+      requestBody: { required: true, content: json(updateCurriculumRequest) },
+      responses: { 200: { description: 'Updated', content: json(curriculumEntry) }, ...errors },
+    },
   },
 });
+const subjectPaths = curriculumPaths('Subject', 'subjects');
+const gradePaths = curriculumPaths('GradeLevel', 'grade levels');
 
 /** The OpenAPI document; paths are added here as each endpoint's contract is written. */
 export function buildOpenApi() {
@@ -344,11 +371,10 @@ export function buildOpenApi() {
           responses: { 204: { description: 'Scopes replaced' }, ...errors },
         },
       },
-      '/api/v1/subjects': curriculumGet('listSubjects', 'Subjects of the active workspace'),
-      '/api/v1/grade-levels': curriculumGet(
-        'listGradeLevels',
-        'Grade levels of the active workspace',
-      ),
+      '/api/v1/subjects': subjectPaths.list,
+      '/api/v1/subjects/{id}': subjectPaths.item,
+      '/api/v1/grade-levels': gradePaths.list,
+      '/api/v1/grade-levels/{id}': gradePaths.item,
       '/api/v1/rooms': {
         get: {
           operationId: 'listRooms',

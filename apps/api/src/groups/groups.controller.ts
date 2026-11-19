@@ -3,7 +3,6 @@ import * as z from 'zod';
 import {
   type CreateGroupRequest,
   createGroupRequest,
-  type CurriculumItem,
   type Group,
   type UpdateGroupRequest,
   updateGroupRequest,
@@ -13,22 +12,6 @@ import { AuthGuard } from '../auth/auth.guard.js';
 import { TenantGuard, type TenantedRequest } from '../workspaces/tenant.guard.js';
 import { ZodPipe } from '../zod-pipe.js';
 import { GroupsService } from './groups.service.js';
-
-@Controller()
-@UseGuards(AuthGuard, TenantGuard)
-export class CurriculumController {
-  constructor(@Inject(GroupsService) private readonly groups: GroupsService) {}
-
-  @Get('subjects')
-  subjects(@Req() req: TenantedRequest): Promise<CurriculumItem[]> {
-    return this.groups.subjects(req);
-  }
-
-  @Get('grade-levels')
-  gradeLevels(@Req() req: TenantedRequest): Promise<CurriculumItem[]> {
-    return this.groups.gradeLevels(req);
-  }
-}
 
 @Controller('groups')
 @UseGuards(AuthGuard, TenantGuard)
