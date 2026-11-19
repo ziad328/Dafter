@@ -18,7 +18,7 @@ One file for the state of the project. **Next** comes first: the backlog, every 
 Written Nov 19. Everything that doesn't need the client goes first, in five batches (one session each, run one after another on `main`; nothing is pushed until all five are done). Numbers are the backlog's. Tick a batch here and log it in Done.
 
 - [x] **A · Small fixes** (done Nov 19; #27 stays in the backlog, see its row): #13 "save anyway" on session moves · #23 lock on `PUT /members/:id/scopes` · #25 one token-creation helper · #27 audit row in the same transaction on routes outside a workspace · #22 two tabs refreshing at once don't sign out (grace window) · #36 e2e groups without `force` · #37 drop cloned test databases · #38 `@dafter/i18n` loads in Node ESM · #39 `run-dafter` screenshots can sign in · reorder subjects and grades.
-- [ ] **B · Students and groups:** #9 more than one guardian in the UI · #16 "primary guardian only" per student · #12 move one session to another room · #14 dashboard: archived groups and a custom date range.
+- [x] **B · Students and groups** (done Nov 19, migration 0018 not on Neon yet): #9 more than one guardian in the UI · #16 "primary guardian only" per student · #12 move one session to another room · #14 dashboard: archived groups and a custom date range.
 - [ ] **C · Money that doesn't wait on the interview:** #4 nightly balance check · #5 students see their own balance · #6 cash summary by person and date range · #7 (first half) a per-center start day for fee reminders · #15 exam scores: CSV export, then import.
 - [ ] **D · Messages (*hard part: outbox*):** #17 a late "absent" for a second child reaches the parent · #18 SMS length counter on the wording editor · #21 batch the send-time re-check by session.
 - [ ] **E · Scale and PWA:** #11 cursor pagination (groups, students, message log) · #32 daily jobs batched per workspace · #33 offline screen in the PWA.
@@ -61,17 +61,17 @@ Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, 
 ### Groups, students, curriculum
 
 8. ~~Editing the curriculum (subjects, grade levels).~~ Done Nov 19: `/curriculum` (owner adds, renames, archives). _(done)_
-9. More than one guardian per student in the UI. _(centers)_
+9. ~~More than one guardian per student in the UI.~~ Done Nov 19: up to 3 more parents on the student form. _(done)_
 10. Decide whether teachers see every student in the center. _(centers)_
 11. Cursor pagination: groups and students (first 50) and the message log (first 100). _(later)_
-12. Moving one session to another room. _(later)_
+12. ~~Moving one session to another room.~~ Done Nov 19: a room picker in the timetable's move sheet. _(done)_
 13. ~~Session moves have no "save anyway", so two groups forced into the same time block each other's moves.~~ Done Nov 19: `force` on `PATCH /sessions/:id`, «انقل على أي حال». _(done)_
-14. Dashboard: archived groups are left out; no custom date range. _(later)_
+14. ~~Dashboard: archived groups are left out; no custom date range.~~ Done Nov 19: «فترة أخرى» dates and an «include archived groups» switch. _(done)_
 15. Exam scores: CSV export, then import. _(centers)_
 
 ### Messages
 
-16. "Primary guardian only" per student, not one switch for the whole center. _(later)_
+16. ~~"Primary guardian only" per student, not one switch for the whole center.~~ Done Nov 19: a checkbox on the student form. _(done)_
 17. A late "absent" for a second child texts nothing when the guardian already got that session's message. _(later)_
 18. An SMS length counter on the wording editor (one Arabic SMS is 70 characters). _(later)_
 19. The outbox id as the provider's idempotency key, so a crash can't resend a text. _(later)_
@@ -148,7 +148,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Limit | Impact | Fix by |
 |:--|:--|:--|
 | Rooms: a session generated at a time a moved session already holds in the room gets no room (shown without one) instead of failing | The owner fixes that one session by hand | — |
-| Rooms: a session can't be moved to another room on its own; only the group's room changes (for its future sessions) | A one-off room swap means moving the group | later |
+| Rooms: changing a group's room moves all its future scheduled sessions, including one put in another room by hand | Pick that session's room again after a group room change | — |
 | Rooms: a group above the room's seats gets a warning on the form, not an error | The owner decides | — |
 | Rooms work in independent workspaces too (the data model said centers only) | Harmless; the screen sits under More for everyone | — |
 | Curriculum: a new subject or grade goes to the end; the owner moves it with up/down, one step at a time | Many taps for a long move | — |
@@ -159,7 +159,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | `GET /groups/:id/sessions` not built | Not needed by the timetable | later |
 | No cursor pagination (groups, students: first 50) | Big centers can't see everyone | later |
 | Teachers see every student in the workspace | Privacy choice not settled | centers |
-| The UI handles one guardian per student (the API allows more) | Second parent needs the API | centers |
+| Up to 4 parents per student (a primary and 3 more); the form sends the whole list | Enough for real families | — |
 
 ### Attendance and student app
 
@@ -190,8 +190,8 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 |:--|:--|:--|
 | No CSV import or export of exam scores | Big groups are typed by hand | centers (export first, import later) |
 | A corrected score resends the same sentence with «تصحيح:» only | Parents don't see the old score | — |
-| Dashboard: 8, 13 or 26 weeks; money is always the last 6 months; no free date range | No custom term dates | later |
-| Dashboard: archived groups are left out | Last term's groups disappear | later (include them with a filter) |
+| Dashboard: a custom range is counted in whole Saturday weeks (exams and money keep the exact days and months); at most a year | A range starting mid-week shows that whole week's attendance | — |
+| Dashboard: archived groups show only with the switch, and only if they had a non-cancelled session in those weeks (archiving drops the future ones) | A group archived before it ever met never shows | — |
 | Dashboard bars are plain CSS, no chart library | No tooltips or axis | — |
 | The exam grid, "My grades", the dashboard and the fee-reminder switch were checked by the 375 px tests only | Not checked by eye on a real phone | centers |
 
@@ -200,7 +200,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Limit | Impact | Fix by |
 |:--|:--|:--|
 | `whatsapp_opt_in` is not checked | Fine with the console adapter; must be checked before WhatsApp | later (with WhatsApp) |
-| "Primary guardian only" is one switch for the whole center, not per student | A family that wants both parents texted can't have it while the switch is on | later |
+| "Primary guardian only" is per student (migration 0018 copied the old center switch onto every student); a parent shared by siblings is texted for the sibling that allows it | No center-wide default for new students: each is set by hand | — |
 | A late "absent" for a sibling whose guardian was already told about that session sends nothing (one message per guardian per session) | The second child's absence isn't texted | later |
 | "Absent" corrected to "present" after the message went out sends nothing (no apology text) | The parent keeps the wrong message | — |
 | A late "absent" on a session that ended more than 2 days ago texts nobody | Old fixes are record-keeping only | — |
@@ -428,3 +428,4 @@ Tick a task when done, with a one-line note (what was done, anything left). Spli
 - [x] **Audit 3 leftovers: invite sender and rate limits in PostgreSQL (Nov 17):** *Hard part (auth).* Note: done; migration `0016_invite_sender_rate_limits`. `invites.created_by_membership_id` (nullable, composite FK to `memberships (workspace_id, id)`) is written on create, and `GET /invites` returns `invitedBy` (the sender's name, null for older invites), shown as «أرسلها …» on the staff screen. Rate limits moved from process memory to a global `rate_limits` table (key, count, reset_at): `RateLimiter` keeps its rules but is async over a `RateLimitStore` (`PgRateLimitStore` in the app, `MemoryRateLimitStore` for hand-built unit tests); each hit is one upsert, and `take` only counts a key under its limit, so 20 parallel takes on a limit of 5 let exactly 5 through. Keys are prefixed with the limiter's name (`login`, `login-ip`, `register`, `reset`, `otp-email`, `otp-ip`, `invite-preview-ip`, `checkin-phone`, `checkin-session`); register and password-reset requests now use `take`. Times come from `Clock`. The daily job (`/internal/tick?daily=1` and the worker's `monthly-charges`) sweeps expired rows. Playwright's `global-setup.ts` clears the table before a local run, since counters now outlast `pnpm dev` (CI starts from a fresh database). Locally, a locked-out login no longer clears on restart: `pnpm db:reset`, or delete from `rate_limits`.
 - [x] **Curriculum editing (Nov 19), backlog #8:** Note: done; migration `0017_curriculum_status` (`status` active/archived on `subjects` and `grade_levels`, unique workspace + Arabic name). Contract: `CurriculumEntry` (with `status`) for the lists, `createCurriculumRequest` (`nameAr`, optional `nameEn` that defaults to the Arabic) and `updateCurriculumRequest` (rename, archive, restore); new codes `CURRICULUM_NAME_TAKEN` (409) and `CURRICULUM_ITEM_NOT_FOUND` (404); the routes are tagged `groups`, so a rename refreshes cached groups. API: a new `curriculum` module (`GET`/`POST /subjects`, `PATCH /subjects/:id`, the same for `/grade-levels`), owner only for writes; a new item goes to the end; a newly picked archived subject or grade is `GROUP_REFERENCE_INVALID` / `STUDENT_REFERENCE_INVALID`, while groups and students that already use it keep it on save. Web: `/curriculum` «المواد والصفوف» under More (owner): subjects and grades as two pills, rows with the other language's name, «⋯» for edit and archive/restore, a sheet to add; the group and student forms hide archived items except the one already chosen. Tests: 5 integration tests (both tables: CRUD, roles, duplicate, blank, 404, another center; archived on groups and students), 10 web specs, `curriculum.spec.ts` (ar/en, 375 px). Left: no reordering (see Known limits).
 - [x] **Batch A · Small fixes (Nov 19), backlog #13, #22, #23, #25, #36–#39 and curriculum order:** Note: done, no migration. `PATCH /sessions/:id` takes `force` (skips `TEACHER_BOOKED`; the room check stays) and the move form offers «انقل على أي حال» (`b4f8b41`). `PUT /members/:id/scopes` checks the member and the teachers and writes in one transaction after the active-owner lock that `PATCH /members/:id` takes, so a teacher removed at the same moment is never left in a scope (`1a3fe91`). `issueToken(now, ttlMs)` in `auth/tokens.ts` issues refresh tokens, staff invites, reset links and student invites (`d71f034`). *Hard part (auth):* a refresh token revoked less than 30 s ago whose family still has a live token gets a new token in the family instead of revoking it, so two tabs refreshing at once stay signed in; after logout or a detected reuse the family has no live token, so the window never reopens it (`93ff77d`, 3 interview questions). `@dafter/i18n` imports its JSON `with { type: 'json' }` and e2e imports the package (`c4c3456`). E2E: a shared `freshCenter(request, prefix, staff)` fixture (joins the seeded teacher and assistant when asked); every API-built group lives in one and none sends `force` (`cb13f5a`). Cloned test databases are dropped `WITH (FORCE)` on close; `run-dafter shot … --as owner [--workspace]` signs in first (`63e1e43`). `PUT /subjects/order` and `/grade-levels/order` (owner, the whole list, `CURRICULUM_ORDER_STALE` 409 when the ids are not exactly the list) and up/down buttons on `/curriculum` (`aecdb04`). Tests: integration tests (forced move, scope race with a removal, grace window inside/outside/after logout, reorder incl. stale/foreign/role), a harness drop test, 2 web specs, e2e «Move anyway» (`timetable.spec.ts`) and reorder (`curriculum.spec.ts`), ar/en at 375 px. Left: #27 stays (see Known limits); the dev API reads `@dafter/contracts` from `dist`, so a running `pnpm dev` needs a restart (or `pnpm --filter @dafter/contracts build`) after a contract change.
+- [x] **Batch B · Students and groups (Nov 19), backlog #9, #12, #14, #16:** Note: done; migration `0018_student_primary_guardian_only` (applied to dev, **not to Neon yet**: it goes with the push after batch E). #9: `extraGuardians` (up to 3) on `POST /students` and `PATCH /students/:id` replaces the non-primary links (left out, they stay); `GUARDIAN_DUPLICATE` / `GUARDIAN_REQUIRED` validation; the form adds, edits and removes them, the summary lists every parent (`d152766`). #16 *(hard part: outbox)*: `students.primary_guardian_only`, the migration copies each center's old `settings.messages.primaryOnly` onto its students; the outbox guardian filter reads the student's flag (no primary still means every guardian); the center switch left the contract and the settings page (an old page's key is dropped); a checkbox on the student form once there is a second parent (`d2170bd`). #12: `roomId` on `PATCH /sessions/:id` (null: no room; `ROOM_NOT_FOUND` for unknown or archived, `ROOM_BOOKED` stays); a room change alone skips the teacher check and texts nobody; a room picker in the move sheet (`7cd2f07`). #14: `GET /stats/trends?from&to&archived=true` (whole Saturday weeks, up to a year, money for the range's months; archived groups that met in those weeks, flagged `archived`); «فترة أخرى» with two dates (a wrong range keeps the last good one) and an «include archived groups» switch (`1c37fce`). Tests: integration (extras, duplicates, promotion; per-student primary only; room-only move, booked/archived/unknown rooms, no message; custom range, archived, validation), web specs, `batch-b.spec.ts` (ar/en, 375 px, fresh centers). Left: the e2e can't build a past session, so archived groups on the dashboard are covered by integration tests only; `nest start --watch` does not reload after a contracts build: restart `pnpm dev`.

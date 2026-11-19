@@ -10,6 +10,8 @@ import { normalizeArabic } from './normalize.js';
 import { buildOpenApi } from './openapi.js';
 import { OPENAPI_FILE, writeOpenApi } from './scripts/write-openapi.js';
 import { listSessionsQuery, moveSessionRequest } from './sessions.js';
+import { trendsQuery } from './stats.js';
+import { createStudentRequest, updateStudentRequest } from './students.js';
 import { createInviteRequest, updateMemberRequest } from './workspaces.js';
 
 describe('normalizeArabic (rule 6)', () => {
@@ -120,5 +122,55 @@ describe('schema rules', () => {
         moveSessionRequest.safeParse({ date: '2026-11-24', startTime: '18:00', endTime: '17:00' }),
       ),
     ).toContain('SLOT_ENDS_BEFORE_START');
+  });
+});
+
+describe('student parents', () => {
+  const parent = (phone: string) => ({
+    phone,
+    relation: 'mother',
+    preferredLocale: 'ar',
+    whatsappOptIn: true,
+  });
+  const issues = (r: { error?: { issues: { path: PropertyKey[]; message: string }[] } }) =>
+    r.error?.issues.map((i) => [i.path.join('.'), i.message]);
+
+  it('takes extra parents with the primary, never the same phone twice', () => {
+    const base = { nameAr: 'نور', gradeLevelId: '00000000-0000-4000-8000-000000000001' };
+    expect(
+      createStudentRequest.safeParse({
+        ...base,
+        guardian: parent('01200000001'),
+        extraGuardians: [parent('01200000002')],
+      }).success,
+    ).toBe(true);
+    expect(
+      issues(
+        createStudentRequest.safeParse({
+          ...base,
+          guardian: parent('01200000001'),
+          extraGuardians: [parent('01200000002'), parent('01200000001'), parent('01200000002')],
+        }),
+      ),
+    ).toEqual([
+      ['extraGuardians.1.phone', 'GUARDIAN_DUPLICATE'],
+      ['extraGuardians.2.phone', 'GUARDIAN_DUPLICATE'],
+    ]);
+    expect(
+      issues(updateStudentRequest.safeParse({ extraGuardians: [parent('01200000002')] })),
+    ).toEqual([['guardian', 'GUARDIAN_REQUIRED']]);
+    expect(updateStudentRequest.safeParse({ nameAr: 'نور' }).success).toBe(true);
+  });
+});
+
+describe('dashboard range', () => {
+  it('takes both dates or neither, in order, up to a year', () => {
+    const ok = (q: object) => trendsQuery.safeParse(q).success;
+    expect(ok({})).toBe(true);
+    expect(ok({ from: '2026-01-01', to: '2026-12-31', archived: 'true' })).toBe(true);
+    expect(ok({ from: '2026-01-01' })).toBe(false);
+    expect(ok({ to: '2026-01-01' })).toBe(false);
+    expect(ok({ from: '2026-02-01', to: '2026-01-01' })).toBe(false);
+    expect(ok({ from: '2025-12-31', to: '2027-01-01' })).toBe(false);
   });
 });

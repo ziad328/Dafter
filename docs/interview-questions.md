@@ -275,3 +275,14 @@ Logout and reuse detection revoke every token in the family, while a normal rota
 
 **3. What does the grace window give up?**
 A stolen token works for up to 30 seconds after the real user's rotation, and the theft is not detected in that time. Auth0's "reuse interval" makes the same trade. A cross-tab lock in the browser (`navigator.locks`) only covers tabs of one browser profile, so the server-side window is the one that always works.
+
+## "Primary guardian only" per student (outbox)
+
+**1. Where is the "primary guardian only" rule checked, and why there?**
+In the outbox enqueue: the same SQL that picks one row per guardian skips a non-primary link when that student's `primary_guardian_only` is on. The enqueue runs in the business transaction, so the decision is made with the data of that moment, and the sender's re-check never has to know about it.
+
+**2. A student has the flag on but no primary guardian. Who gets the message, and why?**
+All of their guardians. A filter that only keeps primaries would make that family go silent with no error anywhere; keeping everyone is the safe failure. The rule is `is_primary or flag off or no primary exists`.
+
+**3. The center-wide switch became a per-student column. How did you move without changing anyone's behaviour?**
+The migration adds the column with default false and, in the same migration, sets it to true for every student of a center that had the old switch on. The old key stays in the settings JSON but is no longer read, and the contract drops it, so a page loaded before the change still saves.
