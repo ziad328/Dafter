@@ -17,6 +17,7 @@ import {
   attendanceRecords,
   ledgerEntries,
   receiptCounters,
+  ledgerChecks,
   outboxMessages,
   memberships,
   subjects,
@@ -134,6 +135,9 @@ beforeAll(async () => {
     amountPiastres: 50000,
   });
   await db.insert(receiptCounters).values({ workspaceId: a });
+  await db
+    .insert(ledgerChecks)
+    .values({ workspaceId: a, cutoff: new Date(), entryCount: 1, sumPiastres: 50000 });
   await db.insert(outboxMessages).values({
     workspaceId: a,
     guardianId: guardian!.id,
@@ -190,6 +194,7 @@ describe('RLS on every tenant table', () => {
         'attendance_records',
         'ledger_entries',
         'receipt_counters',
+        'ledger_checks',
         'outbox_messages',
         'exams',
         'exam_results',

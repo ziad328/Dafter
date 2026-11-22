@@ -693,6 +693,28 @@ export const receiptCounters = pgTable('receipt_counters', {
   last: integer('last').notNull().default(0),
 });
 
+/**
+ * Nightly ledger check (append-only: the app role can add rows, never change them). `cutoff`,
+ * `entryCount` and `sumPiastres` are the workspace's entries made up to the cutoff; the next
+ * night recounts them, and any difference means an old entry was changed or removed.
+ * `problems` lists what the check found (empty = all good).
+ */
+export const ledgerChecks = pgTable(
+  'ledger_checks',
+  {
+    id: id(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    cutoff: timestamp('cutoff', { withTimezone: true }).notNull(),
+    entryCount: integer('entry_count').notNull(),
+    sumPiastres: bigint('sum_piastres', { mode: 'number' }).notNull(),
+    problems: jsonb('problems').notNull().default([]),
+    createdAt: createdAt(),
+  },
+  (t) => [index('ledger_checks_workspace_idx').on(t.workspaceId, t.cutoff)],
+);
+
 // Messaging (Day 15). Transactional outbox: rows are written in the same transaction as the
 // event; the send-outbox job delivers due rows. dedupe_key makes a repeated event a no-op.
 

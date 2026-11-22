@@ -11,6 +11,7 @@ import {
   remindAllWorkspaces,
 } from './jobs/monthly-charges.js';
 import { SEND_OUTBOX, sendDueMessages } from './jobs/send-outbox.js';
+import { checkAllLedgers } from './money/ledger-check.js';
 import { ConsoleProvider, type MessageProvider } from './messages/provider.js';
 
 /** Starts pg-boss and registers the jobs. Returns the instance so the caller can stop it. */
@@ -40,6 +41,7 @@ export async function startWorker(
     log.log(`Created ${created} monthly charges`);
     log.log(`Queued ${await remindAllWorkspaces(db, clock)} fee reminders`);
     log.log(`Swept ${await sweepRateLimits(db, clock)} expired rate-limit counters`);
+    log.log(`Ledger check found ${await checkAllLedgers(db, clock)} problems`);
   });
   // Daily, so a new month is billed on its first day (and a missed day catches up).
   await boss.schedule(MONTHLY_CHARGES, '0 3 * * *', null, { tz: 'Africa/Cairo' });
