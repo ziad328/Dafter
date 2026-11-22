@@ -298,3 +298,14 @@ Every balance is a live sum of append-only entries, so the app can't disagree wi
 **3. Besides the totals, what rules does the check verify, and why those?**
 That each reversal is minus its original, for the same student and group, and never reverses a reversal. Also that the receipt counter is not behind the highest receipt number. The constraints only cover a reversal's sign, not that it mirrors its original, and a counter that's behind would give the next payment a receipt number already in use, which the unique key would refuse at the desk.
 
+## A sibling's late absence (outbox)
+
+**1. One message per guardian per session was the dedupe rule. How does a second child's late absence still reach the parent without breaking exactly-once?**
+In two steps inside the marking transaction. If the guardian's message for that session is still queued, the child is added to its payload, so the parent gets one text naming both. If it already went out, a follow-up is queued with the student in the dedupe key, `absence:<session>:<guardian>:<student>`. The unique key still makes each step happen at most once.
+
+**2. What stops absent → present → absent from texting the parent twice?**
+Before the follow-up insert, a `NOT EXISTS` looks for any absence row of that guardian and session whose payload already names the child (`payload->'students' @> [{"id": ...}]`). Marking present after the text went out sends nothing, and marking absent again finds the old row and stops.
+
+**3. What if the sender is sending that queued row at the same moment?**
+The sender holds the row with `FOR UPDATE SKIP LOCKED`. The marking UPDATE waits for that lock. Under READ COMMITTED it then re-checks `status = 'queued'`, finds the row sent, and updates nothing. The follow-up insert takes over, so the child is never dropped or sent twice.
+
