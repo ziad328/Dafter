@@ -1,7 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
-import { type Db, ledgerChecks, type Tx, withTenant, workspaces } from '@dafter/db';
+import { type Db, ledgerChecks, type Tx } from '@dafter/db';
 import type { Clock } from '../clock.js';
+import { forEachWorkspace } from '../jobs/for-each-workspace.js';
 
 /**
  * Entries made in the last few minutes are left to the next night: a payment's created_at is its
@@ -79,13 +80,9 @@ export async function checkLedger(
 
 /** Nightly, after the charges: every workspace's ledger. Logs each problem; returns how many. */
 export async function checkAllLedgers(db: Db, clock: Clock, log = new Logger('LedgerCheck')) {
-  // shortcut: one pass over every workspace, like the other daily jobs.
-  const rows = await db.select({ id: workspaces.id }).from(workspaces);
-  let found = 0;
-  for (const { id } of rows) {
-    const problems = await withTenant(db, id, (tx) => checkLedger(tx, id, clock.now()));
+  return forEachWorkspace(db, 'ledger-check', async (tx, id) => {
+    const problems = await checkLedger(tx, id, clock.now());
     for (const p of problems) log.warn(`Ledger drift in workspace ${id}: ${JSON.stringify(p)}`);
-    found += problems.length;
-  }
-  return found;
+    return problems.length;
+  });
 }

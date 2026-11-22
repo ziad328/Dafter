@@ -13,6 +13,7 @@ import {
 } from '@dafter/db';
 import type { Clock } from '../clock.js';
 import { TOGGLE } from '../messages/outbox.js';
+import { forEachWorkspace } from './for-each-workspace.js';
 import type { MessageProvider } from '../messages/provider.js';
 import {
   type FeePayload,
@@ -36,13 +37,8 @@ export async function sendDueMessages(
   provider: MessageProvider,
   workspaceId?: string,
 ) {
-  // shortcut: one pass over every workspace, like the other jobs; fan out when there are thousands.
-  const rows = workspaceId
-    ? [{ id: workspaceId }]
-    : await db.select({ id: workspaces.id }).from(workspaces);
-  let sent = 0;
-  for (const { id } of rows) sent += await withTenant(db, id, (tx) => sendWorkspace(tx, id));
-  return sent;
+  if (workspaceId) return withTenant(db, workspaceId, (tx) => sendWorkspace(tx, workspaceId));
+  return forEachWorkspace(db, SEND_OUTBOX, sendWorkspace);
 
   async function sendWorkspace(tx: Tx, ws: string) {
     const now = clock.now();
