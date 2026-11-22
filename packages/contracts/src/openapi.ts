@@ -48,6 +48,7 @@ import { createPaymentRequest, ledgerEntry, myBalances, receipt, studentLedger }
 import {
   listMessagesQuery,
   messageSettings,
+  updateMessageSettingsRequest,
   messageTrigger,
   outboxMessageList,
   sentMessageList,
@@ -844,7 +845,7 @@ export function buildOpenApi() {
           tags: ['messages'],
           description: 'Owner only. Applies to events from now on; queued messages still go out.',
           security: [{ bearer: [] }],
-          requestBody: { required: true, content: json(messageSettings) },
+          requestBody: { required: true, content: json(updateMessageSettingsRequest) },
           responses: {
             200: { description: 'Settings', content: json(messageSettings) },
             ...errors,

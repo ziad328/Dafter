@@ -104,6 +104,10 @@ describe('monthly fee reminders', () => {
     ).toBe(400);
     await c.owner('PUT', 'message-settings', { ...on, feeReminderFromDay: 1 });
     expect((await c.owner('GET', 'message-settings')).json().feeReminderFromDay).toBe(1);
+    // A page from before the start day leaves it out: the saved day stays.
+    const older: Partial<typeof on> = { ...on };
+    delete older.feeReminderFromDay;
+    expect((await c.owner('PUT', 'message-settings', older)).json().feeReminderFromDay).toBe(1);
     await remindAllWorkspaces(testDb().db, new FakeClock(new Date('2027-01-01T10:00:00Z')));
     expect(await rows()).toHaveLength(6);
   });

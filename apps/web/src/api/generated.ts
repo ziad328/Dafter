@@ -465,7 +465,7 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           url: `/api/v1/message-settings`,
           method: 'PUT',
-          body: queryArg.messageSettings,
+          body: queryArg.updateMessageSettingsRequest,
         }),
         invalidatesTags: ['messages'],
       }),
@@ -841,11 +841,11 @@ export type UpdateMessageTemplateApiArg = {
   trigger: 'absence' | 'session_cancelled' | 'session_moved' | 'exam_result' | 'fee_overdue';
   updateMessageTemplateRequest: UpdateMessageTemplateRequest;
 };
-export type GetMessageSettingsApiResponse = /** status 200 Settings */ MessageSettingsOutput;
+export type GetMessageSettingsApiResponse = /** status 200 Settings */ MessageSettings;
 export type GetMessageSettingsApiArg = void;
-export type UpdateMessageSettingsApiResponse = /** status 200 Settings */ MessageSettingsOutput;
+export type UpdateMessageSettingsApiResponse = /** status 200 Settings */ MessageSettings;
 export type UpdateMessageSettingsApiArg = {
-  messageSettings: MessageSettings;
+  updateMessageSettingsRequest: UpdateMessageSettingsRequest;
 };
 export type ListFakePhoneMessagesApiResponse = /** status 200 Sent messages */ SentMessageList;
 export type ListFakePhoneMessagesApiArg = void;
@@ -1482,19 +1482,19 @@ export type UpdateMessageTemplateRequest = {
   ar: string | null;
   en: string | null;
 };
-export type MessageSettingsOutput = {
-  absence: boolean;
-  sessionChange: boolean;
-  examResult: boolean;
-  feeOverdue: boolean;
-  feeReminderFromDay: number;
-};
 export type MessageSettings = {
   absence: boolean;
   sessionChange: boolean;
   examResult: boolean;
   feeOverdue: boolean;
   feeReminderFromDay: number;
+};
+export type UpdateMessageSettingsRequest = {
+  absence: boolean;
+  sessionChange: boolean;
+  examResult: boolean;
+  feeOverdue: boolean;
+  feeReminderFromDay?: number;
 };
 export type SentMessage = {
   id: string;

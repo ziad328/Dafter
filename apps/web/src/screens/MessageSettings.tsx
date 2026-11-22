@@ -36,7 +36,7 @@ export default function MessageSettings() {
   if (!isOwner) return <Navigate to="/messages" replace />;
   const toggle = (next: Settings) => {
     setDraft(next);
-    update({ messageSettings: next })
+    update({ updateMessageSettingsRequest: next })
       .unwrap()
       .catch(() => setDraft(undefined));
   };

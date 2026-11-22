@@ -17,7 +17,8 @@ import {
   type ListMessagesQuery,
   listMessagesQuery,
   type MessageSettings,
-  messageSettings,
+  updateMessageSettingsRequest,
+  type UpdateMessageSettingsRequest,
   type MessageTemplate,
   messageTrigger,
   type OutboxMessage,
@@ -141,16 +142,17 @@ export class MessagesRepository extends TenantRepository {
     };
   }
 
-  async setSettings(workspaceId: string, value: MessageSettings) {
+  /** Merged into the saved settings, so a field left out (an older page) keeps its value. */
+  async setSettings(workspaceId: string, value: UpdateMessageSettingsRequest) {
     await this.inTenant(workspaceId, (tx) =>
       tx
         .update(workspaces)
         .set({
-          settings: sql`${workspaces.settings} || jsonb_build_object('messages', ${JSON.stringify(value)}::jsonb)`,
+          settings: sql`jsonb_set(${workspaces.settings}, '{messages}', coalesce(${workspaces.settings}->'messages', '{}') || ${JSON.stringify(value)}::jsonb)`,
         })
         .where(eq(workspaces.id, workspaceId)),
     );
-    return value;
+    return this.settings(workspaceId);
   }
 }
 
@@ -232,7 +234,7 @@ export class MessagesController {
   @Put('message-settings')
   setSettings(
     @Req() req: TenantedRequest & AuditedRequest,
-    @Body(new ZodPipe(messageSettings)) body: MessageSettings,
+    @Body(new ZodPipe(updateMessageSettingsRequest)) body: UpdateMessageSettingsRequest,
   ): Promise<MessageSettings> {
     if (req.role !== 'owner') throw new AppError('FORBIDDEN');
     req.audit = { entityId: req.workspaceId };

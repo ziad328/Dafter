@@ -3001,7 +3001,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MessageSettingsOutput"
+                  "$ref": "#/components/schemas/MessageSettings"
                 }
               }
             }
@@ -3032,7 +3032,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MessageSettings"
+                "$ref": "#/components/schemas/UpdateMessageSettingsRequest"
               }
             }
           }
@@ -3043,7 +3043,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MessageSettingsOutput"
+                  "$ref": "#/components/schemas/MessageSettings"
                 }
               }
             }
@@ -4357,7 +4357,7 @@
         },
         "required": ["ar", "en"]
       },
-      "MessageSettings": {
+      "UpdateMessageSettingsRequest": {
         "type": "object",
         "properties": {
           "absence": {
@@ -4378,7 +4378,7 @@
             "maximum": 28
           }
         },
-        "required": ["absence", "sessionChange", "examResult", "feeOverdue", "feeReminderFromDay"]
+        "required": ["absence", "sessionChange", "examResult", "feeOverdue"]
       },
       "CheckInRequest": {
         "type": "object",
@@ -6427,6 +6427,30 @@
         "required": ["trigger", "placeholders", "ar", "en"],
         "additionalProperties": false
       },
+      "MessageSettings": {
+        "type": "object",
+        "properties": {
+          "absence": {
+            "type": "boolean"
+          },
+          "sessionChange": {
+            "type": "boolean"
+          },
+          "examResult": {
+            "type": "boolean"
+          },
+          "feeOverdue": {
+            "type": "boolean"
+          },
+          "feeReminderFromDay": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 28
+          }
+        },
+        "required": ["absence", "sessionChange", "examResult", "feeOverdue", "feeReminderFromDay"],
+        "additionalProperties": false
+      },
       "SentMessageList": {
         "type": "array",
         "items": {
@@ -6753,30 +6777,6 @@
           }
         },
         "required": ["lateAfterMinutes"],
-        "additionalProperties": false
-      },
-      "MessageSettingsOutput": {
-        "type": "object",
-        "properties": {
-          "absence": {
-            "type": "boolean"
-          },
-          "sessionChange": {
-            "type": "boolean"
-          },
-          "examResult": {
-            "type": "boolean"
-          },
-          "feeOverdue": {
-            "type": "boolean"
-          },
-          "feeReminderFromDay": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 28
-          }
-        },
-        "required": ["absence", "sessionChange", "examResult", "feeOverdue", "feeReminderFromDay"],
         "additionalProperties": false
       }
     },

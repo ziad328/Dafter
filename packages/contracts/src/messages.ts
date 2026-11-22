@@ -48,6 +48,11 @@ export const messageSettings = z
   })
   .meta({ id: 'MessageSettings' });
 
+/** The same, with the start day optional: a page from before it existed keeps the saved day. */
+export const updateMessageSettingsRequest = messageSettings
+  .extend({ feeReminderFromDay: messageSettings.shape.feeReminderFromDay.optional() })
+  .meta({ id: 'UpdateMessageSettingsRequest' });
+
 export const listMessagesQuery = z
   .object({ status: messageStatus.optional() })
   .meta({ id: 'ListMessagesQuery' });
@@ -77,5 +82,6 @@ export const outboxMessage = z
 export const outboxMessageList = z.array(outboxMessage).meta({ id: 'OutboxMessageList' });
 
 export type MessageSettings = z.infer<typeof messageSettings>;
+export type UpdateMessageSettingsRequest = z.infer<typeof updateMessageSettingsRequest>;
 export type ListMessagesQuery = z.infer<typeof listMessagesQuery>;
 export type OutboxMessage = z.infer<typeof outboxMessage>;
