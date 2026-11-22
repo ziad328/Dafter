@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fail, fx, http, route, sent, server } from '@/test/server';
 import { renderAt, tr } from '@/test/render';
 
@@ -137,5 +137,57 @@ describe('exams', () => {
     server.use(http.get(route('exams/:id'), fail('EXAM_NOT_FOUND', 404)));
     await renderAt(sheetUrl);
     expect(await screen.findByText(tr('errors.EXAM_NOT_FOUND'))).toBeVisible();
+  });
+
+  it('exports the grid as CSV and imports a filled-in file into it, listing bad lines', async () => {
+    const { user } = await renderAt(sheetUrl, { lang: 'en' });
+    const parts: BlobPart[] = [];
+    Object.assign(URL, {
+      createObjectURL: (b: Blob) => (parts.push(b), 'blob:grades'),
+      revokeObjectURL: () => {},
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    await user.click(await screen.findByRole('button', { name: tr('exams.csv.export') }));
+    expect(click).toHaveBeenCalled();
+    const exported = await (parts[0] as Blob).text();
+    expect(exported).toContain(
+      `${fx.examSheet.rows[0]!.studentId},${fx.examSheet.rows[0]!.nameAr},18,`,
+    );
+    click.mockRestore();
+
+    const [, , omar] = fx.examSheet.rows;
+    const file = new File(
+      [
+        `student_id,score,absent
+${omar!.studentId},15,
+nope,3,
+`,
+      ],
+      'g.csv',
+      {
+        type: 'text/csv',
+      },
+    );
+    await user.upload(screen.getByLabelText(tr('exams.csv.import')), file);
+    const status = await screen.findByRole('status');
+    expect(status).toHaveTextContent(tr('exams.csv.imported', { count: 1 }));
+    expect(status).toHaveTextContent(tr('exams.csv.errors.unknownStudent', { line: 3 }));
+    expect(screen.getByLabelText(tr('exams.scoreFor', { name: 'Omar' }))).toHaveValue(15);
+    // Imported, not saved: the teacher checks and saves.
+    await user.click(screen.getByRole('button', { name: tr('exams.save') }));
+    await expect
+      .poll(() => call(`PUT /api/v1/exams/${fx.exam.id}/results`)?.body)
+      .toMatchObject({
+        results: expect.arrayContaining([{ studentId: omar!.studentId, score: 15, absent: false }]),
+      });
+
+    // A file of the wrong shape says so; picking nothing does nothing.
+    await user.upload(
+      screen.getByLabelText(tr('exams.csv.import')),
+      new File(['name\nx'], 'wrong.csv', { type: 'text/csv' }),
+    );
+    expect(await screen.findByText(tr('exams.csv.errors.missingColumns'))).toBeVisible();
+    await user.upload(screen.getByLabelText(tr('exams.csv.import')), []);
+    expect(screen.getByText(tr('exams.csv.errors.missingColumns'))).toBeVisible();
   });
 });

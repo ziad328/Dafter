@@ -1,5 +1,5 @@
 import type { ExamSheet as Sheet } from '@dafter/contracts';
-import { useState } from 'react';
+import { type ChangeEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
@@ -10,13 +10,13 @@ import {
 } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { PageHeader, Panel } from '@/components/Page';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { downloadCsv } from '@/lib/csv';
+import { type Cell, type CsvError, examRows, readExamCsv } from '@/lib/exam-csv';
 import { itemName } from '@/lib/groups';
 import { errorKey } from '@/lib/session';
 import { dayLabel } from '@/lib/time';
 import { cn } from '@/lib/utils';
-
-type Cell = { score: string; absent: boolean };
 
 /** The grade grid of one exam (/exams/:id): enter, save, then send to parents. */
 export default function ExamSheet() {
@@ -44,6 +44,7 @@ function Grid({ sheet }: { sheet: Sheet }) {
   const [notify, notified] = useNotifyExamMutation();
   const [remove, removed] = useDeleteExamMutation();
   const [confirming, setConfirming] = useState(false);
+  const [imported, setImported] = useState<{ count: number; errors: CsvError[] }>();
 
   const set = (studentId: string, cell: Partial<Cell>) =>
     setCells((c) => ({ ...c, [studentId]: { ...c[studentId]!, ...cell } }));
@@ -75,6 +76,18 @@ function Grid({ sheet }: { sheet: Sheet }) {
     });
   const error = saved.error ?? notified.error ?? removed.error;
 
+  // A spreadsheet round trip for big groups: download, fill in, import, check, then save.
+  const onExport = () =>
+    downloadCsv(`${exam.title} ${exam.heldOn}.csv`, examRows(sheet, cells, lang));
+  const onImport = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // the same file can be picked again after fixing it
+    if (!file) return;
+    const read = readExamCsv(await file.text(), sheet);
+    setCells((c) => ({ ...c, ...read.cells }));
+    setImported({ count: Object.keys(read.cells).length, errors: read.errors });
+  };
+
   return (
     <div className="grid gap-5">
       <PageHeader
@@ -103,6 +116,39 @@ function Grid({ sheet }: { sheet: Sheet }) {
             </Panel>
           ))}
         </dl>
+      )}
+      {sheet.rows.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={onExport}>
+            {t('exams.csv.export')}
+          </Button>
+          <label
+            className={cn(
+              buttonVariants({ variant: 'outline', size: 'sm' }),
+              'cursor-pointer focus-within:ring-2 focus-within:ring-ring',
+            )}
+          >
+            {t('exams.csv.import')}
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(e) => void onImport(e)}
+            />
+          </label>
+        </div>
+      )}
+      {imported && (
+        <div role="status" className="grid gap-1 text-sm">
+          <p>{t('exams.csv.imported', { count: imported.count })}</p>
+          {imported.errors.map((err) => (
+            <p key={'line' in err ? err.line : 0} className="text-rose">
+              {'line' in err
+                ? t(`exams.csv.errors.${err.code}`, { line: err.line })
+                : t('exams.csv.errors.missingColumns')}
+            </p>
+          ))}
+        </div>
       )}
       <Panel className="p-2">
         {sheet.rows.length === 0 ? (

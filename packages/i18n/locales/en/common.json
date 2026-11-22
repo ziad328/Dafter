@@ -695,6 +695,17 @@
     "save": "Save scores",
     "notify": "Send results to parents",
     "queued": "{count, plural, =0 {No new messages} one {# message on its way} other {# messages on their way}}",
+    "csv": {
+      "export": "Download CSV",
+      "import": "Import CSV",
+      "imported": "{count, plural, =0 {No students filled from the file} one {# student filled from the file} other {# students filled from the file}}. Check, then save.",
+      "errors": {
+        "missingColumns": "The file has no student_id and score columns. Download the file here and fill it in.",
+        "unknownStudent": "Line {line}: a student who isn't in this exam.",
+        "badScore": "Line {line}: the score isn't a whole number from 0 to the maximum.",
+        "duplicate": "Line {line}: the student is in the file twice."
+      }
+    },
     "alreadySent": "Results were sent before.",
     "delete": "Delete exam",
     "confirmDelete": "Confirm delete"

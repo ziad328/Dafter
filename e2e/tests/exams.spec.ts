@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { enterWorkspace, expect, freshCenter, signIn, STAFF, test } from './fixtures';
 
 test('a teacher grades an exam and sends it to parents; the student sees the grade and fees', async ({
@@ -55,6 +56,22 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
   await page.getByRole('button', { name: t.exams.save }).click();
   await expect(page.getByTestId('exam-summary')).toContainText('17/20');
 
+  // Big groups go through a spreadsheet: download, change a score, import, then save.
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: t.exams.csv.export }).click();
+  const csv = await readFile((await (await downloading).path())!, 'utf8');
+  expect(csv).toContain(`${nourId},${nour},17,`);
+  const edited = csv.replace(`${nourId},${nour},17,`, `${nourId},${nour},18,`);
+  await page.getByLabel(t.exams.csv.import).setInputFiles({
+    name: 'grades.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(edited),
+  });
+  await expect(page.getByRole('status')).toBeVisible();
+  await expect(score(nour)).toHaveValue('18');
+  await page.getByRole('button', { name: t.exams.save }).click();
+  await expect(page.getByTestId('exam-summary')).toContainText('18/20');
+
   await page.getByRole('button', { name: t.exams.notify }).click();
   await expect(page.getByRole('status')).toBeVisible();
   await page.reload();
@@ -91,7 +108,7 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
   await expect(app).toHaveURL(/\/s$/);
   const grades = app.getByTestId('my-grades');
   await expect(grades).toContainText(`شهر ${n}`);
-  await expect(grades).toContainText('17/20');
+  await expect(grades).toContainText('18/20');
   const fees = app.getByTestId('my-balance');
   await expect(fees).toContainText(t.fees.owes);
   await expect(fees).toContainText('200');
