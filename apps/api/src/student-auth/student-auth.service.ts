@@ -14,6 +14,7 @@ import { Clock } from '../clock.js';
 import { AppError } from '../errors.js';
 import { Mailer } from './mailer.js';
 import { StudentAuthRepository } from './student-auth.repository.js';
+import { recordAudit } from '../audit.interceptor.js';
 
 export const OTP_TTL_MS = 10 * 60 * 1000;
 const WINDOW_MS = 15 * 60 * 1000;
@@ -97,11 +98,16 @@ export class StudentAuthService {
     // (so its attempt is counted) instead of throwing (which would roll the count back).
     const user = await this.repo.transaction(invite?.workspaceId, async (tx) => {
       if (!(await this.repo.checkOtp(tx, email, (h) => sameHash(h, expected), now))) return null;
-      if (!invite) return (await this.repo.findUserByEmail(email)) ?? null;
+      if (!invite) {
+        const known = await this.repo.findUserByEmail(email);
+        if (known && !known.passwordHash) await recordAudit(tx);
+        return known ?? null;
+      }
       const u = await this.repo.findOrCreateStudentUser(tx, email, invite.nameAr);
       if (u.passwordHash) throw new AppError('EMAIL_TAKEN');
       if (!(await this.repo.activate(tx, invite.workspaceId, tokenHash!, u.id, now)))
         throw new AppError('INVITE_INVALID');
+      await recordAudit(tx, { workspaceId: invite.workspaceId });
       return u;
     });
     if (!user || user.passwordHash) throw new AppError('OTP_INVALID');

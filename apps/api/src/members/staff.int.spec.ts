@@ -292,6 +292,38 @@ describe('audit in the request transaction', () => {
     await c.owner('PATCH', `members/${t2.id}`, { role: 'owner' });
     expect(await audited()).toMatchObject([{ entityId: t2.id }]);
   });
+
+  it('accepts an invite and writes its audit row in one transaction, outside a workspace', async () => {
+    const { c, members } = await setup();
+    const inv = await c.owner('POST', 'invites', { role: 'teacher' });
+    const u = await f.register();
+    const accept = () => f.post(`invites/${inv.json().token}/accept`, {}, f.bearer(u.token));
+    const audited = () =>
+      withTenant(testDb().db, c.workspaceId, (tx) =>
+        tx
+          .select()
+          .from(auditLog)
+          .where(
+            and(
+              eq(auditLog.workspaceId, c.workspaceId),
+              eq(auditLog.action, 'POST /api/v1/invites/:token/accept'),
+            ),
+          ),
+      );
+    await testDb().db.execute(sql`revoke insert on audit_log from dafter_app`);
+    try {
+      expect((await accept()).statusCode).toBe(500);
+    } finally {
+      await testDb().db.execute(sql`grant insert on audit_log to dafter_app`);
+    }
+    // Rolled back with the row: not a member, and the invite still works for them.
+    expect((await members()).some((m) => m.userId === u.userId)).toBe(false);
+    expect(await audited()).toHaveLength(0);
+
+    expect((await accept()).statusCode).toBe(200);
+    // One row, from the transaction (the interceptor didn't add a second after the handler).
+    expect(await audited()).toMatchObject([{ actorId: u.userId, entity: 'invites' }]);
+  });
 });
 
 async function userPhone(userId: string) {

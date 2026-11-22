@@ -18,6 +18,7 @@ import {
 } from '@dafter/db';
 import { TenantRepository } from '../tenant.repository.js';
 import { enqueueAbsences } from '../messages/outbox.js';
+import { recordAudit } from '../audit.interceptor.js';
 
 type Status = MarkAttendanceRequest['status'];
 const DEFAULT_LATE_MINUTES = 15;
@@ -154,7 +155,9 @@ export class AttendanceRepository extends TenantRepository {
           ...proof,
         })
         .onConflictDoNothing();
-      return (await this.list(tx, workspaceId, s.sessionId, student.id))[0]!;
+      const record = (await this.list(tx, workspaceId, s.sessionId, student.id))[0]!;
+      await recordAudit(tx, { workspaceId, entityId: record.id });
+      return record;
     });
   }
 

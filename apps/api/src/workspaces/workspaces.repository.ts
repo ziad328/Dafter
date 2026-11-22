@@ -3,6 +3,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import type { CreateWorkspaceRequest, Workspace } from '@dafter/contracts';
 import { insertCurriculum, memberships, workspaces } from '@dafter/db';
 import { TenantRepository } from '../tenant.repository.js';
+import { recordAudit } from '../audit.interceptor.js';
 
 type Role = Workspace['role'];
 
@@ -25,6 +26,7 @@ export class WorkspacesRepository extends TenantRepository {
         .returning(workspaceColumns);
       await tx.insert(memberships).values({ workspaceId: id, userId, role: 'owner' });
       await insertCurriculum(tx, id);
+      await recordAudit(tx, { workspaceId: id, entityId: id });
       return { ...row!, role: 'owner' };
     });
   }

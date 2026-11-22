@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { type Db, passwordResets, refreshTokens, users } from '@dafter/db';
 import { DB } from '../db.js';
+import { recordAudit } from '../audit.interceptor.js';
 
 export type User = typeof users.$inferSelect;
 
@@ -125,6 +126,7 @@ export class AuthRepository {
         .update(refreshTokens)
         .set({ revokedAt: now })
         .where(and(eq(refreshTokens.userId, row.userId), isNull(refreshTokens.revokedAt)));
+      await recordAudit(tx);
       return true;
     });
   }

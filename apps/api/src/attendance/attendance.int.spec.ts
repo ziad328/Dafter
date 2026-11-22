@@ -1,7 +1,7 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { sessions } from '@dafter/db';
+import { auditLog, sessions } from '@dafter/db';
 import { useTestDb } from '@dafter/db/testing';
 import { createApp } from '../app.js';
 import { FakeClock } from '../clock.js';
@@ -139,6 +139,15 @@ describe('check-ins', () => {
     const list = (await c.teacher('GET', `sessions/${sessionId}/attendance`)).json();
     expect(list.filter((r: { studentId: string }) => r.studentId === p.id)).toMatchObject([
       { status: 'present', method: 'student_scan' },
+    ]);
+    // Each scan's audit row is written in its own transaction, with the session's workspace.
+    const audit = await testDb()
+      .db.select()
+      .from(auditLog)
+      .where(eq(auditLog.entityId, first.json().id));
+    expect(audit).toMatchObject([
+      { action: 'POST /api/v1/check-ins', workspaceId: c.workspaceId },
+      { action: 'POST /api/v1/check-ins', workspaceId: c.workspaceId },
     ]);
   });
 

@@ -27,7 +27,6 @@ import {
   updateMemberRequest,
   type Workspace,
 } from '@dafter/contracts';
-import type { AuditedRequest } from '../audit.interceptor.js';
 import { AuthGuard, type AuthedRequest } from '../auth/auth.guard.js';
 import { TenantGuard, type TenantedRequest } from '../workspaces/tenant.guard.js';
 import { ZodPipe } from '../zod-pipe.js';
@@ -66,13 +65,9 @@ export class InvitesController {
   // No TenantGuard: the invitee is not a member yet; the token names the workspace.
   @Post(':token/accept')
   @HttpCode(200)
-  async accept(
-    @Req() req: AuthedRequest & AuditedRequest,
-    @Param('token') token: string,
-  ): Promise<Workspace> {
-    const { workspace, inviteId } = await this.members.accept(req.userId, token);
-    req.audit = { workspaceId: workspace.id, entityId: inviteId };
-    return workspace;
+  async accept(@Req() req: AuthedRequest, @Param('token') token: string): Promise<Workspace> {
+    // Its audit row is written in the accept's transaction (recordAudit).
+    return (await this.members.accept(req.userId, token)).workspace;
   }
 }
 

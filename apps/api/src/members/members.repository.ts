@@ -14,6 +14,7 @@ import {
 import { AppError } from '../errors.js';
 import { TenantRepository } from '../tenant.repository.js';
 import { workspaceColumns } from '../workspaces/workspaces.repository.js';
+import { recordAudit } from '../audit.interceptor.js';
 
 type Role = Workspace['role'];
 
@@ -221,6 +222,7 @@ export class MembersRepository extends TenantRepository {
         .from(workspaces)
         .where(eq(workspaces.id, workspaceId));
       const workspace: Workspace = { ...ws!, role: joined.role };
+      await recordAudit(tx, { workspaceId, entityId: used.id });
       return { inviteId: used.id, workspace };
     });
   }
