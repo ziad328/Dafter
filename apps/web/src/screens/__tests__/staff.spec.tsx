@@ -312,7 +312,7 @@ describe('messages', () => {
         feeReminderFromDay: 7,
       });
     expect(absence).not.toBeChecked();
-    await user.selectOptions(screen.getByLabelText(tr('messages.feeReminderFromDay')), '1');
+    await pick(user, tr('messages.feeReminderFromDay'), '1');
     await expect
       .poll(() => sent.findLast((s) => s.call === 'PUT /api/v1/message-settings')?.body)
       .toMatchObject({ absence: false, feeReminderFromDay: 1 });

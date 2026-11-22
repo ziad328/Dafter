@@ -2,7 +2,7 @@ import { fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { formatEgp } from '@/lib/money';
 import { fail, http, route, sent, server } from '@/test/server';
-import { renderAt, seen, tr } from '@/test/render';
+import { pick, renderAt, seen, tr } from '@/test/render';
 
 describe('cash summary', () => {
   it("shows each staff member's totals by method and entries, voided ones marked", async () => {
@@ -38,7 +38,7 @@ describe('cash summary', () => {
   });
 
   it('loads a range of days and one staff member for the owner', async () => {
-    await renderAt('/cash-summary', { lang: 'en' });
+    const { user } = await renderAt('/cash-summary', { lang: 'en' });
     const to = await screen.findByLabelText(tr('cashSummary.to'));
     fireEvent.change(to, { target: { value: '2026-11-20' } });
     // Before the first day (today): not sent, and said why.
@@ -53,15 +53,16 @@ describe('cash summary', () => {
     ).toBe(true);
     // Each line says its day too.
     expect(screen.getAllByText('November 21').length).toBeGreaterThan(0);
-    const person = screen.getByLabelText(tr('cashSummary.person'));
-    const [first] = within(person).getAllByRole('option').slice(1);
-    fireEvent.change(person, { target: { value: (first as HTMLOptionElement).value } });
-    await expect
-      .poll(() => sent.at(-1)?.call)
-      .toContain(`userId=${(first as HTMLOptionElement).value}`);
-    fireEvent.change(person, { target: { value: '' } });
+    const person = screen.getByRole('combobox', { name: tr('cashSummary.person') });
+    await user.click(person);
+    const [, first] = await screen.findAllByRole('option');
+    const name = first!.textContent!;
+    await user.click(first!);
+    await expect.poll(() => sent.at(-1)?.call).toContain('userId=');
+    expect(person).toHaveTextContent(name);
+    await pick(user, tr('cashSummary.person'), tr('cashSummary.everyone'));
     // Back to everyone (from the cache: no new request).
-    expect(person).toHaveValue('');
+    expect(person).toHaveTextContent(tr('cashSummary.everyone'));
     expect(screen.getAllByRole('region').length).toBeGreaterThan(1);
   });
 

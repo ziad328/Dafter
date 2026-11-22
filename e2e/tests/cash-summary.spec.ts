@@ -1,4 +1,5 @@
 import {
+  choose,
   enterWorkspace,
   expect,
   freshCenter,
@@ -64,7 +65,7 @@ test("assistant hands over today's cash summary, and the owner sees it", async (
   // The owner picks the assistant over the last week: only their section, with the payment.
   const members = await owner.get('members');
   const helper = members.find((m: { role: string }) => m.role === 'assistant');
-  await page.getByLabel(t.cashSummary.person).selectOption(helper.userId);
+  await choose(page, t.cashSummary.person, helper.name);
   await expect(page.getByRole('region')).toHaveCount(1);
   await expect(page.getByRole('region', { name: helper.name })).toBeVisible();
   const today = await page.getByLabel(t.cashSummary.day).inputValue();

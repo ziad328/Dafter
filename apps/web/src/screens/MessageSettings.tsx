@@ -7,7 +7,7 @@ import {
   useGetMessageSettingsQuery,
   useUpdateMessageSettingsMutation,
 } from '@/api/generated';
-import { FormError, Skeleton } from '@/components/Field';
+import { FormError, SelectField, Skeleton } from '@/components/Field';
 import { MessageWording } from '@/components/MessageWording';
 import { PageHeader, Panel } from '@/components/Page';
 import { errorKey } from '@/lib/session';
@@ -59,20 +59,18 @@ export default function MessageSettings() {
           </p>
         )}
         {key === 'feeOverdue' && (
-          <label className="flex min-h-10 items-center gap-2 ps-8 text-sm">
-            {t('messages.feeReminderFromDay')}
-            <select
-              className="h-10 rounded-md border border-input bg-background px-2"
-              value={shown.feeReminderFromDay}
-              onChange={(e) => toggle({ ...shown, feeReminderFromDay: Number(e.target.value) })}
-            >
-              {DAYS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            className="ps-8 text-sm sm:max-w-xs"
+            label={t('messages.feeReminderFromDay')}
+            value={String(shown.feeReminderFromDay)}
+            onChange={(e) => toggle({ ...shown, feeReminderFromDay: Number(e.target.value) })}
+          >
+            {DAYS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </SelectField>
         )}
       </div>
     );

@@ -6,7 +6,7 @@ import {
   useGetCurrentWorkspaceQuery,
   useListMembersQuery,
 } from '@/api/generated';
-import { FormError, Skeleton } from '@/components/Field';
+import { FormError, SelectField, Skeleton } from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatEgp } from '@/lib/money';
@@ -22,6 +22,9 @@ const MAX_DAYS = 31;
  * The API decides whose sections come back: the caller's own, or everyone's for the owner, who
  * can also pick one person. One day, or a range of up to 31 days.
  */
+/** The person picker's "everyone" item: the dropdown can't select an empty value. */
+const EVERYONE = 'all';
+
 export default function CashSummary() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
@@ -142,21 +145,19 @@ export default function CashSummary() {
           />
         </label>
         {isOwner && (
-          <label className="grid gap-1 text-sm sm:col-span-2">
-            {t('cashSummary.person')}
-            <select
-              className="h-10 rounded-md border border-input bg-background px-2"
-              value={userId ?? ''}
-              onChange={(e) => setUserId(e.target.value || undefined)}
-            >
-              <option value="">{t('cashSummary.everyone')}</option>
-              {members.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            className="text-sm sm:col-span-2"
+            label={t('cashSummary.person')}
+            value={userId ?? EVERYONE}
+            onChange={(e) => setUserId(e.target.value === EVERYONE ? undefined : e.target.value)}
+          >
+            <option value={EVERYONE}>{t('cashSummary.everyone')}</option>
+            {members.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.name}
+              </option>
+            ))}
+          </SelectField>
         )}
       </div>
       {badRange && <FormError message={t('cashSummary.badRange')} />}
