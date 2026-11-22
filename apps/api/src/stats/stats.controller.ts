@@ -79,12 +79,15 @@ export class StatsController {
     @Req() req: TenantedRequest,
     @Query(new ZodPipe(cashSummaryQuery)) q: CashSummaryQuery,
   ): Promise<CashSummary> {
+    // Only the owner picks a person; the others always get their own.
+    if (req.role !== 'owner' && q.userId && q.userId !== req.userId)
+      throw new AppError('FORBIDDEN');
     const summary = await this.repo.cashSummary(
       req.workspaceId,
       this.clock.now(),
       req.userId,
-      q.date,
-      req.role === 'owner' ? undefined : req.userId,
+      { date: q.date, to: q.to },
+      req.role === 'owner' ? q.userId : req.userId,
     );
     if (!summary) throw new AppError('VALIDATION_FAILED');
     return summary;

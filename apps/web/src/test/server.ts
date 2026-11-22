@@ -398,53 +398,58 @@ export const handlers = [
   ),
   http.get(
     api('stats/cash-summary'),
-    log((req) => ({
-      date: new URL(req.url).searchParams.get('date') ?? '2026-11-21',
-      timezone: 'Africa/Cairo',
-      center: { nameAr: 'سنتر النور', nameEn: 'Al Nour Center' },
-      staff: [
-        {
-          userId: '00000000-0000-4000-8000-0000000000a1',
-          name: 'منى',
-          totals: { cash: 30000, vodafone_cash: 15050, instapay: -5000, total: 40050 },
-          entries: [
-            {
-              id: '00000000-0000-4000-8000-0000000000e1',
-              kind: 'payment',
-              receiptNo: 12,
-              studentName: 'أحمد علي',
-              amountPiastres: 30000,
-              method: 'cash',
-              createdAt: '2026-11-21T08:00:00.000Z',
-            },
-            {
-              id: '00000000-0000-4000-8000-0000000000e2',
-              kind: 'payment',
-              receiptNo: 13,
-              studentName: 'سارة محمد',
-              amountPiastres: 15050,
-              method: 'vodafone_cash',
-              createdAt: '2026-11-21T09:00:00.000Z',
-            },
-            {
-              id: '00000000-0000-4000-8000-0000000000e3',
-              kind: 'reversal',
-              receiptNo: 9,
-              studentName: 'أحمد علي',
-              amountPiastres: -5000,
-              method: 'instapay',
-              createdAt: '2026-11-21T10:00:00.000Z',
-            },
-          ],
-        },
-        {
-          userId: '00000000-0000-4000-8000-0000000000a2',
-          name: 'كريم',
-          totals: { cash: 0, vodafone_cash: 0, instapay: 0, total: 0 },
-          entries: [],
-        },
-      ],
-    })),
+    log((req) => {
+      const q = new URL(req.url).searchParams;
+      const date = q.get('date') ?? '2026-11-21';
+      return {
+        date,
+        to: q.get('to') ?? date,
+        timezone: 'Africa/Cairo',
+        center: { nameAr: 'سنتر النور', nameEn: 'Al Nour Center' },
+        staff: [
+          {
+            userId: '00000000-0000-4000-8000-0000000000a1',
+            name: 'منى',
+            totals: { cash: 30000, vodafone_cash: 15050, instapay: -5000, total: 40050 },
+            entries: [
+              {
+                id: '00000000-0000-4000-8000-0000000000e1',
+                kind: 'payment',
+                receiptNo: 12,
+                studentName: 'أحمد علي',
+                amountPiastres: 30000,
+                method: 'cash',
+                createdAt: '2026-11-21T08:00:00.000Z',
+              },
+              {
+                id: '00000000-0000-4000-8000-0000000000e2',
+                kind: 'payment',
+                receiptNo: 13,
+                studentName: 'سارة محمد',
+                amountPiastres: 15050,
+                method: 'vodafone_cash',
+                createdAt: '2026-11-21T09:00:00.000Z',
+              },
+              {
+                id: '00000000-0000-4000-8000-0000000000e3',
+                kind: 'reversal',
+                receiptNo: 9,
+                studentName: 'أحمد علي',
+                amountPiastres: -5000,
+                method: 'instapay',
+                createdAt: '2026-11-21T10:00:00.000Z',
+              },
+            ],
+          },
+          {
+            userId: '00000000-0000-4000-8000-0000000000a2',
+            name: 'كريم',
+            totals: { cash: 0, vodafone_cash: 0, instapay: 0, total: 0 },
+            entries: [],
+          },
+        ],
+      };
+    }),
   ),
   http.get(api('students'), log(fx.students)),
   http.post(api('students'), log(fx.student, 201)),

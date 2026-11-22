@@ -119,9 +119,22 @@ export const trendsQuery = z
   })
   .meta({ id: 'TrendsQuery' });
 
-/** The day of a cash summary; omitted = today in the workspace timezone. */
+/**
+ * The days of a cash summary: `date` alone is one day (omitted = today in the workspace
+ * timezone); with `to`, every day from `date` to `to`, at most 31. `userId` (owner only): one
+ * staff member's takings.
+ */
 export const cashSummaryQuery = z
-  .object({ date: localDate.optional() })
+  .object({ date: localDate.optional(), to: localDate.optional(), userId: z.uuid().optional() })
+  .refine((q) => !q.to || q.date, { path: ['date'], message: 'RANGE_INCOMPLETE' })
+  .refine((q) => !q.date || !q.to || q.to >= q.date, {
+    path: ['to'],
+    message: 'RANGE_ENDS_BEFORE_START',
+  })
+  .refine((q) => !q.date || !q.to || Date.parse(q.to) - Date.parse(q.date) < 31 * 86_400_000, {
+    path: ['to'],
+    message: 'RANGE_TOO_LONG',
+  })
   .meta({ id: 'CashSummaryQuery' });
 
 /** One line of a cash summary: a payment (money in, > 0) or a reversal of one (< 0). */
@@ -138,7 +151,7 @@ export const cashEntry = z
   })
   .meta({ id: 'CashEntry' });
 
-/** What one staff member took on the day: the payments they recorded minus their reversals. */
+/** What one staff member took in the days: the payments they recorded minus their reversals. */
 export const staffCash = z
   .object({
     userId: z.uuid(),
@@ -150,12 +163,15 @@ export const staffCash = z
   .meta({ id: 'StaffCash' });
 
 /**
- * End-of-day cash summary, per recorder of the original payment, in the workspace timezone.
- * Assistant and teacher: their own (always one item). Owner: everyone with entries, and their own.
+ * End-of-day (or of a range of days) cash summary, per recorder of the original payment, in the
+ * workspace timezone. Assistant and teacher: their own (always one item). Owner: everyone with
+ * entries, and their own; with `userId`, only that person (one item).
  */
 export const cashSummary = z
   .object({
+    // The first and last day (the same day for one day).
     date: localDate,
+    to: localDate,
     timezone: z.string(),
     center: z.object({ nameAr: z.string(), nameEn: z.string().nullable() }),
     staff: z.array(staffCash),

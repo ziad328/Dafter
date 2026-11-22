@@ -120,36 +120,43 @@ export class StatsRepository extends TenantRepository {
   }
 
   /**
-   * One local day's payments and reversals of payments, each under the recorder of the payment
-   * (a reversal by the owner still comes off the assistant who took the money), on the day the
-   * entry was made, up to `now`. `onlyUserId` limits it to one recorder. `caller` always gets a
-   * section, even when empty. Null when `date` is after today in the workspace timezone.
+   * The payments and reversals of payments of local days `date` to `to`, each under the recorder
+   * of the payment (a reversal by the owner still comes off the assistant who took the money), on
+   * the day the entry was made, up to `now`. `onlyUserId` limits it to one recorder, who then gets
+   * the first section instead of `caller`; that section is there even when empty. Null when `date`
+   * is after today in the workspace timezone, or `onlyUserId` is not a member of the workspace.
    */
   async cashSummary(
     workspaceId: string,
     now: Date,
     caller: string,
-    date: string | undefined,
+    days: { date?: string; to?: string },
     onlyUserId?: string,
   ): Promise<CashSummary | null> {
+    const pinned = onlyUserId ?? caller;
     const at = now.toISOString();
     return this.inTenant(workspaceId, async (tx) => {
       const head = await tx.execute<{
         day: string;
+        last: string;
         today: string;
         tz: string;
         name_ar: string;
         name_en: string | null;
-        caller_name: string;
+        pinned_name: string | null;
       }>(sql`
-        select to_char(coalesce(${date ?? null}::date, l.today), 'YYYY-MM-DD') as day,
+        select to_char(coalesce(${days.date ?? null}::date, l.today), 'YYYY-MM-DD') as day,
+          to_char(coalesce(${days.to ?? null}::date, ${days.date ?? null}::date, l.today),
+            'YYYY-MM-DD') as last,
           to_char(l.today, 'YYYY-MM-DD') as today, w.timezone as tz, w.name_ar, w.name_en,
-          (select u.name from users u where u.id = ${caller}) as caller_name
+          (select u.name from users u
+            join memberships m on m.user_id = u.id and m.workspace_id = w.id
+            where u.id = ${pinned}) as pinned_name
         from workspaces w
         cross join lateral (select (${at}::timestamptz at time zone w.timezone)::date as today) l
         where w.id = ${workspaceId}`);
       const h = head.rows[0]!;
-      if (h.day > h.today) return null;
+      if (h.day > h.today || h.pinned_name === null) return null;
 
       const rows = await tx.execute<{
         id: string;
@@ -172,7 +179,7 @@ export class StatsRepository extends TenantRepository {
         where e.workspace_id = ${workspaceId}
           and (e.type = 'payment' or p.type = 'payment')
           and e.created_at <= ${at}::timestamptz
-          and (e.created_at at time zone ${h.tz})::date = ${h.day}::date
+          and (e.created_at at time zone ${h.tz})::date between ${h.day}::date and ${h.last}::date
           ${onlyUserId ? sql`and u.id = ${onlyUserId}` : sql``}
         order by e.created_at, e.id`);
 
@@ -190,7 +197,7 @@ export class StatsRepository extends TenantRepository {
         }
         return s;
       };
-      section(caller, h.caller_name);
+      section(pinned, h.pinned_name);
       for (const r of rows.rows) {
         const s = section(r.user_id, r.user_name);
         const amount = Number(r.amount);
@@ -209,6 +216,7 @@ export class StatsRepository extends TenantRepository {
       const [mine, ...others] = [...staff.values()];
       return {
         date: h.day,
+        to: h.last,
         timezone: h.tz,
         center: { nameAr: h.name_ar, nameEn: h.name_en },
         staff: [mine!, ...others.sort((a, b) => a.name.localeCompare(b.name, 'ar'))],

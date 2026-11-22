@@ -719,12 +719,16 @@
   },
   "cashSummary": {
     "title": "Cash summary",
-    "day": "Day",
+    "day": "From",
     "total": "Total",
-    "empty": "No payments on this day",
+    "empty": "No payments in this period",
     "time": "Time",
     "receiptNo": "Receipt #",
-    "reversed": "(voided)"
+    "reversed": "(voided)",
+    "to": "To (optional)",
+    "person": "Staff member",
+    "everyone": "Everyone",
+    "badRange": "Pick a last day on or after the first, at most 31 days."
   },
   "rooms": {
     "title": "Rooms",

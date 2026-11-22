@@ -37,6 +37,33 @@ describe('cash summary', () => {
     expect(await screen.findByDisplayValue('2026-11-21')).toBeVisible();
   });
 
+  it('loads a range of days and one staff member for the owner', async () => {
+    await renderAt('/cash-summary', { lang: 'en' });
+    const to = await screen.findByLabelText(tr('cashSummary.to'));
+    fireEvent.change(to, { target: { value: '2026-11-20' } });
+    // Before the first day (today): not sent, and said why.
+    expect(await screen.findByText(tr('cashSummary.badRange'))).toBeVisible();
+    fireEvent.change(screen.getByLabelText(tr('cashSummary.day')), {
+      target: { value: '2026-11-15' },
+    });
+    expect(await screen.findByText(/November 15\s*–\s*20/)).toBeVisible();
+    expect(
+      sent.some((s) => s.call.endsWith('stats/cash-summary?date=2026-11-15&to=2026-11-20')),
+    ).toBe(true);
+    // Each line says its day too.
+    expect(screen.getAllByText('November 21').length).toBeGreaterThan(0);
+    const person = screen.getByLabelText(tr('cashSummary.person'));
+    const [first] = within(person).getAllByRole('option').slice(1);
+    fireEvent.change(person, { target: { value: (first as HTMLOptionElement).value } });
+    await expect
+      .poll(() => sent.at(-1)?.call)
+      .toContain(`userId=${(first as HTMLOptionElement).value}`);
+    fireEvent.change(person, { target: { value: '' } });
+    // Back to everyone (from the cache: no new request).
+    expect(person).toHaveValue('');
+    expect(screen.getAllByRole('region').length).toBeGreaterThan(1);
+  });
+
   it('shows a failed request', async () => {
     server.use(http.get(route('stats/cash-summary'), fail('FORBIDDEN', 403)));
     await renderAt('/cash-summary');

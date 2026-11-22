@@ -350,6 +350,8 @@ const injectedRtkApi = api
           url: `/api/v1/stats/cash-summary`,
           params: {
             date: queryArg.date,
+            to: queryArg.to,
+            userId: queryArg.userId,
           },
         }),
         providesTags: ['money'],
@@ -776,6 +778,8 @@ export type GetCollectionStatsApiArg = void;
 export type GetCashSummaryApiResponse = /** status 200 Cash summary */ CashSummary;
 export type GetCashSummaryApiArg = {
   date?: string;
+  to?: string;
+  userId?: string;
 };
 export type GetSessionRosterApiResponse = /** status 200 Roster */ Roster;
 export type GetSessionRosterApiArg = {
@@ -1358,6 +1362,7 @@ export type StaffCash = {
 };
 export type CashSummary = {
   date: string;
+  to: string;
   timezone: string;
   center: {
     nameAr: string;

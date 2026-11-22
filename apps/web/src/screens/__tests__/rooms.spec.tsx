@@ -190,7 +190,10 @@ describe('rooms on groups and the timetable', () => {
   it('shows the room on timetable rows', async () => {
     const room = { id: ROOMS[0]!.id, name: 'قاعة 1' };
     server.use(
-      http.get(route('sessions'), () => Response.json(fx.sessions.map((s) => ({ ...s, room })))),
+      // Moved to now: the timetable shows this week only, and the fixture dates are fixed.
+      http.get(route('sessions'), () =>
+        Response.json(fx.sessions.map((s) => ({ ...s, room, startsAt: new Date().toISOString() }))),
+      ),
     );
     await renderAt('/timetable');
     expect((await screen.findAllByText(/· قاعة 1/)).length).toBeGreaterThan(0);

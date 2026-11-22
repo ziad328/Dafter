@@ -517,6 +517,44 @@ describe('GET /stats/cash-summary', () => {
       total: 3000,
     });
 
+    // A range of days, and one person picked by the owner.
+    const range = (
+      await c.assistant('GET', 'stats/cash-summary?date=2026-11-20&to=2026-11-21')
+    ).json();
+    expect([range.date, range.to]).toEqual(['2026-11-20', '2026-11-21']);
+    // The refund cancels the old payment: 100 + 50 + 30 - 30, the voided 40 nets to 0.
+    expect(range.staff[0].totals).toEqual({
+      cash: 10000,
+      vodafone_cash: 5000,
+      instapay: 0,
+      total: 15000,
+    });
+    expect(range.staff[0].entries).toHaveLength(6);
+    const picked = (await c.owner('GET', `stats/cash-summary?userId=${teacherId}`)).json();
+    expect(picked.to).toBe('2026-11-21');
+    expect(picked.staff.map((s: { userId: string }) => s.userId)).toEqual([teacherId]);
+    expect(picked.staff[0].totals.total).toBe(6000);
+    const quiet = (
+      await c.owner('GET', `stats/cash-summary?date=2026-11-01&userId=${ownerId}`)
+    ).json();
+    expect(quiet.staff).toEqual([expect.objectContaining({ userId: ownerId, entries: [] })]);
+    expect((await c.assistant('GET', `stats/cash-summary?userId=${assistantId}`)).statusCode).toBe(
+      200,
+    );
+    expect((await c.assistant('GET', `stats/cash-summary?userId=${teacherId}`)).json().code).toBe(
+      'FORBIDDEN',
+    );
+    const stranger = (await (await f.center()).owner('GET', 'me')).json().id;
+    expect((await c.owner('GET', `stats/cash-summary?userId=${stranger}`)).statusCode).toBe(400);
+    for (const q of [
+      'to=2026-11-21',
+      'date=2026-11-21&to=2026-11-20',
+      'date=2026-10-01&to=2026-11-01',
+    ]) {
+      const bad = await c.owner('GET', `stats/cash-summary?${q}`);
+      expect([q, bad.statusCode]).toEqual([q, 400]);
+    }
+
     // A future or malformed day is rejected.
     for (const q of ['2026-11-22', 'tomorrow']) {
       const bad = await c.owner('GET', `stats/cash-summary?date=${q}`);

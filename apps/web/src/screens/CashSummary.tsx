@@ -1,26 +1,45 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useGetCashSummaryQuery, type StaffCash } from '@/api/generated';
+import {
+  type StaffCash,
+  useGetCashSummaryQuery,
+  useGetCurrentWorkspaceQuery,
+  useListMembersQuery,
+} from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
-import { dayLabel, displayTime, localDate } from '@/lib/time';
+import { addDays, dayLabel, displayTime, localDate, rangeLabel } from '@/lib/time';
 
 const METHODS = ['cash', 'vodafone_cash', 'instapay'] as const;
+// The API's limit: a range of at most 31 days.
+const MAX_DAYS = 31;
 
 /**
  * End-of-day cash summary to hand over (rule 12: print-ready, the browser saves it as PDF).
- * The API decides whose sections come back: the caller's own, or everyone's for the owner.
+ * The API decides whose sections come back: the caller's own, or everyone's for the owner, who
+ * can also pick one person. One day, or a range of up to 31 days.
  */
 export default function CashSummary() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
+  const isOwner = useGetCurrentWorkspaceQuery().data?.role === 'owner';
+  const members = useListMembersQuery(undefined, { skip: !isOwner }).data ?? [];
   const [date, setDate] = useState<string>();
-  const { data, error, isFetching } = useGetCashSummaryQuery({ date });
+  const [to, setTo] = useState<string>();
+  const [userId, setUserId] = useState<string>();
+  // A last day only counts with a first day, on or after it and within the limit.
+  const badRange = !!to && (!date || to < date || to > addDays(date, MAX_DAYS - 1));
+  const { data, error, isFetching } = useGetCashSummaryQuery({
+    date,
+    to: badRange ? undefined : to,
+    userId,
+  });
   if (!data && isFetching) return <Skeleton />;
   if (error || !data) return <FormError message={t(errorKey(error))} />;
+  const oneDay = data.date === data.to;
   const centerName = lang === 'en' && data.center.nameEn ? data.center.nameEn : data.center.nameAr;
   const money = (p: number) => <bdi>{formatEgp(p, lang)}</bdi>;
 
@@ -61,6 +80,15 @@ export default function CashSummary() {
                 {/* Spacing, and the time never wraps, so it doesn't run into the receipt number on a
                   phone (audit 3 F4). */}
                 <td className="py-1 pe-3 whitespace-nowrap">
+                  {!oneDay && (
+                    <span className="block text-xs text-muted-foreground">
+                      {rangeLabel(
+                        localDate(e.createdAt, data.timezone),
+                        localDate(e.createdAt, data.timezone),
+                        lang,
+                      )}
+                    </span>
+                  )}
                   <bdi>{displayTime(e.createdAt, data.timezone, lang)}</bdi>
                 </td>
                 <td className="py-1 pe-3">
@@ -88,17 +116,48 @@ export default function CashSummary() {
       <header className="text-center">
         <p className="font-bold">{centerName}</p>
         <h1 className="text-xl font-bold">{t('cashSummary.title')}</h1>
-        <p>{dayLabel(data.date, lang)}</p>
+        <p>{oneDay ? dayLabel(data.date, lang) : rangeLabel(data.date, data.to, lang)}</p>
+        {userId && <p>{data.staff[0]?.name}</p>}
       </header>
-      <label className="grid gap-1 text-sm print:hidden">
-        {t('cashSummary.day')}
-        <Input
-          type="date"
-          value={data.date}
-          max={localDate(new Date(), data.timezone)}
-          onChange={(e) => setDate(e.target.value || undefined)}
-        />
-      </label>
+      <div className="grid gap-3 sm:grid-cols-2 print:hidden">
+        <label className="grid gap-1 text-sm">
+          {t('cashSummary.day')}
+          <Input
+            type="date"
+            value={data.date}
+            max={localDate(new Date(), data.timezone)}
+            onChange={(e) => setDate(e.target.value || undefined)}
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          {t('cashSummary.to')}
+          <Input
+            type="date"
+            value={to ?? ''}
+            min={data.date}
+            aria-invalid={badRange || undefined}
+            onChange={(e) => setTo(e.target.value || undefined)}
+          />
+        </label>
+        {isOwner && (
+          <label className="grid gap-1 text-sm sm:col-span-2">
+            {t('cashSummary.person')}
+            <select
+              className="h-10 rounded-md border border-input bg-background px-2"
+              value={userId ?? ''}
+              onChange={(e) => setUserId(e.target.value || undefined)}
+            >
+              <option value="">{t('cashSummary.everyone')}</option>
+              {members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      {badRange && <FormError message={t('cashSummary.badRange')} />}
       {data.staff.map(section)}
       <Button className="print:hidden" onClick={() => window.print()}>
         {t('receipt.print')}

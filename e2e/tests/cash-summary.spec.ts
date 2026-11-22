@@ -60,4 +60,17 @@ test("assistant hands over today's cash summary, and the owner sees it", async (
   await page.goto('/cash-summary');
   await expect(page.getByRole('row', { name: new RegExp(`دافع ${n}`) })).toBeVisible();
   expect(await page.getByRole('region').count()).toBeGreaterThanOrEqual(2);
+
+  // The owner picks the assistant over the last week: only their section, with the payment.
+  const members = await owner.get('members');
+  const helper = members.find((m: { role: string }) => m.role === 'assistant');
+  await page.getByLabel(t.cashSummary.person).selectOption(helper.userId);
+  await expect(page.getByRole('region')).toHaveCount(1);
+  await expect(page.getByRole('region', { name: helper.name })).toBeVisible();
+  const today = await page.getByLabel(t.cashSummary.day).inputValue();
+  const weekAgo = new Date(Date.parse(today) - 6 * 86_400_000).toISOString().slice(0, 10);
+  await page.getByLabel(t.cashSummary.to).fill(today);
+  await page.getByLabel(t.cashSummary.day).fill(weekAgo);
+  await expect(page.getByLabel(t.cashSummary.day)).toHaveValue(weekAgo);
+  await expect(page.getByRole('row', { name: new RegExp(`دافع ${n}`) })).toBeVisible();
 });
