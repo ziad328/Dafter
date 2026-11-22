@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
 import { api } from './api/generated';
 
 // Saving a group regenerates its sessions on the server, so the timetable must refetch too.
@@ -26,5 +27,6 @@ export const makeStore = () =>
   });
 
 export const store = makeStore();
+setupListeners(store.dispatch);
 
 export type AppDispatch = typeof store.dispatch;

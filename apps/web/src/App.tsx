@@ -11,10 +11,12 @@ import {
 import { useGetMeQuery } from './api/generated';
 import { AppShell } from './components/AppShell';
 import { FormError, Skeleton } from './components/Field';
+import { OfflineScreen } from './components/Offline';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Button } from './components/ui/button';
 import { lazyPage } from './lib/lazy-page';
 import { PageScrollbar } from './components/PageScrollbar';
+import { useOnline } from './lib/online';
 import { errorKey, useSignOut } from './lib/session';
 
 const Login = lazyPage(() => import('./screens/Login'));
@@ -58,6 +60,7 @@ function Layout() {
   const other = i18n.language === 'ar' ? 'en' : 'ar';
   const { pathname } = useLocation();
   const isStudentApp = pathname === '/s' || pathname.startsWith('/s/');
+  const online = useOnline();
 
   return (
     <div className="min-h-dvh bg-background font-sans text-foreground">
@@ -82,9 +85,13 @@ function Layout() {
         </div>
       </header>
       <main className="mx-auto grid max-w-md gap-4 px-4 py-8">
-        <Suspense fallback={<Skeleton />}>
-          <Outlet />
-        </Suspense>
+        {!online && isStudentApp ? (
+          <OfflineScreen />
+        ) : (
+          <Suspense fallback={<Skeleton />}>
+            <Outlet />
+          </Suspense>
+        )}
       </main>
     </div>
   );

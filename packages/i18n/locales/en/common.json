@@ -3,6 +3,12 @@
     "name": "Dafter",
     "tagline": "Attendance, fees and parents, in one place."
   },
+  "offline": {
+    "title": "You're offline",
+    "body": "Dafter needs the internet to show your classes and take attendance. Connect to Wi-Fi or mobile data and it updates by itself.",
+    "retry": "Try again",
+    "banner": "No internet connection; what you see may be out of date and nothing saves until it is back."
+  },
   "shell": {
     "switchLanguage": "العربية",
     "logout": "Sign out",

@@ -22,6 +22,8 @@ import {
 import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { OfflineBanner } from '@/components/Offline';
+import { useOnline } from '@/lib/online';
 import { getWorkspaceId } from '@/api/base';
 import { useGetCurrentWorkspaceQuery, useGetMeQuery } from '@/api/generated';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
@@ -255,6 +257,7 @@ function TabIcon({ icon: Icon }: { icon: LucideIcon }) {
 
 /** Staff screens: a sidebar on laptops (white in light, charcoal in dark), bottom tabs on phones. */
 export function AppShell() {
+  const online = useOnline();
   const { t } = useTranslation();
   const { main, more } = useNavItems();
   const { pathname } = useLocation();
@@ -313,6 +316,7 @@ export function AppShell() {
           <WorkspaceChip className={cn('max-w-[55%]', !hasWorkspace && 'ms-auto')} />
         </header>
         {hasWorkspace && <TopBar />}
+        {!online && <OfflineBanner />}
         <main
           // A new key per route replays the entrance, once per page.
           key={pathname}

@@ -114,4 +114,10 @@ export const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryE
 };
 
 /** Endpoints are injected by the generated file; never add them by hand. */
-export const baseApi = createApi({ baseQuery, tagTypes: ['auth'], endpoints: () => ({}) });
+// Back online: queries in use refetch (with setupListeners in store.ts).
+export const baseApi = createApi({
+  baseQuery,
+  tagTypes: ['auth'],
+  refetchOnReconnect: true,
+  endpoints: () => ({}),
+});
