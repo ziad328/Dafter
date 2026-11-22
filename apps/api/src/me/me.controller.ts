@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Req, UseGuards } from '@nestjs/common';
-import type { MyAttendanceRecord, MyGrade, MySession } from '@dafter/contracts';
+import type { MyAttendanceRecord, MyBalance, MyGrade, MySession } from '@dafter/contracts';
 import { AuthGuard, type AuthedRequest } from '../auth/auth.guard.js';
 import { Clock } from '../clock.js';
 import { MeRepository } from './me.repository.js';
@@ -25,6 +25,11 @@ export class MyStudentController {
   @Get('attendance')
   attendance(@Req() req: AuthedRequest): Promise<MyAttendanceRecord[]> {
     return this.repo.attendance(req.userId, 50);
+  }
+
+  @Get('balance')
+  balance(@Req() req: AuthedRequest): Promise<MyBalance[]> {
+    return this.repo.balance(req.userId, 20);
   }
 
   @Get('grades')

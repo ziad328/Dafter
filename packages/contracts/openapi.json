@@ -357,6 +357,40 @@
         }
       }
     },
+    "/api/v1/me/balance": {
+      "get": {
+        "operationId": "getMyBalance",
+        "tags": ["student"],
+        "description": "Student: my balance and last 20 fee entries in each center where I have any.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBalances"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces": {
       "post": {
         "operationId": "createWorkspace",
@@ -4906,6 +4940,104 @@
           "score",
           "absent"
         ],
+        "additionalProperties": false
+      },
+      "MyBalances": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MyBalance"
+        }
+      },
+      "MyBalance": {
+        "type": "object",
+        "properties": {
+          "center": {
+            "type": "object",
+            "properties": {
+              "nameAr": {
+                "type": "string"
+              },
+              "nameEn": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["nameAr", "nameEn"],
+            "additionalProperties": false
+          },
+          "balancePiastres": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["charge", "payment", "reversal"]
+                },
+                "amountPiastres": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "method": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["cash", "vodafone_cash", "instapay"]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "receiptNo": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "period": {
+                  "type": ["string", "null"]
+                },
+                "subject": {
+                  "$ref": "#/components/schemas/CurriculumItem"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "amountPiastres",
+                "method",
+                "receiptNo",
+                "period",
+                "subject",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["center", "balancePiastres", "entries"],
         "additionalProperties": false
       },
       "Workspace": {

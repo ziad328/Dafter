@@ -81,6 +81,10 @@ const injectedRtkApi = api
         query: () => ({ url: `/api/v1/me/grades` }),
         providesTags: ['student'],
       }),
+      getMyBalance: build.query<GetMyBalanceApiResponse, GetMyBalanceApiArg>({
+        query: () => ({ url: `/api/v1/me/balance` }),
+        providesTags: ['student'],
+      }),
       createWorkspace: build.mutation<CreateWorkspaceApiResponse, CreateWorkspaceApiArg>({
         query: (queryArg) => ({
           url: `/api/v1/workspaces`,
@@ -607,6 +611,8 @@ export type GetMyAttendanceApiResponse = /** status 200 My attendance */ MyAtten
 export type GetMyAttendanceApiArg = void;
 export type GetMyGradesApiResponse = /** status 200 My grades */ MyGrades;
 export type GetMyGradesApiArg = void;
+export type GetMyBalanceApiResponse = /** status 200 My balance */ MyBalances;
+export type GetMyBalanceApiArg = void;
 export type CreateWorkspaceApiResponse =
   /** status 201 Created; the caller is its owner */ Workspace;
 export type CreateWorkspaceApiArg = {
@@ -1052,6 +1058,24 @@ export type MyGrade = {
   absent: boolean;
 };
 export type MyGrades = MyGrade[];
+export type MyBalance = {
+  center: {
+    nameAr: string;
+    nameEn: string | null;
+  };
+  balancePiastres: number;
+  entries: {
+    id: string;
+    type: 'charge' | 'payment' | 'reversal';
+    amountPiastres: number;
+    method: ('cash' | 'vodafone_cash' | 'instapay') | null;
+    receiptNo: number | null;
+    period: string | null;
+    subject: CurriculumItem;
+    createdAt: string;
+  }[];
+};
+export type MyBalances = MyBalance[];
 export type Workspace = {
   id: string;
   type: 'center' | 'independent';
@@ -1599,6 +1623,7 @@ export const {
   useGetMyScheduleQuery,
   useGetMyAttendanceQuery,
   useGetMyGradesQuery,
+  useGetMyBalanceQuery,
   useCreateWorkspaceMutation,
   useListWorkspacesQuery,
   useGetCurrentWorkspaceQuery,

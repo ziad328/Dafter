@@ -287,6 +287,35 @@ describe('student home', () => {
     expect(await screen.findByRole('link', { name: tr('scan.open') })).toBeVisible();
   });
 
+  it('shows my fees per center: what I owe or my credit, and the last entries', async () => {
+    await renderAt('/s', { workspace: null, lang: 'en' });
+    const [nour, amal] = await screen.findAllByTestId('my-balance');
+    expect(within(nour!).getByRole('heading', { name: 'Al Nour' })).toBeVisible();
+    expect(within(nour!).getByText(tr('fees.owes'), { exact: false })).toHaveClass('text-rose');
+    expect(within(nour!).getAllByRole('listitem')).toHaveLength(5);
+    expect(within(nour!).getByText(/Vodafone Cash/)).toBeVisible();
+    expect(within(nour!).getByText(/November 2026/)).toBeVisible();
+    expect(within(nour!).getByText(new RegExp(tr('fees.reversal')))).toBeVisible();
+    expect(within(amal!).getByRole('heading', { name: 'سنتر الأمل' })).toBeVisible();
+    expect(within(amal!).getByText(tr('fees.credit'), { exact: false })).toHaveClass(
+      'text-present',
+    );
+    expect(await screen.findByRole('link', { name: tr('scan.open') })).toBeVisible();
+  });
+
+  it('shows one center without its name, and a settled balance', async () => {
+    server.use(
+      http.get(route('me/balance'), () =>
+        Response.json([{ ...fx.myBalance[0]!, balancePiastres: 0, entries: [] }]),
+      ),
+    );
+    await renderAt('/s', { workspace: null, lang: 'en' });
+    const only = await screen.findByTestId('my-balance');
+    expect(within(only).queryByRole('heading')).toBeNull();
+    expect(within(only).getByText(tr('fees.settled'))).toBeVisible();
+    expect(await screen.findByRole('link', { name: tr('scan.open') })).toBeVisible();
+  });
+
   it('fails binding when the key cannot be stored, and hides a rate of only excused classes', async () => {
     idb.failNext();
     server.use(

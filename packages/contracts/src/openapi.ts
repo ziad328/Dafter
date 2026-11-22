@@ -44,7 +44,7 @@ import {
   updateExamRequest,
 } from './exams.js';
 import { healthResponse } from './health.js';
-import { createPaymentRequest, ledgerEntry, receipt, studentLedger } from './money.js';
+import { createPaymentRequest, ledgerEntry, myBalances, receipt, studentLedger } from './money.js';
 import {
   listMessagesQuery,
   messageSettings,
@@ -237,6 +237,19 @@ export function buildOpenApi() {
           description: 'Student: my last 50 exam results in every center, newest first.',
           security: [{ bearer: [] }],
           responses: { 200: { description: 'My grades', content: json(myGrades) }, ...errors },
+        },
+      },
+      '/api/v1/me/balance': {
+        get: {
+          operationId: 'getMyBalance',
+          tags: ['student'],
+          description:
+            'Student: my balance and last 20 fee entries in each center where I have any.',
+          security: [{ bearer: [] }],
+          responses: {
+            200: { description: 'My balance', content: json(myBalances) },
+            ...errors,
+          },
         },
       },
       '/api/v1/workspaces': {

@@ -1,6 +1,6 @@
 import { enterWorkspace, expect, freshCenter, signIn, STAFF, test } from './fixtures';
 
-test('a teacher grades an exam and sends it to parents; the student sees the grade', async ({
+test('a teacher grades an exam and sends it to parents; the student sees the grade and fees', async ({
   page,
   browser,
   request,
@@ -18,6 +18,8 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
     subjectId: subject.id,
     gradeLevelId: grade.id,
     label: `امتحانات ${n}`,
+    // A fee, so the student app has a balance to show: this month is billed on enrolling.
+    monthlyFeePiastres: 30_000,
     slots: [{ weekday: 6, startTime: '16:00', endTime: '17:30' }],
   });
   const student = async (name: string, phone: string) => {
@@ -58,7 +60,14 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
   await page.reload();
   await expect(page.getByText(t.exams.alreadySent)).toBeVisible();
 
-  // The student, on their own phone, activates and finds the grade.
+  // Part of the month paid at the desk.
+  await api.post(
+    'payments',
+    { studentId: nourId, groupId: group.id, amountPiastres: 10_000, method: 'cash' },
+    { 'idempotency-key': crypto.randomUUID() },
+  );
+
+  // The student, on their own phone, activates and finds the grade and what is left to pay.
   const email = `g${n}@example.com`;
   const invite = await api.post(`students/${nourId}/invite`);
   const phone = await browser.newContext({
@@ -83,5 +92,9 @@ test('a teacher grades an exam and sends it to parents; the student sees the gra
   const grades = app.getByTestId('my-grades');
   await expect(grades).toContainText(`شهر ${n}`);
   await expect(grades).toContainText('17/20');
+  const fees = app.getByTestId('my-balance');
+  await expect(fees).toContainText(t.fees.owes);
+  await expect(fees).toContainText('200');
+  await expect(fees.getByRole('listitem')).toHaveCount(2);
   await phone.close();
 });

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { aliasedTable, and, desc, eq, gt, inArray, lt } from 'drizzle-orm';
-import type { MyAttendanceRecord, MyGrade, MySession } from '@dafter/contracts';
+import { aliasedTable, and, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
+import type { MyAttendanceRecord, MyBalance, MyGrade, MySession } from '@dafter/contracts';
 import {
   attendanceRecords,
   type Db,
@@ -9,6 +9,7 @@ import {
   exams,
   gradeLevels,
   groups,
+  ledgerEntries,
   memberships,
   sessions,
   students,
@@ -161,5 +162,55 @@ export class MeRepository {
       out.push(...rows);
     }
     return out.sort((a, b) => b.heldOn.localeCompare(a.heldOn)).slice(0, limit);
+  }
+
+  /**
+   * My balance in each center where I have entries (all my groups: it is my own money), with the
+   * last `limit` entries. Centers are in the order they were joined.
+   */
+  async balance(userId: string, limit: number): Promise<MyBalance[]> {
+    const out: MyBalance[] = [];
+    for (const [workspaceId, studentIds] of await this.byWorkspace(userId)) {
+      const mine = and(
+        eq(ledgerEntries.workspaceId, workspaceId),
+        inArray(ledgerEntries.studentId, studentIds),
+      );
+      const found = await withTenant(this.db, workspaceId, async (tx) => {
+        const [total] = await tx
+          .select({
+            center,
+            balance: sql<string>`sum(${ledgerEntries.amountPiastres})`,
+          })
+          .from(ledgerEntries)
+          .innerJoin(workspaces, eq(workspaces.id, ledgerEntries.workspaceId))
+          .where(mine)
+          .groupBy(workspaces.id);
+        if (!total) return undefined;
+        const entries = await tx
+          .select({
+            id: ledgerEntries.id,
+            type: ledgerEntries.type,
+            amountPiastres: ledgerEntries.amountPiastres,
+            method: ledgerEntries.method,
+            receiptNo: ledgerEntries.receiptNo,
+            period: ledgerEntries.period,
+            subject: item(subjects),
+            createdAt: ledgerEntries.createdAt,
+          })
+          .from(ledgerEntries)
+          .innerJoin(groups, eq(groups.id, ledgerEntries.groupId))
+          .innerJoin(subjects, eq(subjects.id, groups.subjectId))
+          .where(mine)
+          .orderBy(desc(ledgerEntries.createdAt), desc(ledgerEntries.id))
+          .limit(limit);
+        return {
+          center: total.center,
+          balancePiastres: Number(total.balance),
+          entries: entries.map((e) => ({ ...e, createdAt: e.createdAt.toISOString() })),
+        };
+      });
+      if (found) out.push(found);
+    }
+    return out;
   }
 }

@@ -363,6 +363,7 @@
     "settings": "Settings",
     "confirmLogout": "Tap again to sign out",
     "grades": "My grades",
+    "fees": "My fees",
     "resend": "Resend the code",
     "resendIn": "Resend in {seconds}s",
     "attended": "Attended",

@@ -7,6 +7,7 @@ import {
   useBindDeviceMutation,
   useGetMeQuery,
   useGetMyAttendanceQuery,
+  useGetMyBalanceQuery,
   useGetMyGradesQuery,
   useGetMyScheduleQuery,
 } from '@/api/generated';
@@ -15,9 +16,10 @@ import { PageHeader, Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import { deviceKey, publicKeySpki } from '@/lib/device-key';
 import { itemName } from '@/lib/groups';
+import { formatEgp } from '@/lib/money';
 import { isInstalled } from '@/lib/pwa';
 import { errorKey, useSignOut } from '@/lib/session';
-import { dayLabel, displayTime, localDate } from '@/lib/time';
+import { dayLabel, displayTime, localDate, monthLabel } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
 type BindState = 'binding' | 'bound' | 'otherPhone' | 'failed';
@@ -84,6 +86,7 @@ export default function StudentHome() {
       <Schedule />
       <History />
       <Grades />
+      <Fees />
       <Settings />
     </>
   );
@@ -297,6 +300,68 @@ function Grades() {
           </li>
         ))}
       </ul>
+    </Panel>
+  );
+}
+
+/**
+ * My fees in each center where I have any: what I owe (or my credit), then the last entries, payments
+ * in green with a «+» like the staff screen. The center's name shows only when there are two.
+ */
+function Fees() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const { data, isLoading } = useGetMyBalanceQuery();
+  if (isLoading) return <Skeleton />;
+  if (!data?.length) return null;
+  return (
+    <Panel className="grid gap-3 p-5">
+      <h2 className="font-semibold">{t('studentApp.fees')}</h2>
+      {data.map((b) => (
+        <section
+          key={b.center.nameAr}
+          aria-label={centerName(b.center, lang)}
+          className="grid gap-2"
+          data-testid="my-balance"
+        >
+          {data.length > 1 && <h3 className="text-sm font-medium">{centerName(b.center, lang)}</h3>}
+          <p
+            className={cn(
+              'font-bold',
+              b.balancePiastres > 0 ? 'text-rose' : b.balancePiastres < 0 && 'text-present',
+            )}
+          >
+            {b.balancePiastres === 0
+              ? t('fees.settled')
+              : t(b.balancePiastres > 0 ? 'fees.owes' : 'fees.credit')}
+            {b.balancePiastres !== 0 && (
+              <bdi className="ms-1">{formatEgp(Math.abs(b.balancePiastres), lang)}</bdi>
+            )}
+          </p>
+          <ul className="grid gap-1 text-sm">
+            {b.entries.map((e) => (
+              <li key={e.id} className="flex justify-between gap-2">
+                <span className="min-w-0 truncate">
+                  {`${
+                    e.type === 'charge'
+                      ? t('fees.charge', { period: e.period ? monthLabel(e.period, lang) : '' })
+                      : e.type === 'payment'
+                        ? t('fees.payment', { method: t(`fees.methods.${e.method ?? 'cash'}`) })
+                        : t('fees.reversal')
+                  } · ${itemName(e.subject, lang)}`}
+                </span>
+                <bdi
+                  dir="ltr"
+                  className={cn('shrink-0 font-medium', e.type === 'payment' && 'text-present')}
+                >
+                  {e.type === 'payment' && '+'}
+                  {formatEgp(Math.abs(e.amountPiastres), lang)}
+                </bdi>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </Panel>
   );
 }

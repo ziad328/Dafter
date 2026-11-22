@@ -55,6 +55,31 @@ export const receipt = z
   })
   .meta({ id: 'Receipt' });
 
+/** Student app: my fees in one center. */
+export const myBalance = z
+  .object({
+    center: z.object({ nameAr: z.string(), nameEn: z.string().nullable() }),
+    // Every entry of mine in that center: > 0 means I owe.
+    balancePiastres: z.int(),
+    // The last 20, newest first.
+    entries: z.array(
+      ledgerEntry.pick({
+        id: true,
+        type: true,
+        amountPiastres: true,
+        method: true,
+        receiptNo: true,
+        period: true,
+        subject: true,
+        createdAt: true,
+      }),
+    ),
+  })
+  .meta({ id: 'MyBalance' });
+
+export const myBalances = z.array(myBalance).meta({ id: 'MyBalances' });
+
+export type MyBalance = z.infer<typeof myBalance>;
 export type CreatePaymentRequest = z.infer<typeof createPaymentRequest>;
 export type LedgerEntry = z.infer<typeof ledgerEntry>;
 export type StudentLedger = z.infer<typeof studentLedger>;

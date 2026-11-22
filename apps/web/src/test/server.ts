@@ -4,6 +4,7 @@ import type {
   Exam,
   ExamSheet,
   MyAttendanceRecord,
+  MyBalance,
   MyGrade,
   TrendStats,
   MySession,
@@ -87,6 +88,36 @@ const myGrades: MyGrade[] = [
   ...g,
 }));
 
+const entry = (type: 'charge' | 'payment' | 'reversal', amountPiastres: number, extra = {}) => ({
+  id: crypto.randomUUID(),
+  type,
+  amountPiastres,
+  method: null,
+  receiptNo: null,
+  period: null,
+  subject: captured.subjects[0]!,
+  createdAt: '2026-11-21T08:00:00.000Z',
+  ...extra,
+});
+const myBalance: MyBalance[] = [
+  {
+    center: { nameAr: 'سنتر النور', nameEn: 'Al Nour' },
+    balancePiastres: 30000,
+    entries: [
+      entry('reversal', 5000),
+      entry('payment', -5000, { method: 'vodafone_cash', receiptNo: 7 }),
+      entry('payment', -30000, { method: 'cash', receiptNo: 6 }),
+      entry('charge', 30000, { period: '2026-11' }),
+      entry('charge', 30000),
+    ],
+  },
+  {
+    center: { nameAr: 'سنتر الأمل', nameEn: null },
+    balancePiastres: -2000,
+    entries: [entry('payment', -2000)],
+  },
+];
+
 const weeks = Array.from(
   { length: 8 },
   (_, i) =>
@@ -126,6 +157,7 @@ export const fx = {
   exam,
   examSheet,
   myGrades,
+  myBalance,
   openSession: {
     sessionId: open.id,
     qrKey: 'dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXk',
@@ -188,6 +220,7 @@ export const handlers = [
   http.get(api('me/schedule'), log(fx.mySchedule)),
   http.get(api('me/attendance'), log(fx.myAttendance)),
   http.get(api('me/grades'), log(fx.myGrades)),
+  http.get(api('me/balance'), log(fx.myBalance)),
   http.post(
     api('devices/bind'),
     log({ id: crypto.randomUUID(), boundAt: new Date().toISOString() }, 201),
