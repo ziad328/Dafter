@@ -742,6 +742,7 @@
   },
   "cashSummary": {
     "title": "Cash summary",
+    "titleRange": "Cash summary for the period",
     "day": "From",
     "total": "Total",
     "empty": "No payments in this period",

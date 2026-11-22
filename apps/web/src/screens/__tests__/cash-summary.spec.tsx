@@ -47,6 +47,7 @@ describe('cash summary', () => {
       target: { value: '2026-11-15' },
     });
     expect(await screen.findByText(/November 15\s*–\s*20/)).toBeVisible();
+    expect(screen.getByRole('heading', { name: tr('cashSummary.titleRange') })).toBeVisible();
     expect(
       sent.some((s) => s.call.endsWith('stats/cash-summary?date=2026-11-15&to=2026-11-20')),
     ).toBe(true);

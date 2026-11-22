@@ -115,7 +115,9 @@ export default function CashSummary() {
     <article className="grid gap-4 rounded-2xl border bg-card p-6 text-card-foreground shadow-card print:border-0 print:bg-white print:p-0 print:text-black print:shadow-none">
       <header className="text-center">
         <p className="font-bold">{centerName}</p>
-        <h1 className="text-xl font-bold">{t('cashSummary.title')}</h1>
+        <h1 className="text-xl font-bold">
+          {t(oneDay ? 'cashSummary.title' : 'cashSummary.titleRange')}
+        </h1>
         <p>{oneDay ? dayLabel(data.date, lang) : rangeLabel(data.date, data.to, lang)}</p>
         {userId && <p>{data.staff[0]?.name}</p>}
       </header>
