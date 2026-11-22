@@ -15,13 +15,14 @@ One file for the state of the project. **Next** comes first: the backlog, every 
 
 ## Now: before the client interview
 
-Written Nov 19. Everything that doesn't need the client goes first, in five batches (one session each, run one after another on `main`; nothing is pushed until all five are done). Numbers are the backlog's. Tick a batch here and log it in Done.
+Written Nov 19. Everything that doesn't need the client goes first, in five batches, then a sixth (F) of leftovers (one session each, run one after another on `main`; nothing is pushed until all five are done). Numbers are the backlog's. Tick a batch here and log it in Done.
 
 - [x] **A · Small fixes** (done Nov 19; #27 stays in the backlog, see its row): #13 "save anyway" on session moves · #23 lock on `PUT /members/:id/scopes` · #25 one token-creation helper · #27 audit row in the same transaction on routes outside a workspace · #22 two tabs refreshing at once don't sign out (grace window) · #36 e2e groups without `force` · #37 drop cloned test databases · #38 `@dafter/i18n` loads in Node ESM · #39 `run-dafter` screenshots can sign in · reorder subjects and grades.
-- [x] **B · Students and groups** (done Nov 19, migration 0018 not on Neon yet): #9 more than one guardian in the UI · #16 "primary guardian only" per student · #12 move one session to another room · #14 dashboard: archived groups and a custom date range.
-- [x] **C · Money that doesn't wait on the interview** (done Nov 22, migration 0019 not on Neon yet; #7's per-teacher half still waits on the client): #4 nightly balance check · #5 students see their own balance · #6 cash summary by person and date range · #7 (first half) a per-center start day for fee reminders · #15 exam scores: CSV export, then import.
+- [x] **B · Students and groups** (done Nov 19, migration 0018 on Neon since Nov 22): #9 more than one guardian in the UI · #16 "primary guardian only" per student · #12 move one session to another room · #14 dashboard: archived groups and a custom date range.
+- [x] **C · Money that doesn't wait on the interview** (done Nov 22, migration 0019 on Neon since Nov 22; #7's per-teacher half still waits on the client): #4 nightly balance check · #5 students see their own balance · #6 cash summary by person and date range · #7 (first half) a per-center start day for fee reminders · #15 exam scores: CSV export, then import.
 - [x] **D · Messages (*hard part: outbox*)** (done Nov 22, no migration): #17 a late "absent" for a second child reaches the parent · #18 SMS length counter on the wording editor · #21 batch the send-time re-check by session.
 - [x] **E · Scale and PWA** (done Nov 22, no migration; groups stay unpaged, see #11): #11 cursor pagination (groups, students, message log) · #32 daily jobs batched per workspace · #33 offline screen in the PWA.
+- [x] **F · Tests and leftovers** (done Nov 22, no migration; not pushed): #35 message tests run at any hour and day · #34 the two flaky tests · #27 audit row in the route's own transaction outside a workspace (*hard part*) · the cash summary's range heading and the last two native dropdowns.
 
 ### Waits on the client
 
@@ -85,7 +86,7 @@ Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, 
 24. Removing a member doesn't sign them out of their other centers' tabs (by design).
 25. ~~The same token-creation code is copied in three places (staff invite, reset link, student invite).~~ Done Nov 19: `issueToken` in `auth/tokens.ts`. _(done)_
 26. Brevo's free tier caps login emails per day; centers need their own sending domain. _(centers)_
-27. Routes outside a workspace (sign-in, invite accept, check-in) write their audit row in a separate transaction. Looked at Nov 19 and left: not a small fix (see Known limits). _(later)_
+27. ~~Routes outside a workspace (sign-in, invite accept, check-in) write their audit row in a separate transaction.~~ Done Nov 22: invite accept, check-in, a new workspace, the student code and the password reset write it in their own transaction (`recordAudit`); sign-in, sign-out, the code requests and device bind still write it after the handler (see Known limits). _(done)_
 
 ### Hosting and scale
 
@@ -98,8 +99,8 @@ Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, 
 
 ### Tests and tooling
 
-34. Two flaky tests to watch: `students.spec.ts` [ar] and `student-app.spec.ts` under load.
-35. Message and fee-reminder e2e tests skip themselves at night and on the 1st–6th of the month.
+34. ~~Two flaky tests to watch: `students.spec.ts` [ar] and `student-app.spec.ts` under load.~~ Done Nov 22: the search waits for its own response; the student-app test has its own center and polls the dev inbox. _(done)_
+35. ~~Message and fee-reminder e2e tests skip themselves at night and on the 1st–6th of the month.~~ Done Nov 22: the fee test starts reminders on the 1st, and the message tests release their own center's held messages (`releaseQuietHours`). _(done)_
 36. ~~Every API-built e2e group sends `force`, so only `teacher-slots.spec.ts` exercises the teacher check.~~ Done Nov 19: they live in fresh centers (`freshCenter`) and never send it. _(done)_
 37. ~~Cloned test databases are never dropped.~~ Done Nov 19. _(done)_
 38. ~~`@dafter/i18n` can't load in Node ESM, so e2e imports the locale JSON directly.~~ Done Nov 19. _(done)_
@@ -135,7 +136,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | Brevo's free tier sends from one verified address and has a daily cap | Login codes stop for the day if the cap is hit | centers (own domain) |
 | Register limit skips loopback (`127.0.0.1`) so local tools and tests can sign up freely | None in production (clients are never loopback behind Vercel) | — |
 | A just-rotated refresh token still works for 30 seconds while its family is live (two tabs refreshing at once); a thief replaying it in that window isn't detected | Theft detection starts 30 s late | — (by design) |
-| Routes outside a workspace (sign-in, invite accept, check-in) still write their audit row in its own transaction after the handler. One transaction is not a small fix: a failed sign-in or refresh must still commit its rate-limit hit and reuse revocation, and check-in learns its workspace mid-handler | A crash in between loses that row | later |
+| Sign-in, register, sign-out, the password-reset and code requests and device bind still write their audit row in its own transaction after the handler (their writes are several statements, and a failed sign-in must still commit its rate-limit hit). Invite accept, check-in, a new workspace, the student code and the password reset write it in their own transaction since Nov 22 (`recordAudit`) | A crash in between loses a sign-in's row, never a domain write's | — |
 | A tenant write holds its connection and row locks until the audit row commits; handlers must not run repository calls in parallel (`requestTx` savepoints share one connection) | Slightly longer locks; a rule to keep | — |
 | Removing a member doesn't sign them out: their open tabs get 404 on the next request; their refresh tokens still work for their other centers | By design (one account, many centers) | — |
 | A removed teacher's groups keep them as teacher (flagged "No teacher") until the owner picks another; their sessions still show their name | The owner must reassign by hand | — |
@@ -221,13 +222,11 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| Message e2e is skipped during Cairo quiet hours (22:00–08:00) | Night runs check less | — |
+| Message e2e releases its own center's held messages straight in the dev database (`releaseQuietHours`), so it runs in quiet hours; `batch2.spec.ts` still skips from 22:55 Cairo (it needs an hour-long class today). The release path was written by day and has not run at night yet | Late-night runs skip one test | — |
 | Playwright's `webServer` waits only for the web port: on a cold start (no `pnpm dev` running) the first tests can hit the API before it is up and fail with 502 from the Vite proxy | A cold full run can fail its first ~12 tests; start `pnpm dev` first, or wait on `:3000/health` | later (a second `webServer` entry for the API) |
-| `fee-reminders.spec.ts` is skipped from the 1st to the 6th of the month (Cairo). Most specs build their data in a fresh center (`freshCenter`), so the seeded owner, teacher and assistant gain workspaces on every run | Early-month runs check less; the dev workspace lists grow (until `pnpm db:reset`) | — |
-| `students.spec.ts` [ar] "assistant adds a student…" failed once in the full run (2 workers, `toHaveCount`), then passed alone; CI retries once | Possible flake | later (watch; if it repeats, look at what the count waits on) |
+| Most specs build their data in a fresh center (`freshCenter`), so the seeded owner, teacher and assistant gain workspaces on every run | The dev workspace lists grow (until `pnpm db:reset`) | — |
 | The GitHub CLI (`gh`) isn't installed on the dev laptop; CI status is read from the public Actions API with `curl` | No PR or log commands from Claude Code | — |
 | Web spec `student-app.spec.tsx` "keeps the invite link ready to copy" read the stored invite before the effect wrote it (failed once on CI); it now polls | Fixed in the test; watch for others like it | — |
-| `student-app.spec.ts` timed out once (40 s) with the full suite on 6 workers, then passed alone | Possible flake under load | later (watch in CI) |
 
 <a id="limits-plan"></a>
 
@@ -306,8 +305,7 @@ Written on Nov 15 after exams, the dashboard and fee reminders (`93662a4`, `cc3c
 | Fee reminders | The amount is the student's balance across the whole center | A teacher-collected fee shows the total | Decide after the center interviews ("who collects the fee?") |
 | Exams | ~~No CSV import or export of scores~~ Done Nov 22 | — | — |
 | Exams | A correction resends the same sentence with «تصحيح:» only | Parents don't see the old score | Fine for now |
-| Dashboard | Last 8 weeks and 6 months only, no date range | No term view | A `weeks` query param (max 26) |
-| Dashboard | Archived groups are left out | Last term's groups disappear | Include them with a filter |
+| Dashboard | ~~Last 8 weeks and 6 months only; archived groups left out~~ Done Nov 19 (backlog #14) | — | — |
 | Dashboard | Bars are plain CSS, no chart library | No tooltips or axis | Fine for now |
 
 ### Issues found while testing
@@ -335,24 +333,7 @@ Outside the code: the demo video and the center interviews. Done by Ziad on Nov 
 
 ### Next feature
 
-**An invite that carries the assistant's teachers** (module 1: "An invited assistant who opens the link joins with the role and teachers chosen in the invite"). Today the owner ticks an assistant's teachers after they join. The invite gets the chosen teacher memberships, and accepting it writes the assistant scopes in the same transaction as the membership.
-
-### Start prompt for a new session
-
-Copy everything in the block into a new Claude Code session opened in `D:\Frontend\Dafter`:
-
-```text
-Read CLAUDE.md and follow the start-of-session protocol, then read docs/progress.md#v1-next.
-
-Task: build the next v1 feature of Dafter, an invite that carries the assistant's teachers (docs/product.md, module 1: "An invited assistant who opens the link joins with the role and teachers chosen in the invite"). Work on branch main, as the rest of the project does.
-
-Before coding, give me a short plan and wait for my OK. Cover:
-- The data: where the chosen teachers live on the invite (a column or a join table), and that accepting writes the membership and its assistant scopes in one transaction, under the invite's single-use lock.
-- Rules: only the owner picks teachers; only for an assistant invite; teachers must be owner or teacher memberships of the same workspace; a teacher who left before the invite is accepted is skipped, not an error.
-- The contract, the migration, the endpoint changes, the invite screen (pick teachers when the role is assistant) and the ar/en keys.
-
-Then build it in the project's order: contract (`pnpm contracts:gen`), migration, API, web. Tests at every layer: integration tests plus isolation tests, web specs, and a Playwright test of the user flow in ar and en at 375 px. Done means `pnpm test` passes with 100% line coverage in every package, the full Playwright suite passes with 2 workers (`cd e2e && npx playwright test --workers=2`), `docs/progress.md` has a ticked entry, and `docs/progress.md#known-limits` is updated. Commit with a Conventional Commit message and push; apply the migration to Neon as the db-migration skill says and check the live site (`pnpm e2e:live`).
-```
+Built Nov 15 (an invite that carries the assistant's teachers). What's next is in [Now](#now) and the [backlog](#backlog); the rest waits on the center interview.
 
 <a id="done"></a>
 
@@ -435,3 +416,4 @@ Tick a task when done, with a one-line note (what was done, anything left). Spli
 - [x] **Batch C · Money that doesn't wait on the interview (Nov 22), backlog #4, #5, #6, #7 (first half), #15:** Note: done; migration `0019_ledger_checks` (applied to dev, **not to Neon yet**: it goes with the push after batch E). #7: `settings.messages.feeReminderFromDay` (1–28, default 7) read by the fee-overdue enqueue, a day picker under the fee switch; on `PUT /message-settings` it is optional (`UpdateMessageSettingsRequest`) and the save merges into the saved settings, so an older page keeps the day (`c335090`, `d7f37cc`). #6: `GET /stats/cash-summary?date&to&userId`: up to 31 days (`RANGE_INCOMPLETE`, `RANGE_ENDS_BEFORE_START`, `RANGE_TOO_LONG`), `userId` for the owner only (others `FORBIDDEN`, a non-member 400), response gains `to`; from/to dates and a staff picker, each line shows its day in a range (`71df330`). #5: `GET /me/balance` (each center where the student has entries: balance over every group and the last 20 entries), «مصروفاتي» card in the student app (`fa72da2`). #4 *(hard part: ledger)*: the daily job (worker and `/internal/tick?daily=1`, which reports `ledgerProblems`) recounts each workspace's entries up to the last check's cutoff against the stored count and sum, checks that every reversal is minus its original for the same student and group (and not of a reversal) and that the receipt counter isn't behind, then stores tonight's totals with a cutoff 5 minutes back (open transactions) in append-only `ledger_checks` (RLS, `UPDATE`/`DELETE` revoked) and logs each problem (`7a53586`). #15: CSV export of the grid (UTF-8 BOM, `student_id,name,score,absent`, formula-looking cells defused) and import matched by `student_id` (any column order, Excel `;` files, absent as 1/x/yes/نعم/غ), bad lines listed, only fills the grid until saved; all in the browser (`b3746c7`). Tests: integration (start day incl. a later day and an older page; ranges, person, roles, validation; my balance across centers and siblings; a clean ledger, then a changed charge, a broken reversal and a reset counter, append-only checks, logging), RLS suite row, contract range rules, web specs (day picker, range and person, My fees, CSV round trip), e2e (`messages.spec.ts` day picker, `cash-summary.spec.ts` person and week, `exams.spec.ts` balance in the student app and a CSV round trip); full e2e 80 passed. Also fixed: a rooms web spec bound to last week's fixture dates. CI: the push of `1f1c540` failed only the oasdiff breaking-change step, on batch B's intended removal of `primaryOnly` from the message-settings response; the next push is compared with `1f1c540`, so it clears without a `BREAKING CHANGE` footer (checked locally: no breaking changes from `1f1c540` to batch C's head).
 - [x] **Batch D · Messages (Nov 22), backlog #17, #18, #21:** *Hard part (outbox).* Note: done, no migration, no contract change. #17: a manual "absent" after close (`enqueueLateAbsence` in `messages/outbox.ts`, same transaction as the mark, same guardian filter) first adds the child to the guardian's still-`queued` `absence:<session>:<guardian>` row (students kept sorted by `nameAr`); when that row was already sent or skipped, it queues a follow-up `absence:<session>:<guardian>:<student>`, unless one of the guardian's absence rows for the session already names the child (so absent → present → absent texts once). A row the sender holds is locked: the UPDATE waits, sees it sent, and the follow-up takes over (`99532d6`). #18: `lib/sms.ts` (GSM-7 160/153 with two-unit extension characters, else UCS-2 70/67) and «الأحرف: · رسائل SMS:» under each wording preview, amber from 3 parts (`06ddf71`). #21: `recheckFacts` reads the balances of every fee-reminder child and the absent students of every session in the batch (at most two queries), and `recheck` is now a pure function over them (`3b8ed40`). Tests: integration (a sibling joins the queued text, follows a sent one, repeats and absent/present/absent text once, another family's late absence; several sessions in one batch), the existing re-check and late-correction tests, `sms.spec.ts`, wording web spec, `wording.spec.ts` e2e checks the counter; full e2e 80 passed, `pnpm test` 100% lines. Left: no Playwright test for the late sibling absence (it needs a closed session with two children of one parent; covered by integration).
 - [x] **Batch E · Scale and PWA (Nov 22), backlog #11, #32, #33:** Note: done, no migration; contracts gained optional query params only (oasdiff from `1f1c540`: no breaking changes). #32: `jobs/for-each-workspace.ts` reads workspace ids by keyset 100 at a time, runs each job in that workspace's `withTenant`, and logs and skips a workspace that throws; sessions, charges, reminders, the ledger check and the outbox sender use it (`33106d3`). #33: `useOnline()` (online and offline events); offline, the student app's routes show one «أنت غير متصل بالإنترنت» screen (scanning hidden) and staff pages a banner; `refetchOnReconnect` with `setupListeners` (`4913995`). #11: `GET /students?after=<id>` (50 a page; keyset on status, the balance for "who owes", `created_at` desc and id, cursor values read in SQL so microseconds survive; `after` with `q` is refused, `SEARCH_NOT_PAGED`; a foreign cursor is `STUDENT_NOT_FOUND`) and `GET /messages?after=<id>` (100 a page, `(created_at, id)` desc; an unknown id gives an empty page); a shared `MorePages` component («عرض المزيد») under both lists, each page its own cached query (`cdd3f01`). Groups are not paged: the screen filters every group in the browser and the group pickers need the full list. Tests: integration (pages without gaps or repeats, archived last, owes order across a page break, ties on one timestamp, status filter, foreign and unknown cursors; jobs across batches with one failing workspace), contract rule, web specs (offline and back, banner, show more until a short page, a failed page), e2e `offline.spec.ts` (simulated: in dev, Vite reloads the page when its socket drops, so `context.setOffline` lands on Chrome's own offline page) and `pagination.spec.ts` (51 students); full e2e 84 passed, `pnpm test` 100% lines.
+- [x] **Batch F · Tests and leftovers (Nov 22), backlog #27, #34, #35:** Note: done, no migration, no contract change. Before it: the cash summary's heading says «ملخص الفترة» for a range (`58fc330`), and its staff picker and the reminder-day picker use `SelectField` (no native `<select>` is left; «الكل» has the value `all`, since the dropdown can't pick an empty one) (`591e756`). #35: `fee-reminders.spec.ts` sets the start day to the 1st; `wording.spec.ts` and `batch2.spec.ts` call `releaseQuietHours(center)` (sets the center's queued `send_after` to now, straight in the dev database) before the tick, and `batch2` skips only from 22:55 (`9738e12`). #34: `students.spec.ts` waits for the search's own response before counting; `student-app.spec.ts` builds its group in a `freshCenter` (no `GROUP_CONFLICT` allowance) and polls the dev inbox for the code (`7903946`). #27 *(hard part: tenancy)*: the interceptor puts a pending audit row in AsyncLocalStorage for writes outside a workspace; `recordAudit(tx, …)` writes it as the last statement of the route's success transaction (invite accept, check-in with its session's workspace, new workspace, student code verify, password-reset confirm) and the interceptor skips its own; the rest keep the after-handler row (`0a68588`). Tests: integration (an accept rolls back with its failed audit row, then writes exactly one; two check-in rows with the workspace), web specs, e2e of the touched specs (repeat 2). Left: the quiet-hours release hasn't run at night yet.

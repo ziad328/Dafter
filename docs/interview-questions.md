@@ -320,3 +320,14 @@ It looks up that row's sort values (status, `created_at`, and the balance for "w
 **3. Why are groups not paged, and a search not paged either?**
 The groups screen filters by teacher, grade and text in the browser, and the group pickers need every group, so paging would hide matches. It needs server-side filters first. A search is ordered by relevance (trigram similarity), which doesn't make a stable keyset, so it returns the 50 best matches instead.
 
+
+## Audit rows outside a workspace (tenancy)
+
+**1. Why not just wrap every write request in one transaction in the interceptor, like the tenant routes?**
+Some of those routes must commit work even when they fail. A wrong password still has to save its rate-limit hit, and a reused refresh token still has to revoke its family. One transaction around the handler would roll those back on the throw. So the route writes the audit row inside its own success transaction, and failures commit what they need on their own.
+
+**2. How does a repository deep inside the call write a row the interceptor prepared, without passing it through every layer?**
+The interceptor runs the handler inside an AsyncLocalStorage store that holds a row builder (route, actor, entity). `recordAudit(tx, ...)` reads the store and inserts the row with the route's own transaction, then marks it done so the interceptor doesn't write a second one. Outside a request (a job or a test) there is no store, so it does nothing.
+
+**3. What can still be lost, and why is that acceptable?**
+Sign-in, sign-out and the code requests still write their row after the handler, so a crash in between loses a sign-in's record. Their writes are tokens spread over several statements, not domain data. Every route that changes who belongs where, or who attended, now commits its record with the change.

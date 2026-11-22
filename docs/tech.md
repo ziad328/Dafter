@@ -462,3 +462,9 @@ Short records of design choices: decision, alternatives, why.
 - **Decision:** a global `rate_limits` table (key, count, reset_at), one `INSERT … ON CONFLICT DO UPDATE` per hit, `take` counting only keys under the limit; the daily job sweeps expired rows.
 - **Alternatives:** keep process memory (a restart, a sleeping instance or a second Vercel instance resets or splits the counts); Redis (a second service, and the free tier's daily command cap).
 - **Why:** the lockout must hold on a host that restarts often, and PostgreSQL is already there. The row lock on the key makes concurrent hits count one after another. Cost: one or two small queries per login and scan.
+
+### 2026-11-22 · Audit rows for routes outside a workspace, in the route's own transaction
+
+- **Decision:** the interceptor puts a pending audit row in AsyncLocalStorage; `recordAudit(tx)` writes it as the last statement of the route's success transaction (invite accept, check-in, new workspace, student code, password reset), and the interceptor then skips its own. Sign-in, sign-out and the code requests keep the after-handler row.
+- **Alternatives:** one interceptor transaction around the handler (rolls back a failed sign-in's rate-limit hit and a reuse revocation); passing the row down as a parameter (every layer changes).
+- **Why:** the domain write and its record commit together where it matters, failures keep their own commits, and only five repository lines change.
