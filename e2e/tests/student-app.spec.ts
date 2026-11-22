@@ -1,24 +1,22 @@
 import {
-  expect,
-  signIn,
-  STAFF,
-  test,
-  openNav,
   choose,
   enterWorkspace,
-  GROUP_CONFLICT,
+  expect,
+  freshCenter,
+  openNav,
+  signIn,
+  STAFF,
   submitGroup,
+  test,
 } from './fixtures';
 
-test.use({ expectedErrors: GROUP_CONFLICT });
-
-const CENTER = { ar: 'سنتر النور', en: 'Al-Nour Center' };
 const PHYSICS = { ar: 'الفيزياء', en: 'Physics' };
 const SEC3 = { ar: 'الصف الثالث الثانوي', en: 'Secondary 3' };
 
 test('owner enrolls a student and sends a link; the student activates and binds the phone', async ({
   page,
   browser,
+  request,
   lang,
   t,
 }) => {
@@ -29,10 +27,12 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   const name = `سارة ${n}`;
   const email = `s${n}@example.com`;
 
+  // A center of its own: the group never meets another test's 16:00 group with the same teacher.
+  const center = await freshCenter(request, 'سنتر الطالب', ['teacher']);
   await signIn(page, t, STAFF.owner);
-  await enterWorkspace(page, t, CENTER[lang]);
+  await enterWorkspace(page, t, center.name);
 
-  // A group to enroll into (a fresh dev database has none).
+  // A group to enroll into.
   await openNav(page, t, t.nav.groups);
   await page.getByRole('link', { name: t.groups.new }).click();
   await choose(page, t.groups.subject, PHYSICS[lang]);
@@ -82,8 +82,17 @@ test('owner enrolls a student and sends a link; the student activates and binds 
   await student.getByLabel(t.studentApp.email).fill(email);
   await student.getByRole('button', { name: t.studentApp.sendCode }).click();
   await expect(student.getByText(email)).toBeVisible();
-  const mail = await student.request.get(`/api/v1/dev/mail?to=${encodeURIComponent(email)}`);
-  const code = ((await mail.json()) as { text: string }).text.match(/\d{6}/)![0];
+  // The code's mail, once the dev inbox has it (it can lag the screen under load).
+  let code = '';
+  await expect
+    .poll(async () => {
+      const mail = await student.request.get(`/api/v1/dev/mail?to=${encodeURIComponent(email)}`);
+      code = mail.ok()
+        ? (((await mail.json()) as { text: string }).text.match(/\d{6}/)?.[0] ?? '')
+        : '';
+      return code;
+    })
+    .toMatch(/^\d{6}$/);
   await student.getByLabel(t.studentApp.code).fill(code);
   await student.getByRole('button', { name: t.studentApp.verify }).click();
   await expect(student).toHaveURL(/\/s$/);

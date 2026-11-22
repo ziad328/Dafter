@@ -38,7 +38,13 @@ test('assistant adds a student, finds them, and is warned about a reused phone',
   await expect(page.getByRole('heading', { name })).toBeVisible();
   // "فاطمه" (taa marbuta typed as haa) still finds "فاطمة".
   await page.goto('/students');
+  // The new student is on the unfiltered list too: wait for the search's own answer (after the
+  // 300 ms debounce), or the count below races it under load.
+  const searched = page.waitForResponse(
+    (r) => r.url().includes('/api/v1/students?') && r.url().includes('q='),
+  );
   await page.getByRole('searchbox', { name: t.students.search }).fill(`فاطمه ${n}`);
+  await searched;
   await expect(page.getByRole('heading', { name })).toBeVisible();
   await expect(page.getByRole('main').getByRole('link')).toHaveCount(2); // "New student" + the one match
 
