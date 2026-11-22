@@ -77,9 +77,10 @@ export async function sendDueMessages(
       .from(workspaces)
       .where(eq(workspaces.id, ws));
     const custom = settings?.templates ?? undefined;
+    const facts = await recheckFacts(tx, ws, due);
     let n = 0;
     for (const m of due) {
-      const checked = await recheck(tx, ws, m.trigger as Trigger, m.payload, settings?.messages);
+      const checked = recheck(m.trigger as Trigger, m.payload, settings?.messages, facts);
       if ('skip' in checked) {
         await tx
           .update(outboxMessages)
@@ -115,30 +116,36 @@ export async function sendDueMessages(
 
 type Checked = { payload: unknown } | { skip: 'paid' | 'trigger_off' | 'not_absent' };
 
+/** What the re-check needs for a whole batch: at most two queries, whatever its size. */
+type Facts = { balances: Map<string, number>; absent: Map<string, Set<string>> };
+
+const ids = (p: { students: { id?: string }[] }) => p.students.flatMap((s) => (s.id ? [s.id] : []));
+
 /**
- * Is the message still true? Run just before sending, on the locked row. A trigger switched off
- * since it was queued is skipped. A fee reminder keeps only the active children who still owe,
- * with today's balance; an absence keeps only the children still marked absent. With none left the
- * row is skipped, never deleted, so its dedupe key stays taken and a rerun queues nothing.
- * Rows queued before students carried an `id` are sent as they are.
+ * The balances of every active child named in the batch's fee reminders, and the absent students
+ * of every session in its absence messages. Read under the same lock as the rows.
  */
-// shortcut: one or two queries per row (a batch is at most 50); group by session or student set if
-// batches grow.
-async function recheck(
+async function recheckFacts(
   tx: Tx,
   ws: string,
-  trigger: Trigger,
-  payload: unknown,
-  messages: Partial<MessageSettings> | null | undefined,
-): Promise<Checked> {
-  const key = TOGGLE[trigger];
-  if (!(messages?.[key] ?? key !== 'feeOverdue')) return { skip: 'trigger_off' };
-
-  if (trigger === 'fee_overdue') {
-    const p = payload as FeePayload;
-    const ids = p.students.flatMap((s) => (s.id ? [s.id] : []));
-    if (!ids.length) return { payload };
-    const rows = await tx
+  rows: { trigger: string; payload: unknown }[],
+): Promise<Facts> {
+  const feeIds = [
+    ...new Set(
+      rows.flatMap((r) => (r.trigger === 'fee_overdue' ? ids(r.payload as FeePayload) : [])),
+    ),
+  ];
+  const sessionIds = [
+    ...new Set(
+      rows.flatMap((r) => {
+        const p = r.payload as MessagePayload & { sessionId: string };
+        return r.trigger === 'absence' && ids(p).length ? [p.sessionId] : [];
+      }),
+    ),
+  ];
+  const balances = new Map<string, number>();
+  if (feeIds.length) {
+    const found = await tx
       .select({
         id: ledgerEntries.studentId,
         balance: sql<number>`sum(${ledgerEntries.amountPiastres})`.mapWith(Number),
@@ -154,32 +161,59 @@ async function recheck(
       .where(
         and(
           eq(ledgerEntries.workspaceId, ws),
-          inArray(ledgerEntries.studentId, ids),
+          inArray(ledgerEntries.studentId, feeIds),
           eq(students.status, 'active'),
         ),
       )
       .groupBy(ledgerEntries.studentId);
-    const balance = new Map(rows.map((r) => [r.id, r.balance]));
+    for (const r of found) balances.set(r.id, r.balance);
+  }
+  const absent = new Map<string, Set<string>>(sessionIds.map((id) => [id, new Set()]));
+  if (sessionIds.length) {
+    const found = await tx
+      .select({ sessionId: attendanceRecords.sessionId, id: attendanceRecords.studentId })
+      .from(attendanceRecords)
+      .where(
+        and(
+          eq(attendanceRecords.workspaceId, ws),
+          inArray(attendanceRecords.sessionId, sessionIds),
+          eq(attendanceRecords.status, 'absent'),
+        ),
+      );
+    for (const r of found) absent.get(r.sessionId)!.add(r.id);
+  }
+  return { balances, absent };
+}
+
+/**
+ * Is the message still true? Run just before sending, on the locked row, with the batch's facts.
+ * A trigger switched off since it was queued is skipped. A fee reminder keeps only the active
+ * children who still owe, with today's balance; an absence keeps only the children still marked
+ * absent. With none left the row is skipped, never deleted, so its dedupe key stays taken and a
+ * rerun queues nothing. Rows queued before students carried an `id` are sent as they are.
+ */
+function recheck(
+  trigger: Trigger,
+  payload: unknown,
+  messages: Partial<MessageSettings> | null | undefined,
+  facts: Facts,
+): Checked {
+  const key = TOGGLE[trigger];
+  if (!(messages?.[key] ?? key !== 'feeOverdue')) return { skip: 'trigger_off' };
+
+  if (trigger === 'fee_overdue') {
+    const p = payload as FeePayload;
+    if (!ids(p).length) return { payload };
     const owing = p.students
-      .map((s) => (s.id ? { ...s, balancePiastres: balance.get(s.id) ?? 0 } : s))
+      .map((s) => (s.id ? { ...s, balancePiastres: facts.balances.get(s.id) ?? 0 } : s))
       .filter((s) => s.balancePiastres > 0);
     return owing.length ? { payload: { ...p, students: owing } } : { skip: 'paid' };
   }
 
   if (trigger === 'absence') {
     const p = payload as MessagePayload & { sessionId: string };
-    if (!p.students.some((s) => s.id)) return { payload };
-    const rows = await tx
-      .select({ id: attendanceRecords.studentId })
-      .from(attendanceRecords)
-      .where(
-        and(
-          eq(attendanceRecords.workspaceId, ws),
-          eq(attendanceRecords.sessionId, p.sessionId),
-          eq(attendanceRecords.status, 'absent'),
-        ),
-      );
-    const absent = new Set(rows.map((r) => r.id));
+    if (!ids(p).length) return { payload };
+    const absent = facts.absent.get(p.sessionId)!;
     const still = p.students.filter((s) => !s.id || absent.has(s.id));
     return still.length ? { payload: { ...p, students: still } } : { skip: 'not_absent' };
   }

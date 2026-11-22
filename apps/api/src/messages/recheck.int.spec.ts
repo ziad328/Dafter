@@ -242,6 +242,30 @@ describe('late corrections', () => {
   });
 });
 
+describe('one batch, several sessions', () => {
+  it('re-checks every absence of the batch against its own session', async () => {
+    const { c, rows, enroll, session } = await setup();
+    const a = await enroll('01295000061');
+    await enroll('01295000062');
+    const ids = [await session('2026-11-21'), await session('2026-11-28')];
+    // Both sessions closed with a and b absent: four texts waiting in one batch.
+    for (const id of ids) {
+      await f.openAhead(id);
+      await c.teacher('POST', `sessions/${id}/close`);
+    }
+    expect(await rows('absence')).toHaveLength(4);
+    // a turns out present on the 21st only.
+    await c.teacher('PUT', `sessions/${ids[0]}/attendance/${a}`, { status: 'present' });
+    const recorder = new Recorder();
+    await sendDueMessages(testDb().db, clock, recorder);
+    expect(recorder.to('01295000061')).toHaveLength(1);
+    expect(recorder.to('01295000062')).toHaveLength(2);
+    const skipped = (await rows('absence')).filter((r) => r.status === 'skipped');
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]!.skipReason).toBe('not_absent');
+  });
+});
+
 describe('a late absence for a sibling', () => {
   it('joins the queued message, or follows a sent one, once per child', async () => {
     const { c, rows, enroll, session } = await setup();
