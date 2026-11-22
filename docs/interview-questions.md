@@ -309,3 +309,14 @@ Before the follow-up insert, a `NOT EXISTS` looks for any absence row of that gu
 **3. What if the sender is sending that queued row at the same moment?**
 The sender holds the row with `FOR UPDATE SKIP LOCKED`. The marking UPDATE waits for that lock. Under READ COMMITTED it then re-checks `status = 'queued'`, finds the row sent, and updates nothing. The follow-up insert takes over, so the child is never dropped or sent twice.
 
+## Cursor pagination
+
+**1. Why a keyset cursor (`after=<last id>`) instead of `?page=2` with OFFSET?**
+OFFSET reads and throws away every earlier row, and a row added or removed between two requests shifts the pages, so a student is shown twice or skipped. A keyset asks for "the rows after this one in the list's order" (`WHERE (sort key, id) < (…)`), which an index can serve, and a new row can't move a page you've already seen.
+
+**2. The cursor is just an id. How does the server know where to continue, and why read it in SQL?**
+It looks up that row's sort values (status, `created_at`, and the balance for "who owes") in a subquery of the same statement. Sending `created_at` through JavaScript would cut microseconds down to milliseconds, so equal-looking timestamps would compare wrong at a page break. The id at the end of the order breaks ties.
+
+**3. Why are groups not paged, and a search not paged either?**
+The groups screen filters by teacher, grade and text in the browser, and the group pickers need every group, so paging would hide matches. It needs server-side filters first. A search is ordered by relevance (trigram similarity), which doesn't make a stable keyset, so it returns the 50 best matches instead.
+
