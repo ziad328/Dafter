@@ -77,6 +77,9 @@ test("owner rewrites the cancellation message, and the parent gets the center's 
     const box = card.getByLabel(t.messages.wording.language[l]);
     await box.fill(words[l]);
     await expect(card.getByTestId(`preview-session_cancelled-${l}`)).toContainText(String(n));
+    await expect(card.getByTestId(`sms-session_cancelled-${l}`)).toContainText(
+      t.messages.wording.parts,
+    );
   }
   await card.getByRole('button', { name: t.messages.wording.save }).click();
   await expect(card.getByRole('status')).toHaveText(t.messages.wording.saved);

@@ -34,6 +34,15 @@ describe('message wording', () => {
     );
     expect(ar).toHaveValue('اتلغت حصة {subject}');
     expect(preview).toHaveTextContent('اتلغت حصة الفيزياء');
+    // The SMS cost of the filled-in text: Arabic is 70 characters a part.
+    const sms = within(card).getByTestId('sms-session_cancelled-ar');
+    expect(sms).toHaveTextContent(`${tr('messages.wording.chars')} 18`);
+    expect(sms).toHaveTextContent(`${tr('messages.wording.parts')} 1`);
+    expect(sms).toHaveClass('text-muted-foreground');
+    fireEvent.change(ar, { target: { value: 'ب'.repeat(140) } });
+    expect(sms).toHaveTextContent(`${tr('messages.wording.parts')} 3`);
+    expect(sms).toHaveClass('text-late');
+    fireEvent.change(ar, { target: { value: 'اتلغت حصة {subject}' } });
 
     await user.click(within(card).getByRole('button', { name: tr('messages.wording.save') }));
     await expect

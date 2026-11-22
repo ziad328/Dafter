@@ -507,6 +507,8 @@
       "saved": "Saved",
       "save": "Save wording",
       "reset": "Back to the default",
+      "chars": "Characters:",
+      "parts": "SMS parts:",
       "insert": "Insert a filled-in part",
       "language": {
         "ar": "Arabic",

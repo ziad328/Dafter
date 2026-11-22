@@ -11,6 +11,8 @@ import { Panel } from '@/components/Page';
 import { Button } from '@/components/ui/button';
 import type { resources } from '@dafter/i18n';
 import { errorKey } from '@/lib/session';
+import { smsParts } from '@/lib/sms';
+import { cn } from '@/lib/utils';
 
 type Locale = 'ar' | 'en';
 const LOCALES: Locale[] = ['ar', 'en'];
@@ -145,6 +147,8 @@ function LocaleText({
       p === 'wasWere' && locale === 'ar' ? '' : sample(`messages.sample.${p as Part}`),
     ]),
   );
+  const preview = fillTemplate(value.trim() || DEFAULT_TEMPLATES[tpl.trigger][locale], values);
+  const sms = smsParts(preview);
   // Puts `{name}` at the cursor and keeps the focus in the box.
   const insert = (name: string) => {
     const el = box.current!;
@@ -198,7 +202,16 @@ function LocaleText({
         lang={locale}
         className="rounded-lg bg-muted/60 p-3 text-sm"
       >
-        {fillTemplate(value.trim() || DEFAULT_TEMPLATES[tpl.trigger][locale], values)}
+        {preview}
+      </p>
+      {/* What one text costs once a paid SMS provider is used: Arabic is 70 characters a part. */}
+      <p
+        data-testid={`sms-${id}`}
+        className={cn('text-xs', sms.parts >= 3 ? 'text-late' : 'text-muted-foreground')}
+      >
+        {t('messages.wording.chars')} <bdi>{sms.length}</bdi>
+        {' · '}
+        {t('messages.wording.parts')} <bdi>{sms.parts}</bdi>
       </p>
     </div>
   );
