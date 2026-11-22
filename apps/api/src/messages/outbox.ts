@@ -165,11 +165,11 @@ export async function enqueueExamResults(tx: Tx, workspaceId: string, examId: st
   return res.rowCount ?? 0;
 }
 
-/** The day of the month (workspace timezone) from which unpaid balances get a reminder. */
+/** The default day of the month (workspace timezone) from which unpaid balances get a reminder. */
 export const OVERDUE_FROM_DAY = 7;
 
 /**
- * Daily, from the 7th of the month: one reminder per guardian of the active students whose
+ * Daily, from the center's start day (`settings.messages.feeReminderFromDay`, default the 7th): one reminder per guardian of the active students whose
  * balance is above zero, siblings merged with each child's balance. Keyed by month and guardian,
  * so a guardian gets at most one a month however often the job runs. Off unless the workspace
  * switched it on. Returns how many rows were queued now.
@@ -178,7 +178,8 @@ export async function enqueueFeeOverdue(tx: Tx, workspaceId: string, now: Date) 
   const res = await tx.execute(sql`
     with ctx as (
       select w.id, w.name_ar, w.name_en, w.timezone,
-        (${now.toISOString()}::timestamptz at time zone w.timezone) as local
+        (${now.toISOString()}::timestamptz at time zone w.timezone) as local,
+        coalesce((w.settings->'messages'->>'feeReminderFromDay')::int, ${OVERDUE_FROM_DAY}) as from_day
       from workspaces w
       where w.id = ${workspaceId}
         and coalesce((w.settings->'messages'->>${TOGGLE.fee_overdue})::boolean, false)
@@ -206,7 +207,7 @@ export async function enqueueFeeOverdue(tx: Tx, workspaceId: string, now: Date) 
     join students st on st.workspace_id = ${workspaceId} and st.id = o.student_id
       and st.status = 'active'
     join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
-    where extract(day from ctx.local) >= ${OVERDUE_FROM_DAY}
+    where extract(day from ctx.local) >= ctx.from_day
       ${guardianFilter}
     group by sg.guardian_id, ctx.local, ctx.name_ar, ctx.name_en, ctx.timezone
     on conflict (workspace_id, dedupe_key) do nothing`);

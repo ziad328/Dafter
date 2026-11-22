@@ -639,7 +639,8 @@
     "absence": true,
     "sessionChange": true,
     "examResult": true,
-    "feeOverdue": false
+    "feeOverdue": false,
+    "feeReminderFromDay": 7
   },
   "phone": []
 }

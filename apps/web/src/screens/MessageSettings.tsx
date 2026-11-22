@@ -12,9 +12,12 @@ import { MessageWording } from '@/components/MessageWording';
 import { PageHeader, Panel } from '@/components/Page';
 import { errorKey } from '@/lib/session';
 
-const TOGGLES: (keyof Settings)[] = ['absence', 'sessionChange', 'examResult', 'feeOverdue'];
+type Toggle = Exclude<keyof Settings, 'feeReminderFromDay'>;
+const TOGGLES: Toggle[] = ['absence', 'sessionChange', 'examResult', 'feeOverdue'];
 // Short labels; the details sit in a hint line under them (audit 3 M3).
-const HINTS: (keyof Settings)[] = ['absence', 'feeOverdue'];
+const HINTS: Toggle[] = ['absence', 'feeOverdue'];
+// Up to the 28th, so every month has the day.
+const DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 
 /**
  * When parent messages go out and their wording (who gets them is set per student): the owner's page, one tap away from
@@ -37,7 +40,7 @@ export default function MessageSettings() {
       .unwrap()
       .catch(() => setDraft(undefined));
   };
-  const switchFor = (key: keyof Settings) =>
+  const switchFor = (key: Toggle) =>
     shown && (
       <div key={key} className="grid">
         <label className="flex min-h-10 items-center gap-3 text-sm">
@@ -54,6 +57,22 @@ export default function MessageSettings() {
           <p id={`hint-${key}`} className="-mt-2 ps-8 text-xs text-muted-foreground">
             {t(`messages.toggleHints.${key}` as never)}
           </p>
+        )}
+        {key === 'feeOverdue' && (
+          <label className="flex min-h-10 items-center gap-2 ps-8 text-sm">
+            {t('messages.feeReminderFromDay')}
+            <select
+              className="h-10 rounded-md border border-input bg-background px-2"
+              value={shown.feeReminderFromDay}
+              onChange={(e) => toggle({ ...shown, feeReminderFromDay: Number(e.target.value) })}
+            >
+              {DAYS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
       </div>
     );

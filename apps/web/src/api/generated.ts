@@ -1458,12 +1458,14 @@ export type MessageSettingsOutput = {
   sessionChange: boolean;
   examResult: boolean;
   feeOverdue: boolean;
+  feeReminderFromDay: number;
 };
 export type MessageSettings = {
   absence: boolean;
   sessionChange: boolean;
   examResult: boolean;
   feeOverdue: boolean;
+  feeReminderFromDay: number;
 };
 export type SentMessage = {
   id: string;

@@ -52,6 +52,7 @@ const settings = {
   sessionChange: true,
   examResult: true,
   feeOverdue: true,
+  feeReminderFromDay: 7,
 };
 
 async function setup() {

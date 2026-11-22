@@ -35,6 +35,7 @@ import { AppError } from '../errors.js';
 import { TenantRepository } from '../tenant.repository.js';
 import { TenantGuard, type TenantedRequest } from '../workspaces/tenant.guard.js';
 import { ZodPipe } from '../zod-pipe.js';
+import { OVERDUE_FROM_DAY } from './outbox.js';
 
 const iso = (d: Date | null) => d && d.toISOString();
 
@@ -136,6 +137,7 @@ export class MessagesRepository extends TenantRepository {
       sessionChange: m.sessionChange ?? true,
       examResult: m.examResult ?? true,
       feeOverdue: m.feeOverdue ?? false,
+      feeReminderFromDay: m.feeReminderFromDay ?? OVERDUE_FROM_DAY,
     };
   }
 

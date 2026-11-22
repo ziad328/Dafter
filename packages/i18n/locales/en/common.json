@@ -546,9 +546,10 @@
       "not_absent": "Not sent: attendance was corrected after the session closed."
     },
     "settingsTitle": "Message settings",
+    "feeReminderFromDay": "Reminders start on day",
     "toggleHints": {
       "absence": "Sent when the session is closed.",
-      "feeOverdue": "A reminder from the 7th of the month."
+      "feeOverdue": "A monthly reminder for unpaid fees."
     }
   },
   "members": {

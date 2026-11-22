@@ -101,12 +101,14 @@ describe('message settings', () => {
       sessionChange: true,
       examResult: true,
       feeOverdue: false,
+      feeReminderFromDay: 7,
     });
     const off = {
       absence: false,
       sessionChange: false,
       examResult: false,
       feeOverdue: false,
+      feeReminderFromDay: 7,
     };
     expect((await c.assistant('PUT', 'message-settings', off)).json().code).toBe('FORBIDDEN');
     expect((await c.owner('PUT', 'message-settings', off)).json()).toEqual(off);
@@ -124,6 +126,7 @@ describe('message settings', () => {
       sessionChange: true,
       examResult: true,
       feeOverdue: false,
+      feeReminderFromDay: 7,
     });
   });
 });

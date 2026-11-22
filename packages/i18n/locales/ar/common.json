@@ -546,9 +546,10 @@
       "not_absent": "لم تُرسل: عُدّل الحضور بعد إغلاق الحصة."
     },
     "settingsTitle": "إعدادات الرسائل",
+    "feeReminderFromDay": "يبدأ التذكير يوم",
     "toggleHints": {
       "absence": "تُرسل عند إغلاق الحصة.",
-      "feeOverdue": "تذكير من يوم 7 في الشهر."
+      "feeOverdue": "تذكير شهري لمن عليه مصروفات."
     }
   },
   "members": {

@@ -28,7 +28,13 @@ beforeAll(async () => {
 });
 afterAll(() => app.close());
 
-const on = { absence: true, sessionChange: true, examResult: true, feeOverdue: true };
+const on = {
+  absence: true,
+  sessionChange: true,
+  examResult: true,
+  feeOverdue: true,
+  feeReminderFromDay: 7,
+};
 
 describe('monthly fee reminders', () => {
   it('reminds each guardian once a month from the 7th, siblings merged, only when switched on', async () => {
@@ -91,5 +97,38 @@ describe('monthly fee reminders', () => {
     expect(await rows()).toHaveLength(2);
     await remindAllWorkspaces(testDb().db, new FakeClock(new Date('2026-12-07T10:00:00Z')));
     expect(await rows()).toHaveLength(4);
+
+    // A center that starts on the 1st: January's reminders go out on the 1st, not the 7th.
+    expect(
+      (await c.owner('PUT', 'message-settings', { ...on, feeReminderFromDay: 29 })).statusCode,
+    ).toBe(400);
+    await c.owner('PUT', 'message-settings', { ...on, feeReminderFromDay: 1 });
+    expect((await c.owner('GET', 'message-settings')).json().feeReminderFromDay).toBe(1);
+    await remindAllWorkspaces(testDb().db, new FakeClock(new Date('2027-01-01T10:00:00Z')));
+    expect(await rows()).toHaveLength(6);
+  });
+
+  it('waits for a later start day', async () => {
+    const c = await f.center();
+    const id = await c.newStudent({ phone: '01294000009' });
+    await testDb().db.insert(ledgerEntries).values({
+      workspaceId: c.workspaceId,
+      studentId: id,
+      groupId: c.groupId,
+      type: 'charge',
+      amountPiastres: 10000,
+    });
+    await c.owner('PUT', 'message-settings', { ...on, feeReminderFromDay: 25 });
+    const count = async () =>
+      (
+        await testDb()
+          .db.select()
+          .from(outboxMessages)
+          .where(eq(outboxMessages.workspaceId, c.workspaceId))
+      ).length;
+    await remindAllWorkspaces(testDb().db, clock); // the 21st
+    expect(await count()).toBe(0);
+    await remindAllWorkspaces(testDb().db, new FakeClock(new Date('2026-11-25T10:00:00Z')));
+    expect(await count()).toBe(1);
   });
 });

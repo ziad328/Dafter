@@ -40,6 +40,9 @@ export const messageSettings = z
     sessionChange: z.boolean(),
     examResult: z.boolean(),
     feeOverdue: z.boolean(),
+    // The day of the month (workspace timezone) from which fee reminders go out; 28 at most so
+    // every month has it.
+    feeReminderFromDay: z.int().min(1).max(28),
     // "Primary guardian only" is now each student's `primaryGuardianOnly`; an old page's
     // `primaryOnly` is dropped as an unknown key.
   })

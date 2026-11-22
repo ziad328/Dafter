@@ -41,6 +41,7 @@ test('the daily tick sends a fee reminder, and it shows in the message log', asy
     sessionChange: true,
     examResult: true,
     feeOverdue: true,
+    feeReminderFromDay: 7,
   });
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');

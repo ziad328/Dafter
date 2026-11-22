@@ -309,8 +309,13 @@ describe('messages', () => {
         sessionChange: true,
         examResult: true,
         feeOverdue: false,
+        feeReminderFromDay: 7,
       });
     expect(absence).not.toBeChecked();
+    await user.selectOptions(screen.getByLabelText(tr('messages.feeReminderFromDay')), '1');
+    await expect
+      .poll(() => sent.findLast((s) => s.call === 'PUT /api/v1/message-settings')?.body)
+      .toMatchObject({ absence: false, feeReminderFromDay: 1 });
   });
 
   it('says why a skipped message never went out', async () => {

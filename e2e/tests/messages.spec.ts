@@ -87,4 +87,21 @@ test('a cancelled session shows in the message log; the owner switches messages 
   await expect(fees).toBeChecked();
   await fees.uncheck();
   await expect(fees).not.toBeChecked();
+
+  // The center picks the day reminders start (the 7th by default).
+  const day = page.getByLabel(t.messages.feeReminderFromDay);
+  const pick = async (value: string) => {
+    if ((await day.inputValue()) === value) return;
+    const saved = page.waitForResponse(
+      (r) => r.url().endsWith('/message-settings') && r.request().method() === 'PUT',
+    );
+    await day.selectOption(value);
+    await saved;
+  };
+  await pick('7'); // a failed earlier run may have left another day
+  await pick('3');
+  await page.reload();
+  await expect(day).toHaveValue('3');
+  await pick('7');
+  await expect(day).toHaveValue('7');
 });

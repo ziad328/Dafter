@@ -4319,9 +4319,14 @@
           },
           "feeOverdue": {
             "type": "boolean"
+          },
+          "feeReminderFromDay": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 28
           }
         },
-        "required": ["absence", "sessionChange", "examResult", "feeOverdue"]
+        "required": ["absence", "sessionChange", "examResult", "feeOverdue", "feeReminderFromDay"]
       },
       "CheckInRequest": {
         "type": "object",
@@ -6609,9 +6614,14 @@
           },
           "feeOverdue": {
             "type": "boolean"
+          },
+          "feeReminderFromDay": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 28
           }
         },
-        "required": ["absence", "sessionChange", "examResult", "feeOverdue"],
+        "required": ["absence", "sessionChange", "examResult", "feeOverdue", "feeReminderFromDay"],
         "additionalProperties": false
       }
     },
