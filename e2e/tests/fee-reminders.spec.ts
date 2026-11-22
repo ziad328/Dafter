@@ -17,12 +17,6 @@ test('the daily tick sends a fee reminder, and it shows in the message log', asy
 }) => {
   const secret = process.env.CRON_SECRET;
   test.skip(!secret || !!process.env.E2E_BASE_URL, 'needs the dev CRON_SECRET (see .env.example)');
-  const cairoDay = Number(
-    new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', day: 'numeric' }).format(
-      new Date(),
-    ),
-  );
-  test.skip(cairoDay < 7, 'fee reminders start on the 7th of the month');
 
   // A fresh center per run: the switch is on only here, so parallel tests keep their settings.
   const n = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');
@@ -41,7 +35,8 @@ test('the daily tick sends a fee reminder, and it shows in the message log', asy
     sessionChange: true,
     examResult: true,
     feeOverdue: true,
-    feeReminderFromDay: 7,
+    // From the 1st, so the test runs on any day of the month.
+    feeReminderFromDay: 1,
   });
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');

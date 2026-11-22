@@ -1,3 +1,4 @@
+import pg from 'pg';
 import {
   test as base,
   expect,
@@ -193,4 +194,23 @@ export async function freshCenter(
   const [subject] = await api.get('subjects');
   const [grade] = await api.get('grade-levels');
   return { name, api, subject, grade };
+}
+
+/**
+ * Sends now what quiet hours (22:00 to 08:00 Cairo) hold in one test center, so the message tests
+ * run at any hour. Straight in the dev database, like global-setup: no test route in the API.
+ */
+export async function releaseQuietHours(workspaceNameAr: string) {
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query(
+      `update outbox_messages set send_after = now()
+       where status = 'queued' and send_after > now()
+         and workspace_id = (select id from workspaces where name_ar = $1)`,
+      [workspaceNameAr],
+    );
+  } finally {
+    await client.end();
+  }
 }

@@ -4,6 +4,7 @@ import {
   openNav,
   ownerApi,
   PASSWORD,
+  releaseQuietHours,
   signIn,
   STAFF,
   test,
@@ -17,14 +18,6 @@ test("owner rewrites the cancellation message, and the parent gets the center's 
 }) => {
   const secret = process.env.CRON_SECRET;
   test.skip(!secret || !!process.env.E2E_BASE_URL, 'needs the dev CRON_SECRET (see .env.example)');
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Africa/Cairo',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    }).format(new Date()),
-  );
-  test.skip(hour >= 22 || hour < 8, 'quiet hours in Cairo: the message waits until 08:00');
   // Two sign-ins and a send pass over every dev workspace: ~45 s locally, more on CI.
   test.setTimeout(120_000);
 
@@ -90,6 +83,7 @@ test("owner rewrites the cancellation message, and the parent gets the center's 
   await api.post(
     `sessions/${sessions.find((s: { groupId: string }) => s.groupId === group.id).id}/cancel`,
   );
+  await releaseQuietHours(center);
   const tick = await request.get('/api/v1/internal/tick', {
     headers: { authorization: `Bearer ${secret}` },
   });

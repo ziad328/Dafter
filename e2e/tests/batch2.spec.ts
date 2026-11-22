@@ -4,6 +4,7 @@ import {
   openNav,
   ownerApi,
   PASSWORD,
+  releaseQuietHours,
   signIn,
   STAFF,
   test,
@@ -17,14 +18,6 @@ test('a corrected absence is not sent, and a move names the old time', async ({
 }) => {
   const secret = process.env.CRON_SECRET;
   test.skip(!secret || !!process.env.E2E_BASE_URL, 'needs the dev CRON_SECRET (see .env.example)');
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Africa/Cairo',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    }).format(new Date()),
-  );
-  test.skip(hour >= 22 || hour < 8, 'quiet hours in Cairo: the messages wait until 08:00');
   // A send pass over every dev workspace: ~45 s locally, more on CI.
   test.setTimeout(120_000);
 
@@ -58,6 +51,7 @@ test('a corrected absence is not sent, and a move names the old time', async ({
   const hhmm = (min: number) =>
     `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
   const soon = h! * 60 + m! + 5;
+  test.skip(soon + 60 >= 24 * 60, 'too close to midnight in Cairo for an hour-long class today');
   const weekdayOf = (d: string) => new Date(`${d}T12:00:00Z`).getUTCDay();
   const group = await api.post('groups', {
     subjectId: subject.id,
@@ -94,6 +88,7 @@ test('a corrected absence is not sent, and a move names the old time', async ({
     endTime: '13:00',
   });
   expect(move.status(), await move.text()).toBe(200);
+  await releaseQuietHours(center);
   const tick = await request.get('/api/v1/internal/tick', {
     headers: { authorization: `Bearer ${secret}` },
   });
