@@ -242,6 +242,50 @@ describe('late corrections', () => {
   });
 });
 
+describe('a late absence for a sibling', () => {
+  it('joins the queued message, or follows a sent one, once per child', async () => {
+    const { c, rows, enroll, session } = await setup();
+    const phone = '01295000051';
+    const [a, b, d] = [await enroll(phone), await enroll(phone), await enroll(phone)];
+    const other = await enroll('01295000052');
+    const id = await session('2026-11-21');
+    await c.teacher('POST', `sessions/${id}/open`);
+    for (const s of [b, d, other])
+      await c.teacher('PUT', `sessions/${id}/attendance/${s}`, { status: 'present' });
+    await c.teacher('POST', `sessions/${id}/close`); // a is absent: one queued text
+    const ids = (r: { payload: unknown }) =>
+      (r.payload as { students: { id: string }[] }).students.map((s) => s.id).sort();
+    expect((await rows('absence')).map(ids)).toEqual([[a]]);
+
+    // Still queued: b joins that text, once however often b is marked.
+    await c.teacher('PUT', `sessions/${id}/attendance/${b}`, { status: 'absent' });
+    await c.teacher('PUT', `sessions/${id}/attendance/${b}`, { status: 'absent' });
+    expect((await rows('absence')).map(ids)).toEqual([[a, b].sort()]);
+    const recorder = new Recorder();
+    await sendDueMessages(testDb().db, clock, recorder);
+    expect(recorder.to(phone)).toHaveLength(1);
+
+    // Already sent: d gets a follow-up of its own; b again (or present then absent) gets nothing.
+    await c.teacher('PUT', `sessions/${id}/attendance/${d}`, { status: 'absent' });
+    await c.teacher('PUT', `sessions/${id}/attendance/${b}`, { status: 'present' });
+    await c.teacher('PUT', `sessions/${id}/attendance/${b}`, { status: 'absent' });
+    const after = await rows('absence');
+    expect(after.map(ids)).toEqual(expect.arrayContaining([[a, b].sort(), [d]]));
+    expect(after).toHaveLength(2);
+    expect(after.find((r) => ids(r)[0] === d)!.dedupeKey).toBe(
+      `absence:${id}:${after[0]!.guardianId}:${d}`,
+    );
+    await c.teacher('PUT', `sessions/${id}/attendance/${d}`, { status: 'absent' });
+    expect(await rows('absence')).toHaveLength(2);
+    await sendDueMessages(testDb().db, clock, recorder);
+    expect(recorder.to(phone)).toHaveLength(2);
+
+    // Another family's late absence is its own first message.
+    await c.teacher('PUT', `sessions/${id}/attendance/${other}`, { status: 'absent' });
+    expect(await rows('absence')).toHaveLength(3);
+  });
+});
+
 describe('primary guardian only', () => {
   it("messages only the student's primary guardian when they say so, every guardian when not", async () => {
     const { c, rows, enroll, session } = await setup();

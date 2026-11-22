@@ -37,6 +37,8 @@ async function enqueue(
   students: SQL,
   dedupeSuffix: SQL = sql``,
   extra: SQL = sql`'{}'::jsonb`,
+  // More conditions on the session `s`, student `st` and guardian link `sg`.
+  where: SQL = sql``,
 ): Promise<number> {
   const res = await tx.execute(sql`
     insert into outbox_messages (workspace_id, guardian_id, trigger, payload, dedupe_key, send_after)
@@ -62,16 +64,22 @@ async function enqueue(
     where s.workspace_id = ${workspaceId} and s.id = ${sessionId}
       and coalesce((w.settings->'messages'->>${TOGGLE[trigger]})::boolean, true)
       ${guardianFilter}
+      ${where}
     group by sg.guardian_id, s.id, s.starts_at, w.timezone, w.name_ar, w.name_en, sub.name_ar, sub.name_en
     on conflict (workspace_id, dedupe_key) do nothing`);
   // New messages only: a repeat hits the dedupe key and counts 0.
   return res.rowCount ?? 0;
 }
 
+const absentIn = (workspaceId: string, sessionId: string, studentId?: string) =>
+  sql`select student_id from attendance_records
+      where workspace_id = ${workspaceId} and session_id = ${sessionId} and status = 'absent'
+        ${studentId ? sql`and student_id = ${studentId}` : sql``}`;
+
 /**
- * Session close: the guardians of every absent student. With `studentId` (a manual "absent" after
- * the close), only that student: same dedupe key, so a guardian already told about this session
- * gets nothing new, and marking absent twice queues once.
+ * Session close: the guardians of every absent student, siblings merged, keyed
+ * `absence:<session>:<guardian>`. With `studentId` (a manual "absent" after the close), see
+ * `enqueueLateAbsence`.
  */
 export const enqueueAbsences = (
   tx: Tx,
@@ -80,16 +88,61 @@ export const enqueueAbsences = (
   now: Date,
   studentId?: string,
 ) =>
-  enqueue(
+  studentId
+    ? enqueueLateAbsence(tx, workspaceId, sessionId, now, studentId)
+    : enqueue(tx, workspaceId, sessionId, now, 'absence', absentIn(workspaceId, sessionId));
+
+/**
+ * A manual "absent" after the close, for each of that student's guardians (same guardian filter):
+ * 1. the guardian's message for this session is still queued: the child joins it (one text);
+ * 2. otherwise, unless one of the guardian's absence messages for this session already names the
+ *    child, a follow-up keyed `absence:<session>:<guardian>:<student>`.
+ * So a sibling's late absence reaches the parent, and marking the same child twice (or absent,
+ * present, absent) texts once. A row the sender holds is locked: this waits, sees it sent, and
+ * takes step 2. Returns how many messages were queued or extended.
+ */
+async function enqueueLateAbsence(
+  tx: Tx,
+  workspaceId: string,
+  sessionId: string,
+  now: Date,
+  studentId: string,
+) {
+  const child = sql`jsonb_build_array(jsonb_build_object('id', ${studentId}::text))`;
+  const joined = await tx.execute(sql`
+    update outbox_messages o
+    set payload = jsonb_set(o.payload, '{students}', (
+      select jsonb_agg(x order by x->>'nameAr')
+      from jsonb_array_elements(o.payload->'students' || jsonb_build_array(
+        jsonb_build_object('id', st.id, 'nameAr', st.name_ar, 'nameEn', st.name_en))) x))
+    from students st
+    join student_guardians sg on sg.workspace_id = st.workspace_id and sg.student_id = st.id
+    where o.workspace_id = ${workspaceId}
+      and o.status = 'queued'
+      and o.dedupe_key = 'absence:' || ${sessionId} || ':' || sg.guardian_id
+      and st.workspace_id = ${workspaceId} and st.id = ${studentId}
+      and st.id in (${absentIn(workspaceId, sessionId, studentId)})
+      and not (o.payload->'students' @> ${child})
+      ${guardianFilter}`);
+  const followUps = await enqueue(
     tx,
     workspaceId,
     sessionId,
     now,
     'absence',
-    sql`select student_id from attendance_records
-        where workspace_id = ${workspaceId} and session_id = ${sessionId} and status = 'absent'
-          ${studentId ? sql`and student_id = ${studentId}` : sql``}`,
+    absentIn(workspaceId, sessionId, studentId),
+    sql`|| ':' || ${studentId}::text`,
+    undefined,
+    sql`and not exists (
+      select 1 from outbox_messages o
+      where o.workspace_id = s.workspace_id and o.trigger = 'absence'
+        and o.guardian_id = sg.guardian_id
+        and (o.dedupe_key = 'absence:' || s.id || ':' || sg.guardian_id
+          or o.dedupe_key like 'absence:' || s.id || ':' || sg.guardian_id || ':%')
+        and o.payload->'students' @> ${child})`,
   );
+  return (joined.rowCount ?? 0) + followUps;
+}
 
 /**
  * Cancel or move: the guardians of the group's active students. A move is keyed by the new start,
