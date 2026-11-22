@@ -10,7 +10,7 @@ import { normalizeArabic } from './normalize.js';
 import { buildOpenApi } from './openapi.js';
 import { OPENAPI_FILE, writeOpenApi } from './scripts/write-openapi.js';
 import { listSessionsQuery, moveSessionRequest } from './sessions.js';
-import { trendsQuery } from './stats.js';
+import { cashSummaryQuery, trendsQuery } from './stats.js';
 import { createStudentRequest, updateStudentRequest } from './students.js';
 import { createInviteRequest, updateMemberRequest } from './workspaces.js';
 
@@ -172,5 +172,18 @@ describe('dashboard range', () => {
     expect(ok({ to: '2026-01-01' })).toBe(false);
     expect(ok({ from: '2026-02-01', to: '2026-01-01' })).toBe(false);
     expect(ok({ from: '2025-12-31', to: '2027-01-01' })).toBe(false);
+  });
+});
+
+describe('cash summary range', () => {
+  it('takes one day, or a first and last day in order, up to 31 days', () => {
+    const ok = (q: object) => cashSummaryQuery.safeParse(q).success;
+    expect(ok({})).toBe(true);
+    expect(ok({ date: '2026-11-01', to: '2026-11-30' })).toBe(true);
+    expect(ok({ date: '2026-11-01', to: '2026-12-01' })).toBe(true);
+    expect(ok({ to: '2026-11-01' })).toBe(false);
+    expect(ok({ date: '2026-11-02', to: '2026-11-01' })).toBe(false);
+    expect(ok({ date: '2026-11-01', to: '2026-12-02' })).toBe(false);
+    expect(ok({ userId: 'nope' })).toBe(false);
   });
 });
