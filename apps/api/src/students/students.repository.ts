@@ -37,8 +37,9 @@ import { TenantRepository } from '../tenant.repository.js';
 
 type StudentValues = Omit<typeof students.$inferInsert, 'workspaceId'>;
 
-// shortcut: first 50 matches, no cursor; add one when a center has thousands of students.
-const LIMIT = 50;
+// A page of the list, or the best matches of a search (not paged).
+export const STUDENT_PAGE = 50;
+const LIMIT = STUDENT_PAGE;
 
 const groupGrade = aliasedTable(gradeLevels, 'eg');
 
@@ -46,7 +47,34 @@ const groupGrade = aliasedTable(gradeLevels, 'eg');
 const balance = sql<number>`coalesce((select sum(${ledgerEntries.amountPiastres}) from ${ledgerEntries}
   where ${ledgerEntries.studentId} = ${students.id}), 0)`;
 
-export type StudentFilters = { groupId?: string; gradeLevelId?: string; owes?: boolean };
+export type StudentFilters = {
+  groupId?: string;
+  gradeLevelId?: string;
+  owes?: boolean;
+  // The last student of the page before (the list only, not a search).
+  after?: string;
+};
+
+/**
+ * Keyset: the rows after the cursor student in the list's order (status, then the balance for
+ * "who owes", then newest first, then id). The cursor's values are read in SQL, so timestamps keep
+ * their microseconds; a row added meanwhile never shifts a page the way an offset would.
+ */
+function afterCursor(workspaceId: string, id: string, owes: boolean) {
+  const cur = (col: string) =>
+    sql
+      .raw(`(select cur.${col} from students cur where cur.workspace_id = `)
+      .append(sql`${workspaceId} and cur.id = ${id})`);
+  const curBalance = sql`(select coalesce(sum(le.amount_piastres), 0) from ledger_entries le
+    where le.workspace_id = ${workspaceId} and le.student_id = ${id})`;
+  const newer = sql`(${students.createdAt} < ${cur('created_at')}
+    or (${students.createdAt} = ${cur('created_at')} and ${students.id} < ${id}))`;
+  const tail = owes
+    ? sql`(${balance} < ${curBalance} or (${balance} = ${curBalance} and ${newer}))`
+    : newer;
+  return sql`(${students.status} > ${cur('status')}
+    or (${students.status} = ${cur('status')} and ${tail}))`;
+}
 
 @Injectable()
 export class StudentsRepository extends TenantRepository {
@@ -82,7 +110,13 @@ export class StudentsRepository extends TenantRepository {
     );
     const first = f.owes ? [desc(balance)] : [];
     return this.inTenant(workspaceId, (tx) => {
-      if (!q) return this.select(tx, workspaceId, narrow, [...first, desc(students.createdAt)]);
+      if (!q)
+        return this.select(
+          tx,
+          workspaceId,
+          and(narrow, f.after ? afterCursor(workspaceId, f.after, !!f.owes) : undefined),
+          [...first, desc(students.createdAt), desc(students.id)],
+        );
       if (/^\d+$/.test(q)) {
         const parent = tx
           .select({ one: sql`1` })

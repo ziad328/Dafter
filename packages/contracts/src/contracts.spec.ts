@@ -1,3 +1,4 @@
+import { listStudentsQuery } from './students.js';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -185,5 +186,13 @@ describe('cash summary range', () => {
     expect(ok({ date: '2026-11-02', to: '2026-11-01' })).toBe(false);
     expect(ok({ date: '2026-11-01', to: '2026-12-02' })).toBe(false);
     expect(ok({ userId: 'nope' })).toBe(false);
+  });
+});
+
+describe('student list cursor', () => {
+  it('pages the list, never a search', () => {
+    const after = '00000000-0000-4000-8000-000000000001';
+    expect(listStudentsQuery.safeParse({ after }).success).toBe(true);
+    expect(listStudentsQuery.safeParse({ after, q: 'نور' }).success).toBe(false);
   });
 });

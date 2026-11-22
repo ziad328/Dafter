@@ -414,6 +414,7 @@ const injectedRtkApi = api
           url: `/api/v1/messages`,
           params: {
             status: queryArg.status,
+            after: queryArg.after,
           },
         }),
         providesTags: ['messages'],
@@ -492,6 +493,7 @@ const injectedRtkApi = api
             groupId: queryArg.groupId,
             gradeLevelId: queryArg.gradeLevelId,
             owes: queryArg.owes,
+            after: queryArg.after,
           },
         }),
         providesTags: ['students'],
@@ -827,6 +829,7 @@ export type GetReceiptApiArg = {
 export type ListMessagesApiResponse = /** status 200 Messages */ OutboxMessageList;
 export type ListMessagesApiArg = {
   status?: 'queued' | 'sent' | 'failed' | 'skipped';
+  after?: string;
 };
 export type GetAttendanceSettingsApiResponse = /** status 200 Settings */ AttendanceSettingsOutput;
 export type GetAttendanceSettingsApiArg = void;
@@ -859,6 +862,7 @@ export type ListStudentsApiArg = {
   groupId?: string;
   gradeLevelId?: string;
   owes?: 'true';
+  after?: string;
 };
 export type CreateStudentApiResponse = /** status 201 Created */ Student;
 export type CreateStudentApiArg = {

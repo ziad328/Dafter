@@ -87,7 +87,11 @@ export const listStudentsQuery = z
     groupId: z.uuid().optional(),
     gradeLevelId: z.uuid().optional(),
     owes: z.enum(['true']).optional(),
+    // The next page (50 a page): the id of the last student of the page before. Lists only; a
+    // search (`q`) is the 50 best matches, not paged.
+    after: z.uuid().optional(),
   })
+  .refine((v) => !v.after || !v.q, { path: ['after'], message: 'SEARCH_NOT_PAGED' })
   .meta({ id: 'ListStudentsQuery' });
 
 export const guardian = z

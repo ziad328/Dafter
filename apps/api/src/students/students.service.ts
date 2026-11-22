@@ -34,12 +34,16 @@ export class StudentsService {
     @Inject(Clock) private readonly clock: Clock,
   ) {}
 
-  list(ctx: Ctx, query: ListStudentsQuery = {}): Promise<Student[]> {
-    const { q, groupId, gradeLevelId, owes } = query;
+  async list(ctx: Ctx, query: ListStudentsQuery = {}): Promise<Student[]> {
+    const { q, groupId, gradeLevelId, owes, after } = query;
+    // A cursor from another center (or a typo) is not a page of this one.
+    if (after && !(await this.repo.find(ctx.workspaceId, after)))
+      throw new AppError('STUDENT_NOT_FOUND');
     return this.repo.search(ctx.workspaceId, q ? normalizeArabic(q) : '', {
       groupId,
       gradeLevelId,
       owes: owes === 'true',
+      after,
     });
   }
 

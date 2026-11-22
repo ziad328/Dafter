@@ -2,9 +2,10 @@ import { ChevronLeft, Search, UserPlus, Wallet } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { useListGroupsQuery, useListStudentsQuery } from '@/api/generated';
+import { type Student, useListGroupsQuery, useListStudentsQuery } from '@/api/generated';
 import { FormError, Skeleton } from '@/components/Field';
 import { FilterPicker, uniqueOptions } from '@/components/FilterChips';
+import { MorePages } from '@/components/MorePages';
 import { Avatar, PageHeader, Panel } from '@/components/Page';
 import { PaymentSheet } from '@/components/PaymentSheet';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,9 @@ import { groupName, itemName } from '@/lib/groups';
 import { formatEgp } from '@/lib/money';
 import { errorKey } from '@/lib/session';
 import { cn } from '@/lib/utils';
+
+// The API's page size for the list (GET /students).
+const STUDENT_PAGE = 50;
 
 export default function Students() {
   const { t, i18n } = useTranslation();
@@ -35,13 +39,62 @@ export default function Students() {
   const [gradeLevelId, setGradeLevelId] = useState('');
   const [owes, setOwes] = useState(false);
   const groups = useListGroupsQuery().data ?? [];
-  const list = useListStudentsQuery({
+  const args = {
     q: q || undefined,
     groupId: groupId || undefined,
     gradeLevelId: gradeLevelId || undefined,
-    owes: owes ? 'true' : undefined,
-  });
+    owes: owes ? ('true' as const) : undefined,
+  };
+  const list = useListStudentsQuery(args);
+  // The pages after the first (a search is the 50 best matches, not paged).
+  const useNextPage = (after: string) => useListStudentsQuery({ ...args, after });
   const filtered = !!(q || groupId || gradeLevelId || owes);
+  const row = (s: Student, i: number) => {
+    const name = i18n.language === 'en' && s.nameEn ? s.nameEn : s.nameAr;
+    return (
+      <li
+        key={s.id}
+        className="animate-rise"
+        style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
+      >
+        <Link
+          to={`/students/${s.id}`}
+          className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-ink-soft/50 focus-visible:bg-ink-soft"
+        >
+          <Avatar name={name} />
+          <span className="grid min-w-0 flex-1">
+            <h2 className="truncate font-semibold">{name}</h2>
+            <span className="truncate text-sm text-muted-foreground">
+              {itemName(s.gradeLevel, i18n.language)}
+              {s.phone && (
+                <>
+                  {' · '}
+                  <bdi>{s.phone}</bdi>
+                </>
+              )}
+            </span>
+          </span>
+          {/* The assistant sees who still needs a link (audit 3 S3). */}
+          {!s.activated && s.status === 'active' && (
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              {t('groups.notActivated')}
+            </span>
+          )}
+          {s.balancePiastres > 0 && (
+            <bdi className="shrink-0 rounded-full bg-rose-soft px-2 py-0.5 text-xs font-medium text-rose">
+              {formatEgp(s.balancePiastres, i18n.language)}
+            </bdi>
+          )}
+          {s.status === 'archived' && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              {t('students.statuses.archived')}
+            </span>
+          )}
+          <ChevronLeft className="size-5 text-muted-foreground ltr:-scale-x-100" aria-hidden />
+        </Link>
+      </li>
+    );
+  };
   const [paying, setPaying] = useState(false);
 
   return (
@@ -120,57 +173,17 @@ export default function Students() {
       )}
       {!!list.data?.length && (
         <Panel className="overflow-hidden">
-          <ul className="divide-y">
-            {list.data.map((s, i) => {
-              const name = i18n.language === 'en' && s.nameEn ? s.nameEn : s.nameAr;
-              return (
-                <li
-                  key={s.id}
-                  className="animate-rise"
-                  style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
-                >
-                  <Link
-                    to={`/students/${s.id}`}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-ink-soft/50 focus-visible:bg-ink-soft"
-                  >
-                    <Avatar name={name} />
-                    <span className="grid min-w-0 flex-1">
-                      <h2 className="truncate font-semibold">{name}</h2>
-                      <span className="truncate text-sm text-muted-foreground">
-                        {itemName(s.gradeLevel, i18n.language)}
-                        {s.phone && (
-                          <>
-                            {' · '}
-                            <bdi>{s.phone}</bdi>
-                          </>
-                        )}
-                      </span>
-                    </span>
-                    {/* The assistant sees who still needs a link (audit 3 S3). */}
-                    {!s.activated && s.status === 'active' && (
-                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        {t('groups.notActivated')}
-                      </span>
-                    )}
-                    {s.balancePiastres > 0 && (
-                      <bdi className="shrink-0 rounded-full bg-rose-soft px-2 py-0.5 text-xs font-medium text-rose">
-                        {formatEgp(s.balancePiastres, i18n.language)}
-                      </bdi>
-                    )}
-                    {s.status === 'archived' && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        {t('students.statuses.archived')}
-                      </span>
-                    )}
-                    <ChevronLeft
-                      className="size-5 text-muted-foreground ltr:-scale-x-100"
-                      aria-hidden
-                    />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <ul className="divide-y">{list.data.map(row)}</ul>
+          {!q && (
+            <MorePages
+              key={JSON.stringify(args)}
+              first={list.data}
+              size={STUDENT_PAGE}
+              usePage={useNextPage}
+            >
+              {(rows) => <ul className="divide-y border-t">{rows.map(row)}</ul>}
+            </MorePages>
+          )}
         </Panel>
       )}
     </div>

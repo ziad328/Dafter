@@ -58,14 +58,25 @@ const ofTeacher = (teacherId: string) => sql`(
                and e.id = (${outboxMessages.payload}->>'examId')::uuid
                and g.teacher_membership_id = ${teacherId}))`;
 
+export const MESSAGE_PAGE = 100;
+
 @Injectable()
 export class MessagesRepository extends TenantRepository {
-  /** The newest 100; with `teacherId`, only that teacher's groups and with masked phones. */
+  /**
+   * 100 a page, newest first; with `after`, the page after that message (keyset on created_at and
+   * id, read in SQL; an unknown id gives an empty page). With `teacherId`, only that teacher's
+   * groups and with masked phones.
+   */
   async log(
     workspaceId: string,
     status?: ListMessagesQuery['status'],
     teacherId?: string,
+    after?: string,
   ): Promise<OutboxMessage[]> {
+    const cursor =
+      after &&
+      sql`(${outboxMessages.createdAt}, ${outboxMessages.id}) < (select c.created_at, c.id
+        from outbox_messages c where c.workspace_id = ${workspaceId} and c.id = ${after})`;
     const rows = await this.inTenant(workspaceId, (tx) =>
       tx
         .select({
@@ -92,10 +103,11 @@ export class MessagesRepository extends TenantRepository {
             eq(outboxMessages.workspaceId, workspaceId),
             status && eq(outboxMessages.status, status),
             teacherId ? ofTeacher(teacherId) : undefined,
+            cursor || undefined,
           ),
         )
-        .orderBy(desc(outboxMessages.createdAt))
-        .limit(100),
+        .orderBy(desc(outboxMessages.createdAt), desc(outboxMessages.id))
+        .limit(MESSAGE_PAGE),
     );
     return rows.map((r) => ({
       ...r,
@@ -223,7 +235,7 @@ export class MessagesController {
     @Query(new ZodPipe(listMessagesQuery)) q: ListMessagesQuery,
   ): Promise<OutboxMessage[]> {
     const teacher = req.role === 'teacher' ? req.membershipId : undefined;
-    return this.repo.log(req.workspaceId, q.status, teacher);
+    return this.repo.log(req.workspaceId, q.status, teacher, q.after);
   }
 
   @Get('message-settings')

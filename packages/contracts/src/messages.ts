@@ -54,7 +54,11 @@ export const updateMessageSettingsRequest = messageSettings
   .meta({ id: 'UpdateMessageSettingsRequest' });
 
 export const listMessagesQuery = z
-  .object({ status: messageStatus.optional() })
+  .object({
+    status: messageStatus.optional(),
+    // The next page (100 a page, newest first): the id of the last message of the page before.
+    after: z.uuid().optional(),
+  })
   .meta({ id: 'ListMessagesQuery' });
 
 /** One row of the message log (owner and assistant). */
