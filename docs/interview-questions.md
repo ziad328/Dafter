@@ -286,3 +286,15 @@ All of their guardians. A filter that only keeps primaries would make that famil
 
 **3. The center-wide switch became a per-student column. How did you move without changing anyone's behaviour?**
 The migration adds the column with default false and, in the same migration, sets it to true for every student of a center that had the old switch on. The old key stays in the settings JSON but is no longer read, and the contract drops it, so a page loaded before the change still saves.
+
+## Nightly ledger check (ledger)
+
+**1. Balances are never stored, so what can "drift" even mean, and how do you catch it?**
+Every balance is a live sum of append-only entries, so the app can't disagree with itself. Drift can only come from outside the app, such as someone with the table-owner role editing or deleting an old row. Each night the check stores the count and sum of entries up to a cutoff. The next night it recounts the same cutoff, and any difference means history changed. A stored balance column would only compare two numbers the app writes itself.
+
+**2. Why is the cutoff 5 minutes before the check, not the moment it runs?**
+`created_at` is the transaction's start time. A payment still open when the check runs commits a moment later with a timestamp before the cutoff, so the next night's recount would see one more entry and raise a false alarm. Leaving the last few minutes to the next night removes that race.
+
+**3. Besides the totals, what rules does the check verify, and why those?**
+That each reversal is minus its original, for the same student and group, and never reverses a reversal. Also that the receipt counter is not behind the highest receipt number. The constraints only cover a reversal's sign, not that it mirrors its original, and a counter that's behind would give the next payment a receipt number already in use, which the unique key would refuse at the desk.
+

@@ -19,7 +19,7 @@ Written Nov 19. Everything that doesn't need the client goes first, in five batc
 
 - [x] **A · Small fixes** (done Nov 19; #27 stays in the backlog, see its row): #13 "save anyway" on session moves · #23 lock on `PUT /members/:id/scopes` · #25 one token-creation helper · #27 audit row in the same transaction on routes outside a workspace · #22 two tabs refreshing at once don't sign out (grace window) · #36 e2e groups without `force` · #37 drop cloned test databases · #38 `@dafter/i18n` loads in Node ESM · #39 `run-dafter` screenshots can sign in · reorder subjects and grades.
 - [x] **B · Students and groups** (done Nov 19, migration 0018 not on Neon yet): #9 more than one guardian in the UI · #16 "primary guardian only" per student · #12 move one session to another room · #14 dashboard: archived groups and a custom date range.
-- [ ] **C · Money that doesn't wait on the interview:** #4 nightly balance check · #5 students see their own balance · #6 cash summary by person and date range · #7 (first half) a per-center start day for fee reminders · #15 exam scores: CSV export, then import.
+- [x] **C · Money that doesn't wait on the interview** (done Nov 22, migration 0019 not on Neon yet; #7's per-teacher half still waits on the client): #4 nightly balance check · #5 students see their own balance · #6 cash summary by person and date range · #7 (first half) a per-center start day for fee reminders · #15 exam scores: CSV export, then import.
 - [ ] **D · Messages (*hard part: outbox*):** #17 a late "absent" for a second child reaches the parent · #18 SMS length counter on the wording editor · #21 batch the send-time re-check by session.
 - [ ] **E · Scale and PWA:** #11 cursor pagination (groups, students, message log) · #32 daily jobs batched per workspace · #33 offline screen in the PWA.
 
@@ -53,10 +53,10 @@ Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, 
 1. Per-session and package-of-N fee plans. _(centers)_
 2. Proration for students who join mid-month. _(centers)_
 3. Cash handover: the owner marks a staff member's day as received and sees who hasn't handed over. _(centers)_
-4. A nightly balance check that logs any drift. _(later)_
-5. Students see their own balance. _(later)_
-6. Cash summary: filter by person and a date range. _(later)_
-7. Fee reminders: a per-center start day (fixed on the 7th today) and a per-teacher amount. _(centers)_
+4. ~~A nightly balance check that logs any drift.~~ Done Nov 22: recount against the last check, reversal and receipt rules, `ledger_checks`. _(done)_
+5. ~~Students see their own balance.~~ Done Nov 22: «مصروفاتي» in the student app (`GET /me/balance`). _(done)_
+6. ~~Cash summary: filter by person and a date range.~~ Done Nov 22: up to 31 days, and one staff member for the owner. _(done)_
+7. Fee reminders: ~~a per-center start day~~ (Done Nov 22: the 1st to the 28th on message settings) and a per-teacher amount (waits on the client). _(centers)_
 
 ### Groups, students, curriculum
 
@@ -67,7 +67,7 @@ Collected on Nov 16 from `progress.md#known-limits`, `progress.md#limits-plan`, 
 12. ~~Moving one session to another room.~~ Done Nov 19: a room picker in the timetable's move sheet. _(done)_
 13. ~~Session moves have no "save anyway", so two groups forced into the same time block each other's moves.~~ Done Nov 19: `force` on `PATCH /sessions/:id`, «انقل على أي حال». _(done)_
 14. ~~Dashboard: archived groups are left out; no custom date range.~~ Done Nov 19: «فترة أخرى» dates and an «include archived groups» switch. _(done)_
-15. Exam scores: CSV export, then import. _(centers)_
+15. ~~Exam scores: CSV export, then import.~~ Done Nov 22: «تنزيل ملف CSV» / «رفع ملف CSV» on the grade grid, in the browser. _(done)_
 
 ### Messages
 
@@ -175,12 +175,14 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 |:--|:--|:--|
 | Only monthly fees: no per-session or package-of-N plans (product module 5) | Centers that charge per session can't use the ledger yet | centers (after the interviews) |
 | No proration for mid-month joins | A student who joins on the 25th pays the full month | centers |
-| No nightly balance check | Drift would go unnoticed (the ledger is append-only) | later |
-| Students don't see their balance | Parents ask the center | later |
+| ~~No nightly balance check~~ Done Nov 22 | — | — |
+| Ledger check: problems go to the log and `ledger_checks` only; no screen and no alert | Someone has to read the log | centers (an alert with the monitoring stack) |
+| Ledger check: one pass over every workspace, like the other daily jobs | Slow with thousands of centers | later (#32) |
+| ~~Students don't see their balance~~ Done Nov 22 (the whole center's balance, every group) | — | — |
 | Fee model (one monthly fee per group) and who sees money are guesses | May change after center interviews | centers |
 | Cash summary: no "handed over" step; the owner can't mark a day as received or see who hasn't handed over | The handover itself is still on paper | centers |
 | Cash summary: a reversal counts on the day it was made, so voiding an older payment can make a day's total negative | Shown as is (real money out); can surprise at first | — |
-| Cash summary: the owner sees every staff member on one page, with no filter by person or a date range (one day at a time) | Fine for a small center | later |
+| ~~Cash summary: no filter by person or a date range~~ Done Nov 22; a range is at most 31 days | A term's takings need several summaries | — |
 | Cash summary: checked at 375 px in Playwright only; the printed page / saved PDF and a real phone are not checked by eye | Print layout may need tweaks | centers |
 | Cash summary: payments sit under whoever recorded them; one assistant typing in another's takings shows under the wrong person | Rare; fix by reversing and re-entering | — |
 
@@ -188,7 +190,8 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 
 | Limit | Impact | Fix by |
 |:--|:--|:--|
-| No CSV import or export of exam scores | Big groups are typed by hand | centers (export first, import later) |
+| ~~No CSV import or export of exam scores~~ Done Nov 22 | — | — |
+| Exam CSV: rows are matched by `student_id`; a student added in the spreadsheet is skipped, not created | Download the file from the grid first | — |
 | A corrected score resends the same sentence with «تصحيح:» only | Parents don't see the old score | — |
 | Dashboard: a custom range is counted in whole Saturday weeks (exams and money keep the exact days and months); at most a year | A range starting mid-week shows that whole week's attendance | — |
 | Dashboard: archived groups show only with the switch, and only if they had a non-cancelled session in those weeks (archiving drops the future ones) | A group archived before it ever met never shows | — |
@@ -212,7 +215,7 @@ Everything we know is missing, unchecked or a deliberate shortcut, in one place.
 | A teacher's message log shows their groups' session and exam messages (phones masked to the last 3 digits), never fee reminders; the matching is by the group's current teacher | After a teacher change, the new teacher sees the group's older messages | — |
 | The message log shows the newest 100, no pagination or search | Older messages are hidden | later |
 | Messages queued before Nov 15 (part 2 of the limits plan) skip the send-time re-check and a move among them keeps the old wording | Only rows already waiting at the deploy | — |
-| Fee reminders start on the 7th, fixed in code; the amount is the center-wide balance | No per-center day; a teacher-collected fee shows the total | centers |
+| Fee reminders: the start day is per center (Nov 22, 1st to 28th); the amount is still the center-wide balance | A teacher-collected fee shows the total | centers |
 
 ### Tooling
 
@@ -277,8 +280,8 @@ Wait for the answers to the open questions in `docs/product.md` (who collects, p
 - [ ] Per-session and package-of-N fee plans.
 - [ ] Proration for mid-month joins (a setting: full month, half month after the 15th, or by sessions left).
 - [ ] Cash handover: the owner marks a staff member's day as received; the summary shows who hasn't handed over.
-- [ ] CSV export of exam scores (then import).
-- [ ] A nightly balance check (sum of entries vs. the sum shown) that logs any drift.
+- [x] CSV export of exam scores (then import). Done Nov 22 (batch C).
+- [x] A nightly balance check (sum of entries vs. the sum shown) that logs any drift. Done Nov 22 (batch C).
 
 ### Later, when scale or a host change asks for it
 
@@ -299,9 +302,9 @@ Written on Nov 15 after exams, the dashboard and fee reminders (`93662a4`, `cc3c
 | Feature | Limit | Impact | Fix idea |
 |:--|:--|:--|:--|
 | Fee reminders | A reminder held by quiet hours still goes out if the parent paid in between | A rare wrong money text | The sender re-reads the balance for `fee_overdue` rows and skips them when it is zero |
-| Fee reminders | They start on the 7th, fixed in code | No per-center day | A `feeOverdueDay` in `settings.messages` |
+| Fee reminders | ~~They start on the 7th, fixed in code~~ Done Nov 22: `settings.messages.feeReminderFromDay` | — | — |
 | Fee reminders | The amount is the student's balance across the whole center | A teacher-collected fee shows the total | Decide after the center interviews ("who collects the fee?") |
-| Exams | No CSV import or export of scores | Big groups are typed by hand | Export first (cheap), import later |
+| Exams | ~~No CSV import or export of scores~~ Done Nov 22 | — | — |
 | Exams | A correction resends the same sentence with «تصحيح:» only | Parents don't see the old score | Fine for now |
 | Dashboard | Last 8 weeks and 6 months only, no date range | No term view | A `weeks` query param (max 26) |
 | Dashboard | Archived groups are left out | Last term's groups disappear | Include them with a filter |
@@ -429,3 +432,4 @@ Tick a task when done, with a one-line note (what was done, anything left). Spli
 - [x] **Curriculum editing (Nov 19), backlog #8:** Note: done; migration `0017_curriculum_status` (`status` active/archived on `subjects` and `grade_levels`, unique workspace + Arabic name). Contract: `CurriculumEntry` (with `status`) for the lists, `createCurriculumRequest` (`nameAr`, optional `nameEn` that defaults to the Arabic) and `updateCurriculumRequest` (rename, archive, restore); new codes `CURRICULUM_NAME_TAKEN` (409) and `CURRICULUM_ITEM_NOT_FOUND` (404); the routes are tagged `groups`, so a rename refreshes cached groups. API: a new `curriculum` module (`GET`/`POST /subjects`, `PATCH /subjects/:id`, the same for `/grade-levels`), owner only for writes; a new item goes to the end; a newly picked archived subject or grade is `GROUP_REFERENCE_INVALID` / `STUDENT_REFERENCE_INVALID`, while groups and students that already use it keep it on save. Web: `/curriculum` «المواد والصفوف» under More (owner): subjects and grades as two pills, rows with the other language's name, «⋯» for edit and archive/restore, a sheet to add; the group and student forms hide archived items except the one already chosen. Tests: 5 integration tests (both tables: CRUD, roles, duplicate, blank, 404, another center; archived on groups and students), 10 web specs, `curriculum.spec.ts` (ar/en, 375 px). Left: no reordering (see Known limits).
 - [x] **Batch A · Small fixes (Nov 19), backlog #13, #22, #23, #25, #36–#39 and curriculum order:** Note: done, no migration. `PATCH /sessions/:id` takes `force` (skips `TEACHER_BOOKED`; the room check stays) and the move form offers «انقل على أي حال» (`b4f8b41`). `PUT /members/:id/scopes` checks the member and the teachers and writes in one transaction after the active-owner lock that `PATCH /members/:id` takes, so a teacher removed at the same moment is never left in a scope (`1a3fe91`). `issueToken(now, ttlMs)` in `auth/tokens.ts` issues refresh tokens, staff invites, reset links and student invites (`d71f034`). *Hard part (auth):* a refresh token revoked less than 30 s ago whose family still has a live token gets a new token in the family instead of revoking it, so two tabs refreshing at once stay signed in; after logout or a detected reuse the family has no live token, so the window never reopens it (`93ff77d`, 3 interview questions). `@dafter/i18n` imports its JSON `with { type: 'json' }` and e2e imports the package (`c4c3456`). E2E: a shared `freshCenter(request, prefix, staff)` fixture (joins the seeded teacher and assistant when asked); every API-built group lives in one and none sends `force` (`cb13f5a`). Cloned test databases are dropped `WITH (FORCE)` on close; `run-dafter shot … --as owner [--workspace]` signs in first (`63e1e43`). `PUT /subjects/order` and `/grade-levels/order` (owner, the whole list, `CURRICULUM_ORDER_STALE` 409 when the ids are not exactly the list) and up/down buttons on `/curriculum` (`aecdb04`). Tests: integration tests (forced move, scope race with a removal, grace window inside/outside/after logout, reorder incl. stale/foreign/role), a harness drop test, 2 web specs, e2e «Move anyway» (`timetable.spec.ts`) and reorder (`curriculum.spec.ts`), ar/en at 375 px. Left: #27 stays (see Known limits); the dev API reads `@dafter/contracts` from `dist`, so a running `pnpm dev` needs a restart (or `pnpm --filter @dafter/contracts build`) after a contract change.
 - [x] **Batch B · Students and groups (Nov 19), backlog #9, #12, #14, #16:** Note: done; migration `0018_student_primary_guardian_only` (applied to dev, **not to Neon yet**: it goes with the push after batch E). #9: `extraGuardians` (up to 3) on `POST /students` and `PATCH /students/:id` replaces the non-primary links (left out, they stay); `GUARDIAN_DUPLICATE` / `GUARDIAN_REQUIRED` validation; the form adds, edits and removes them, the summary lists every parent (`d152766`). #16 *(hard part: outbox)*: `students.primary_guardian_only`, the migration copies each center's old `settings.messages.primaryOnly` onto its students; the outbox guardian filter reads the student's flag (no primary still means every guardian); the center switch left the contract and the settings page (an old page's key is dropped); a checkbox on the student form once there is a second parent (`d2170bd`). #12: `roomId` on `PATCH /sessions/:id` (null: no room; `ROOM_NOT_FOUND` for unknown or archived, `ROOM_BOOKED` stays); a room change alone skips the teacher check and texts nobody; a room picker in the move sheet (`7cd2f07`). #14: `GET /stats/trends?from&to&archived=true` (whole Saturday weeks, up to a year, money for the range's months; archived groups that met in those weeks, flagged `archived`); «فترة أخرى» with two dates (a wrong range keeps the last good one) and an «include archived groups» switch (`1c37fce`). Tests: integration (extras, duplicates, promotion; per-student primary only; room-only move, booked/archived/unknown rooms, no message; custom range, archived, validation), web specs, `batch-b.spec.ts` (ar/en, 375 px, fresh centers). Left: the e2e can't build a past session, so archived groups on the dashboard are covered by integration tests only; `nest start --watch` does not reload after a contracts build: restart `pnpm dev`.
+- [x] **Batch C · Money that doesn't wait on the interview (Nov 22), backlog #4, #5, #6, #7 (first half), #15:** Note: done; migration `0019_ledger_checks` (applied to dev, **not to Neon yet**: it goes with the push after batch E). #7: `settings.messages.feeReminderFromDay` (1–28, default 7) read by the fee-overdue enqueue, a day picker under the fee switch; on `PUT /message-settings` it is optional (`UpdateMessageSettingsRequest`) and the save merges into the saved settings, so an older page keeps the day (`c335090`, `d7f37cc`). #6: `GET /stats/cash-summary?date&to&userId`: up to 31 days (`RANGE_INCOMPLETE`, `RANGE_ENDS_BEFORE_START`, `RANGE_TOO_LONG`), `userId` for the owner only (others `FORBIDDEN`, a non-member 400), response gains `to`; from/to dates and a staff picker, each line shows its day in a range (`71df330`). #5: `GET /me/balance` (each center where the student has entries: balance over every group and the last 20 entries), «مصروفاتي» card in the student app (`fa72da2`). #4 *(hard part: ledger)*: the daily job (worker and `/internal/tick?daily=1`, which reports `ledgerProblems`) recounts each workspace's entries up to the last check's cutoff against the stored count and sum, checks that every reversal is minus its original for the same student and group (and not of a reversal) and that the receipt counter isn't behind, then stores tonight's totals with a cutoff 5 minutes back (open transactions) in append-only `ledger_checks` (RLS, `UPDATE`/`DELETE` revoked) and logs each problem (`7a53586`). #15: CSV export of the grid (UTF-8 BOM, `student_id,name,score,absent`, formula-looking cells defused) and import matched by `student_id` (any column order, Excel `;` files, absent as 1/x/yes/نعم/غ), bad lines listed, only fills the grid until saved; all in the browser (`b3746c7`). Tests: integration (start day incl. a later day and an older page; ranges, person, roles, validation; my balance across centers and siblings; a clean ledger, then a changed charge, a broken reversal and a reset counter, append-only checks, logging), RLS suite row, contract range rules, web specs (day picker, range and person, My fees, CSV round trip), e2e (`messages.spec.ts` day picker, `cash-summary.spec.ts` person and week, `exams.spec.ts` balance in the student app and a CSV round trip); full e2e 80 passed. Also fixed: a rooms web spec bound to last week's fixture dates. CI: the push of `1f1c540` failed only the oasdiff breaking-change step, on batch B's intended removal of `primaryOnly` from the message-settings response; the next push is compared with `1f1c540`, so it clears without a `BREAKING CHANGE` footer (checked locally: no breaking changes from `1f1c540` to batch C's head).
